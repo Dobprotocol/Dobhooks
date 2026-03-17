@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>dobdex — Protocol</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 89 89'><circle cx='44.9' cy='44' r='44' fill='%23597CE9'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #101010;
+      --bg-card: #1E1E1E;
+      --bg-elevated: #252526;
+      --border: #474748;
+      --border-dim: #2a2a2b;
+      --text-1: #F9FAFE;
+      --text-2: #CFCFD3;
+      --text-3: #848484;
+      --accent: #975AFF;
+      --accent-hover: #B583FF;
+      --accent-light: #C89CFF;
+      --accent-dim: rgba(151,90,255,0.12);
+      --blue: #597CE9;
+      --blue-dim: rgba(89,124,233,0.12);
+      --green: #40C057;
+      --green-dim: rgba(64,192,87,0.12);
+      --red: #F55252;
+      --red-dim: rgba(245,82,82,0.12);
+      --warning: #F77E17;
+      --warning-dim: rgba(247,126,23,0.12);
+      --font: 'Inter', system-ui, -apple-system, sans-serif;
+      --mono: 'JetBrains Mono', monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; zoom: 1.5; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text-1);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* NAV */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 40px; height: 64px;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(16,16,16,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo svg { width: 28px; height: 28px; }
+    .nav-logo span { font-size: 16px; font-weight: 800; color: var(--text-1); }
+    .nav-logo span b { color: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-links a { color: var(--text-3); text-decoration: none; font-size: 13px; font-weight: 500; transition: color 0.15s; }
+    .nav-links a:hover { color: var(--text-1); }
+    .nav-links a.active { color: var(--accent-light); }
+    .nav-cta {
+      padding: 8px 22px; border-radius: 8px; border: none;
+      background: var(--accent); color: white;
+      font-family: var(--font); font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: all 0.15s; text-decoration: none;
+    }
+    .nav-cta:hover { background: var(--accent-hover); }
+
+    /* HERO */
+    .proto-hero {
+      padding: 140px 40px 80px;
+      text-align: center;
+      position: relative;
+    }
+    .proto-hero .hero-glow {
+      position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.08; pointer-events: none;
+    }
+    .proto-hero .glow-1 { background: var(--accent); width: 500px; height: 500px; top: 0; left: 15%; }
+    .proto-hero .glow-2 { background: var(--blue); width: 400px; height: 400px; top: 10%; right: 10%; }
+    .proto-hero h1 {
+      font-size: 52px; font-weight: 900; letter-spacing: -2.5px;
+      line-height: 1.1; margin-bottom: 16px;
+    }
+    .proto-hero h1 .grad {
+      background: linear-gradient(135deg, var(--accent-light), var(--blue));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .proto-hero p {
+      font-size: 17px; color: var(--text-2); max-width: 600px;
+      margin: 0 auto 40px; line-height: 1.7;
+    }
+
+    /* TABLE OF CONTENTS */
+    .toc {
+      display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .toc a {
+      padding: 6px 16px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg-card);
+      color: var(--text-2); text-decoration: none;
+      font-size: 12px; font-weight: 600; transition: all 0.15s;
+    }
+    .toc a:hover { border-color: var(--accent); color: var(--accent-light); background: var(--accent-dim); }
+
+    /* SECTIONS */
+    .section {
+      padding: 80px 40px; max-width: 960px; margin: 0 auto;
+    }
+    .section-tag {
+      display: inline-block; padding: 4px 14px; border-radius: 999px;
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      margin-bottom: 16px;
+    }
+    .section h2 { font-size: 36px; font-weight: 900; letter-spacing: -1.5px; margin-bottom: 12px; }
+    .section .sub { font-size: 15px; color: var(--text-2); max-width: 560px; line-height: 1.7; margin-bottom: 40px; }
+
+    /* ARCHITECTURE DIAGRAM */
+    .arch-diagram {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 48px 32px;
+      position: relative; overflow: hidden;
+    }
+    .arch-diagram::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(151,90,255,0.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .arch-layers {
+      display: flex; flex-direction: column; gap: 24px;
+      position: relative; z-index: 1;
+    }
+    .arch-layer {
+      display: flex; align-items: stretch; gap: 16px;
+      justify-content: center;
+    }
+    .arch-box {
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px 24px;
+      text-align: center; flex: 1; max-width: 260px;
+      position: relative; transition: all 0.2s;
+    }
+    .arch-box:hover { border-color: rgba(151,90,255,0.4); transform: translateY(-2px); }
+    .arch-box .box-label {
+      font-family: var(--mono); font-size: 11px; font-weight: 600;
+      padding: 2px 8px; border-radius: 4px;
+      display: inline-block; margin-bottom: 8px;
+    }
+    .arch-box h4 { font-size: 14px; font-weight: 800; margin-bottom: 4px; }
+    .arch-box p { font-size: 11px; color: var(--text-3); line-height: 1.5; }
+    .arch-connector {
+      display: flex; justify-content: center; align-items: center;
+      gap: 8px; color: var(--text-3); font-size: 11px; font-weight: 600;
+      padding: 4px 0;
+    }
+    .arch-connector .arrow {
+      width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+      background: var(--accent-dim); border-radius: 50%; color: var(--accent-light);
+      font-size: 12px;
+    }
+
+    /* CONTRACT CARDS */
+    .contract-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .contract-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px; transition: all 0.2s;
+    }
+    .contract-card:hover { border-color: rgba(151,90,255,0.3); transform: translateY(-2px); }
+    .contract-card .cc-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+    }
+    .contract-card .cc-icon {
+      width: 42px; height: 42px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .contract-card .cc-name {
+      font-family: var(--mono); font-size: 13px; font-weight: 700;
+    }
+    .contract-card .cc-role {
+      font-size: 11px; color: var(--text-3); font-weight: 500;
+    }
+    .contract-card .cc-body { font-size: 13px; color: var(--text-2); line-height: 1.65; margin-bottom: 16px; }
+    .contract-card .cc-funcs {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .contract-card .cc-func {
+      font-family: var(--mono); font-size: 10px; font-weight: 600;
+      padding: 3px 8px; border-radius: 4px;
+      background: var(--bg-elevated); border: 1px solid var(--border-dim);
+      color: var(--text-3);
+    }
+
+    /* FLOW SECTION */
+    .flow-container {
+      position: relative;
+    }
+    .flow-track {
+      position: absolute; left: 28px; top: 0; bottom: 0; width: 2px;
+      background: linear-gradient(180deg, var(--accent), var(--blue), var(--green), var(--red));
+      border-radius: 1px;
+    }
+    .flow-step {
+      display: flex; gap: 24px; padding: 0 0 48px;
+      position: relative;
+    }
+    .flow-step:last-child { padding-bottom: 0; }
+    .flow-dot {
+      width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 900; position: relative; z-index: 1;
+    }
+    .flow-content {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px; flex: 1;
+      transition: all 0.2s;
+    }
+    .flow-content:hover { border-color: rgba(151,90,255,0.3); }
+    .flow-content h3 { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
+    .flow-content .flow-sub {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.5px; margin-bottom: 10px;
+    }
+    .flow-content p { font-size: 13px; color: var(--text-2); line-height: 1.65; }
+    .flow-content .code-line {
+      font-family: var(--mono); font-size: 11px;
+      background: var(--bg-elevated); border: 1px solid var(--border-dim);
+      border-radius: 6px; padding: 8px 12px; margin-top: 12px;
+      color: var(--accent-light); overflow-x: auto;
+    }
+
+    /* LIQUIDATION SECTION */
+    .liq-visual {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 40px 32px;
+    }
+    .liq-scenario {
+      display: grid; grid-template-columns: 1fr auto 1fr; gap: 20px;
+      align-items: center; margin-bottom: 32px;
+    }
+    .liq-scenario:last-child { margin-bottom: 0; }
+    .liq-box {
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px; text-align: center;
+    }
+    .liq-box .val {
+      font-size: 28px; font-weight: 900; letter-spacing: -1px;
+    }
+    .liq-box .lbl { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+    .liq-arrow {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      color: var(--text-3); font-size: 10px; font-weight: 700;
+    }
+    .liq-arrow .arr {
+      font-size: 20px; color: var(--accent);
+    }
+    .liq-label {
+      text-align: center; margin-bottom: 24px;
+    }
+    .liq-label h3 { font-size: 15px; font-weight: 800; margin-bottom: 4px; }
+    .liq-label p { font-size: 12px; color: var(--text-3); }
+
+    /* LP SECTION */
+    .lp-timeline {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+    }
+    .lp-phase {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px 20px; text-align: center;
+      position: relative; transition: all 0.2s;
+    }
+    .lp-phase:hover { border-color: rgba(64,192,87,0.3); transform: translateY(-2px); }
+    .lp-phase .phase-num {
+      font-family: var(--mono); font-size: 10px; font-weight: 700;
+      color: var(--green); text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+    .lp-phase h4 { font-size: 14px; font-weight: 800; margin-bottom: 6px; }
+    .lp-phase p { font-size: 11px; color: var(--text-2); line-height: 1.5; }
+    .lp-phase .phase-detail {
+      font-family: var(--mono); font-size: 10px;
+      background: var(--bg-elevated); border-radius: 4px;
+      padding: 4px 8px; margin-top: 10px;
+      color: var(--green); display: inline-block;
+    }
+
+    /* SAFETY SECTION */
+    .safety-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .safety-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px; transition: all 0.2s;
+    }
+    .safety-card:hover { border-color: rgba(245,82,82,0.3); }
+    .safety-card .s-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; margin-bottom: 14px;
+    }
+    .safety-card h4 { font-size: 14px; font-weight: 800; margin-bottom: 6px; }
+    .safety-card p { font-size: 12px; color: var(--text-2); line-height: 1.55; }
+    .safety-card .s-val {
+      font-family: var(--mono); font-size: 11px; font-weight: 700;
+      margin-top: 10px; color: var(--warning);
+    }
+
+    /* DIVIDER */
+    .divider {
+      max-width: 960px; margin: 0 auto;
+      border: none; border-top: 1px solid var(--border-dim);
+    }
+
+    /* FOOTER */
+    footer {
+      padding: 32px 40px; border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 11px; color: var(--text-3); max-width: 960px; margin: 0 auto;
+      flex-wrap: wrap; gap: 8px;
+    }
+    .flogo { display: flex; align-items: center; gap: 8px; }
+    .flogo svg { width: 20px; height: 20px; }
+    footer a { color: var(--accent); text-decoration: none; }
+    .ftags { display: flex; gap: 6px; }
+    .ftags span { padding: 2px 8px; border-radius: 4px; background: var(--bg-card); font-family: var(--mono); font-size: 10px; }
+
+    @media (max-width: 900px) {
+      .nav-links { display: none; }
+      nav { padding: 0 20px; }
+      .proto-hero h1 { font-size: 36px; letter-spacing: -2px; }
+      .contract-grid { grid-template-columns: 1fr; }
+      .lp-timeline { grid-template-columns: repeat(2, 1fr); }
+      .safety-grid { grid-template-columns: 1fr; }
+      .section { padding: 60px 20px; }
+      .arch-layer { flex-direction: column; align-items: center; }
+      .arch-box { max-width: 100%; }
+      .liq-scenario { grid-template-columns: 1fr; }
+      .liq-arrow { transform: rotate(90deg); }
+    }
+    @media (max-width: 600px) {
+      .proto-hero h1 { font-size: 28px; }
+      .lp-timeline { grid-template-columns: 1fr; }
+      .toc { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a class="nav-logo" href="landing.html">
+      <svg viewBox="0 0 89 89" fill="none"><circle cx="44.9" cy="44" r="44" fill="#597CE9"/><path d="M35.5 54.1C33.1 51.5 31.9 48.2 31.9 44C31.9 39.8 33.1 36.5 35.5 33.9C36.9 32.4 38.6 31.3 40.6 30.7V22C38 22.4 35.6 23.2 33.4 24.5C30.1 26.4 27.5 29 25.7 32.3C23.9 35.7 23 39.6 23 44.1C23 48.6 23.9 52.5 25.7 55.8C27.5 59.2 30.1 61.7 33.4 63.6C35.6 64.8 38 65.6 40.6 66V57.3C38.6 56.7 36.9 55.6 35.5 54.1Z" fill="#F9FAFE"/><path d="M64.1 32.3C62.2 29 59.7 26.4 56.4 24.5C54.2 23.2 51.8 22.4 49.2 22V30.7C51.2 31.4 52.9 32.4 54.3 34C56.7 36.6 57.9 39.9 57.9 44.1C57.9 48.3 56.7 51.5 54.3 54.1C52.9 55.6 51.2 56.7 49.2 57.3V66C51.8 65.6 54.2 64.8 56.4 63.6C59.7 61.7 62.2 59.1 64.1 55.8C65.9 52.5 66.9 48.6 66.9 44.1C66.9 39.6 65.9 35.7 64.1 32.3Z" fill="#F9FAFE"/><circle cx="44.9" cy="44" r="5.5" fill="#F9FAFE"/></svg>
+      <span><b>dob</b>dex</span>
+    </a>
+    <div class="nav-links">
+      <a href="landing.html">Home</a>
+      <a href="protocol.html" class="active">Protocol</a>
+      <a href="demo.html">Demo</a>
+      <a href="deck.html">Pitch</a>
+      <a href="landing.html#features">Features</a>
+    </div>
+    <a class="nav-cta" href="index.html">Launch App</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="proto-hero">
+    <div class="hero-glow glow-1"></div>
+    <div class="hero-glow glow-2"></div>
+    <h1>How <span class="grad">dobdex</span> Works</h1>
+    <p>A deep dive into the protocol architecture: how real-world assets are tokenized, priced by oracles, swapped at a 1:1 peg via Uniswap V4 Custom Accounting, and backed by permissionless liquidity nodes.</p>
+    <div class="toc">
+      <a href="#ecosystem">Ecosystem</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#contracts">Contracts</a>
+      <a href="#oracle">Oracle</a>
+      <a href="#flow">Swap Flow</a>
+      <a href="#liquidation">Liquidation</a>
+      <a href="#lp">Liquidity Nodes</a>
+      <a href="#trust">Trust Flywheel</a>
+      <a href="#safety">Safety</a>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ECOSYSTEM PIPELINE -->
+  <section class="section" id="ecosystem">
+    <div class="section-tag" style="background:var(--blue-dim);color:var(--blue);">Ecosystem</div>
+    <h2>From Real World to On-Chain Liquidity</h2>
+    <p class="sub">Dobdex is the final step in the Dobprotocol pipeline. Three products work together to bring real-world assets on-chain.</p>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; position:relative;">
+
+      <!-- Step 1: Validator -->
+      <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:16px 0 0 16px; padding:32px 24px; position:relative; z-index:1;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+          <div style="width:36px; height:36px; border-radius:50%; background:var(--warning); display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:900; color:white;">1</div>
+          <div style="font-size:11px; font-weight:700; color:var(--warning); text-transform:uppercase; letter-spacing:0.5px;">Validate</div>
+        </div>
+        <h3 style="font-size:18px; font-weight:900; margin-bottom:6px;">DobValidator</h3>
+        <p style="font-size:12px; color:var(--text-2); line-height:1.6; margin-bottom:16px;">Asset owners register their real-world assets. Dobprotocol's AI agents validate them, assess their value, and create oracle price feeds.</p>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-family:var(--mono); font-size:10px; background:var(--bg-elevated); border-radius:4px; padding:4px 8px; color:var(--text-3);">Asset registration</span>
+          <span style="font-family:var(--mono); font-size:10px; background:var(--bg-elevated); border-radius:4px; padding:4px 8px; color:var(--text-3);">AI validation</span>
+          <span style="font-family:var(--mono); font-size:10px; background:var(--bg-elevated); border-radius:4px; padding:4px 8px; color:var(--text-3);">Oracle price feeds</span>
+        </div>
+        <a href="https://validator.dobprotocol.com" target="_blank" style="display:inline-flex; align-items:center; gap:6px; margin-top:16px; font-size:11px; font-weight:700; color:var(--warning); text-decoration:none; border:1px solid rgba(247,126,23,0.3); padding:6px 12px; border-radius:6px; transition:all 0.15s;">
+          validator.dobprotocol.com &#8599;
+        </a>
+      </div>
+
+      <!-- Arrow 1→2 -->
+      <div style="position:absolute; left:calc(33.33% - 14px); top:50%; transform:translateY(-50%); z-index:2; width:28px; height:28px; border-radius:50%; background:var(--bg); border:2px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:14px; color:var(--accent);">&#8594;</div>
+
+      <!-- Step 2: Token Studio -->
+      <div style="background:var(--bg-card); border:1px solid var(--border); border-left:none; border-right:none; padding:32px 24px; position:relative;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+          <div style="width:36px; height:36px; border-radius:50%; background:var(--blue); display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:900; color:white;">2</div>
+          <div style="font-size:11px; font-weight:700; color:var(--blue); text-transform:uppercase; letter-spacing:0.5px;">Tokenize</div>
+        </div>
+        <h3 style="font-size:18px; font-weight:900; margin-bottom:6px;">Token Studio</h3>
+        <p style="font-size:12px; color:var(--text-2); line-height:1.6; margin-bottom:16px;">Validated assets are tokenized into ERC-20 participation tokens. Each token represents fractional ownership of the underlying real-world asset.</p>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-family:var(--mono); font-size:10px; background:var(--bg-elevated); border-radius:4px; padding:4px 8px; color:var(--text-3);">ERC-20 creation</span>
+          <span style="font-family:var(--mono); font-size:10px; background:var(--bg-elevated); border-radius:4px; padding:4px 8px; color:var(--text-3);">Fractional ownership</span>
+          <span style="font-family:var(--mono); font-size:10px; background:var(--bg-elevated); border-radius:4px; padding:4px 8px; color:var(--text-3);">Distribution contracts</span>
+        </div>
+        <a href="https://tokenize.dobprotocol.com" target="_blank" style="display:inline-flex; align-items:center; gap:6px; margin-top:16px; font-size:11px; font-weight:700; color:var(--blue); text-decoration:none; border:1px solid rgba(89,124,233,0.3); padding:6px 12px; border-radius:6px; transition:all 0.15s;">
+          tokenize.dobprotocol.com &#8599;
+        </a>
+      </div>
+
+      <!-- Arrow 2→3 -->
+      <div style="position:absolute; left:calc(66.66% - 14px); top:50%; transform:translateY(-50%); z-index:2; width:28px; height:28px; border-radius:50%; background:var(--bg); border:2px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:14px; color:var(--accent);">&#8594;</div>
+
+      <!-- Step 3: Dobdex -->
+      <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:0 16px 16px 0; padding:32px 24px; position:relative;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+          <div style="width:36px; height:36px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:900; color:white;">3</div>
+          <div style="font-size:11px; font-weight:700; color:var(--accent-light); text-transform:uppercase; letter-spacing:0.5px;">Trade</div>
+        </div>
+        <h3 style="font-size:18px; font-weight:900; margin-bottom:6px;">Dobdex</h3>
+        <p style="font-size:12px; color:var(--text-2); line-height:1.6; margin-bottom:16px;">Dobprotocol lists the token on the DEX. Users deposit RWA tokens, mint dobRWA, and swap at a 1:1 oracle peg with zero slippage. LPs provide exit liquidity.</p>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <span style="font-family:var(--mono); font-size:10px; background:var(--bg-elevated); border-radius:4px; padding:4px 8px; color:var(--text-3);">1:1 peg swaps</span>
+          <span style="font-family:var(--mono); font-size:10px; background:var(--bg-elevated); border-radius:4px; padding:4px 8px; color:var(--text-3);">Liquidation engine</span>
+          <span style="font-family:var(--mono); font-size:10px; background:var(--bg-elevated); border-radius:4px; padding:4px 8px; color:var(--text-3);">Permissionless LPs</span>
+        </div>
+        <a href="https://dex.dobprotocol.com" target="_blank" style="display:inline-flex; align-items:center; gap:6px; margin-top:16px; font-size:11px; font-weight:700; color:var(--accent-light); text-decoration:none; border:1px solid rgba(151,90,255,0.3); padding:6px 12px; border-radius:6px; transition:all 0.15s;">
+          dex.dobprotocol.com &#8599;
+        </a>
+      </div>
+
+    </div>
+
+    <!-- Summary bar -->
+    <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:16px 24px; margin-top:16px; text-align:center;">
+      <span style="font-size:12px; color:var(--text-2);">
+        <strong style="color:var(--warning);">Real-world asset</strong>
+        &nbsp;&#8594;&nbsp;
+        <strong style="color:var(--blue);">ERC-20 token</strong>
+        &nbsp;&#8594;&nbsp;
+        <strong style="color:var(--accent-light);">dobRWA</strong>
+        &nbsp;&#8594;&nbsp;
+        <strong style="color:var(--green);">USDC</strong>
+      </span>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ARCHITECTURE -->
+  <section class="section" id="architecture">
+    <div class="section-tag" style="background:var(--accent-dim);color:var(--accent-light);">Architecture</div>
+    <h2>Dobdex Contracts</h2>
+    <p class="sub">Four smart contracts work together to create a trustless RWA liquidity layer on top of Uniswap V4.</p>
+
+    <div class="arch-diagram">
+      <!-- Layer 1: User entry -->
+      <div class="arch-layers">
+        <div class="arch-layer">
+          <div class="arch-box">
+            <span class="box-label" style="background:var(--blue-dim);color:var(--blue);">Entry Point</span>
+            <h4>RWA Token Holders</h4>
+            <p>Users holding tokenized real-world assets (DCT, SFT, RET, PWG)</p>
+          </div>
+          <div class="arch-box">
+            <span class="box-label" style="background:var(--green-dim);color:var(--green);">Entry Point</span>
+            <h4>USDC Liquidity Providers</h4>
+            <p>LPs depositing USDC to back assets and earn discounted dobRWA</p>
+          </div>
+        </div>
+
+        <div class="arch-connector">
+          <span class="arrow">&#8595;</span> deposit RWA
+          <span style="margin: 0 32px;"></span>
+          <span class="arrow">&#8595;</span> deposit USDC
+        </div>
+
+        <!-- Layer 2: Core contracts -->
+        <div class="arch-layer">
+          <div class="arch-box" style="border-color: rgba(89,124,233,0.3);">
+            <span class="box-label" style="background:var(--blue-dim);color:var(--blue);">DobRwaVault</span>
+            <h4>RWA Vault</h4>
+            <p>Accepts RWA deposits, queries oracle, mints dobRWA at oracle price</p>
+          </div>
+          <div class="arch-box" style="border-color: rgba(151,90,255,0.3);">
+            <span class="box-label" style="background:var(--accent-dim);color:var(--accent);">DobPegHook</span>
+            <h4>Uniswap V4 Hook</h4>
+            <p>NoOp custom accounting: executes dobRWA/USDC swaps at exact 1:1 peg</p>
+          </div>
+          <div class="arch-box" style="border-color: rgba(64,192,87,0.3);">
+            <span class="box-label" style="background:var(--green-dim);color:var(--green);">DobLPRegistry</span>
+            <h4>LP Registry</h4>
+            <p>Permissionless LP system with conditional fills and FIFO ordering</p>
+          </div>
+        </div>
+
+        <div class="arch-connector">
+          <span class="arrow">&#8595;</span> reads prices
+        </div>
+
+        <!-- Layer 3: Oracle -->
+        <div class="arch-layer" style="justify-content: center;">
+          <div class="arch-box" style="max-width: 360px; border-color: rgba(247,126,23,0.3);">
+            <span class="box-label" style="background:var(--warning-dim);color:var(--warning);">DobValidatorRegistry</span>
+            <h4>Oracle &amp; Liquidation Registry</h4>
+            <p>AI validator agents submit USD prices for each RWA. Controls liquidation mode, penalty rates, and per-asset &amp; global caps.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- CONTRACTS -->
+  <section class="section" id="contracts">
+    <div class="section-tag" style="background:var(--blue-dim);color:var(--blue);">Smart Contracts</div>
+    <h2>Contract Details</h2>
+    <p class="sub">Each contract has a single responsibility, composed together for the full protocol.</p>
+
+    <div class="contract-grid">
+      <div class="contract-card">
+        <div class="cc-header">
+          <div class="cc-icon" style="background:var(--blue-dim);">&#127974;</div>
+          <div>
+            <div class="cc-name">DobRwaVault.sol</div>
+            <div class="cc-role">ERC-20 + Vault</div>
+          </div>
+        </div>
+        <div class="cc-body">
+          The vault is both the RWA depository and the <strong>dobRWA token</strong> itself (inherits ERC-20). When a user deposits an approved RWA token, the vault queries the DobValidatorRegistry oracle for its USD price and mints <code>amount * priceUsd / 1e18</code> dobRWA tokens. Minted dobRWA represents a unified, fungible claim on the underlying basket of real-world assets.
+        </div>
+        <div class="cc-funcs">
+          <span class="cc-func">deposit()</span>
+          <span class="cc-func">addApprovedAsset()</span>
+          <span class="cc-func">burn()</span>
+          <span class="cc-func">setHook()</span>
+        </div>
+      </div>
+
+      <div class="contract-card">
+        <div class="cc-header">
+          <div class="cc-icon" style="background:var(--warning-dim);">&#128270;</div>
+          <div>
+            <div class="cc-name">DobValidatorRegistry.sol</div>
+            <div class="cc-role">Oracle + Liquidation Config</div>
+          </div>
+        </div>
+        <div class="cc-body">
+          On-chain oracle managed by Dobprotocol. Maps each RWA token to a <strong>18-decimal USD price</strong> with a freshness timestamp. Dobprotocol's AI validator agents update prices as asset values change. Also stores liquidation parameters per asset: whether liquidation mode is enabled, the penalty rate in basis points, per-asset caps, and a global cap across all assets.
+        </div>
+        <div class="cc-funcs">
+          <span class="cc-func">setPrice()</span>
+          <span class="cc-func">getPrice()</span>
+          <span class="cc-func">setLiquidationParams()</span>
+          <span class="cc-func">recordLiquidation()</span>
+        </div>
+      </div>
+
+      <div class="contract-card">
+        <div class="cc-header">
+          <div class="cc-icon" style="background:var(--accent-dim);">&#9881;</div>
+          <div>
+            <div class="cc-name">DobPegHook.sol</div>
+            <div class="cc-role">Uniswap V4 Hook</div>
+          </div>
+        </div>
+        <div class="cc-body">
+          The core innovation. A Uniswap V4 <strong>Custom Accounting Hook</strong> that intercepts every swap via <code>beforeSwap</code> and executes it off-AMM at an exact 1:1 oracle-pegged rate. Uses the NoOp pattern: settles output tokens and mints ERC6909 claims for input tokens, creating zero-net deltas. In liquidation mode, applies a penalty discount and routes fills through the LP Registry.
+        </div>
+        <div class="cc-funcs">
+          <span class="cc-func">_beforeSwap()</span>
+          <span class="cc-func">seedUsdc()</span>
+          <span class="cc-func">releaseDobRwa()</span>
+          <span class="cc-func">unlockCallback()</span>
+        </div>
+      </div>
+
+      <div class="contract-card">
+        <div class="cc-header">
+          <div class="cc-icon" style="background:var(--green-dim);">&#128176;</div>
+          <div>
+            <div class="cc-name">DobLPRegistry.sol</div>
+            <div class="cc-role">Permissionless LP System</div>
+          </div>
+        </div>
+        <div class="cc-body">
+          LPs deposit USDC and set per-asset <strong>conditions</strong>: minimum oracle price, minimum penalty, max exposure, and USDC allocation. During liquidations, the hook calls <code>queryAndFill</code> which iterates backers in FIFO order, checks conditions, and fills willing LPs. LPs receive discounted dobRWA (buy at penalty price), claimable via the hook's ERC6909 burn mechanism.
+        </div>
+        <div class="cc-funcs">
+          <span class="cc-func">register()</span>
+          <span class="cc-func">backAsset()</span>
+          <span class="cc-func">queryAndFill()</span>
+          <span class="cc-func">claimDobRwa()</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ORACLE LIFECYCLE -->
+  <section class="section" id="oracle">
+    <div class="section-tag" style="background:var(--warning-dim);color:var(--warning);">Oracle</div>
+    <h2>Oracle &amp; Asset Onboarding</h2>
+    <p class="sub">Assets don't appear on their own. Dobprotocol's AI validator agents manage the full lifecycle: approval, pricing, and liquidation triggers.</p>
+
+    <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:20px; padding:40px 32px;">
+
+      <!-- Step-by-step lifecycle -->
+      <div style="display:grid; grid-template-columns:auto 1fr; gap:0; margin-bottom:32px;">
+
+        <!-- Step 1 -->
+        <div style="display:flex; flex-direction:column; align-items:center; padding-right:20px;">
+          <div style="width:36px; height:36px; border-radius:50%; background:var(--warning); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:900; color:white;">1</div>
+          <div style="width:2px; flex:1; background:linear-gradient(180deg, var(--warning), var(--blue)); margin:8px 0;"></div>
+        </div>
+        <div style="padding-bottom:28px;">
+          <div style="font-size:11px; font-weight:700; color:var(--warning); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Asset Registration</div>
+          <h4 style="font-size:15px; font-weight:800; margin-bottom:6px;">Dobprotocol registers the RWA token price</h4>
+          <p style="font-size:13px; color:var(--text-2); line-height:1.6; margin-bottom:10px;">Dobprotocol's AI validator agents evaluate the real-world asset and publish its USD price on-chain. Only Dobprotocol can set and update prices &mdash; this is not self-service.</p>
+          <div style="font-family:var(--mono); font-size:11px; background:var(--bg-elevated); border:1px solid var(--border-dim); border-radius:6px; padding:8px 12px; color:var(--warning);">
+            DobValidatorRegistry.setPrice(tokenAddress, priceUsd)
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div style="display:flex; flex-direction:column; align-items:center; padding-right:20px;">
+          <div style="width:36px; height:36px; border-radius:50%; background:var(--blue); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:900; color:white;">2</div>
+          <div style="width:2px; flex:1; background:linear-gradient(180deg, var(--blue), var(--green)); margin:8px 0;"></div>
+        </div>
+        <div style="padding-bottom:28px;">
+          <div style="font-size:11px; font-weight:700; color:var(--blue); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Vault Approval</div>
+          <h4 style="font-size:15px; font-weight:800; margin-bottom:6px;">Dobprotocol whitelists the token in the Vault</h4>
+          <p style="font-size:13px; color:var(--text-2); line-height:1.6; margin-bottom:10px;">Dobprotocol adds the RWA token to the DobRwaVault's approved list. Only approved tokens can be deposited by users.</p>
+          <div style="font-family:var(--mono); font-size:11px; background:var(--bg-elevated); border:1px solid var(--border-dim); border-radius:6px; padding:8px 12px; color:var(--blue);">
+            DobRwaVault.addApprovedAsset(tokenAddress)
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div style="display:flex; flex-direction:column; align-items:center; padding-right:20px;">
+          <div style="width:36px; height:36px; border-radius:50%; background:var(--green); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:900; color:white;">3</div>
+          <div style="width:2px; flex:1; background:linear-gradient(180deg, var(--green), var(--accent)); margin:8px 0;"></div>
+        </div>
+        <div style="padding-bottom:28px;">
+          <div style="font-size:11px; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Active</div>
+          <h4 style="font-size:15px; font-weight:800; margin-bottom:6px;">Users can deposit RWA and mint dobRWA</h4>
+          <p style="font-size:13px; color:var(--text-2); line-height:1.6; margin-bottom:10px;">With price set and token approved, users can deposit the RWA token. The vault reads the oracle price and mints dobRWA proportional to the asset's valuation. Dobprotocol continuously updates the price as the real-world asset's value changes.</p>
+          <div style="font-family:var(--mono); font-size:11px; background:var(--bg-elevated); border:1px solid var(--border-dim); border-radius:6px; padding:8px 12px; color:var(--green);">
+            mintAmount = (amount * priceUsd) / 1e18
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div style="display:flex; flex-direction:column; align-items:center; padding-right:20px;">
+          <div style="width:36px; height:36px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:900; color:white;">4</div>
+        </div>
+        <div>
+          <div style="font-size:11px; font-weight:700; color:var(--red); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">If Distressed</div>
+          <h4 style="font-size:15px; font-weight:800; margin-bottom:6px;">Dobprotocol can activate liquidation mode</h4>
+          <p style="font-size:13px; color:var(--text-2); line-height:1.6; margin-bottom:10px;">If the underlying RWA becomes distressed, Dobprotocol enables liquidation mode with a penalty rate and cap. This triggers the liquidation engine for that asset, allowing distressed sellers to exit at a discount.</p>
+          <div style="font-family:var(--mono); font-size:11px; background:var(--bg-elevated); border:1px solid var(--border-dim); border-radius:6px; padding:8px 12px; color:var(--red);">
+            DobValidatorRegistry.setLiquidationParams(token, penaltyBps, cap)
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Key callout -->
+      <div style="background:var(--warning-dim); border:1px solid rgba(247,126,23,0.2); border-radius:10px; padding:16px 20px; display:flex; gap:12px; align-items:flex-start;">
+        <div style="font-size:18px; flex-shrink:0; margin-top:2px;">&#9888;</div>
+        <div>
+          <div style="font-size:12px; font-weight:800; color:var(--warning); margin-bottom:4px;">Dobprotocol manages the oracle</div>
+          <div style="font-size:12px; color:var(--text-2); line-height:1.55;">Users cannot register their own RWA assets or set prices. Dobprotocol is the sole authority for price feeds, asset approvals, and liquidation triggers. Real-world asset valuation requires off-chain verification &mdash; Dobprotocol's AI validator agents handle this, bridging the off-chain assessment to on-chain price updates.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- SWAP FLOW -->
+  <section class="section" id="flow">
+    <div class="section-tag" style="background:var(--accent-dim);color:var(--accent-light);">Core Mechanism</div>
+    <h2>Selling RWA: The Secondary Sale</h2>
+    <p class="sub">Dobdex is a secondary sale liquidity layer. Asset holders sell their RWA positions for USDC. There is no buy-side &mdash; purchasing RWA tokens happens on <a href="https://tokenize.dobprotocol.com" target="_blank" style="color:var(--blue); text-decoration:none;">Token Studio</a>.</p>
+
+    <!-- Two modes callout -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:32px;">
+      <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:20px;">
+        <div style="font-size:11px; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Normal Mode</div>
+        <h4 style="font-size:14px; font-weight:800; margin-bottom:6px;">1:1 Peg Swap</h4>
+        <p style="font-size:12px; color:var(--text-2); line-height:1.55; margin-bottom:10px;">Asset is healthy. User sells dobRWA and receives USDC at exact 1:1 rate. USDC comes from the <strong style="color:var(--text-1);">hook's own reserves</strong> (seeded by the protocol).</p>
+        <div style="font-family:var(--mono); font-size:10px; background:var(--bg-elevated); border-radius:4px; padding:6px 10px; color:var(--green);">Liquidity Nodes: NOT involved</div>
+      </div>
+      <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:20px;">
+        <div style="font-size:11px; font-weight:700; color:var(--red); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Liquidation Mode</div>
+        <h4 style="font-size:14px; font-weight:800; margin-bottom:6px;">Penalty Swap</h4>
+        <p style="font-size:12px; color:var(--text-2); line-height:1.55; margin-bottom:10px;">Asset is distressed. User sells dobRWA at a discount (e.g., -20%). USDC comes from <strong style="color:var(--text-1);">Liquidity Node LPs</strong> who earn discounted dobRWA in return.</p>
+        <div style="font-family:var(--mono); font-size:10px; background:var(--bg-elevated); border-radius:4px; padding:6px 10px; color:var(--red);">Liquidity Nodes: ACTIVE (queryAndFill)</div>
+      </div>
+    </div>
+
+    <h3 style="font-size:16px; font-weight:800; margin-bottom:20px;">Normal Sale Flow (step by step)</h3>
+
+    <div class="flow-container">
+      <div class="flow-track"></div>
+
+      <div class="flow-step">
+        <div class="flow-dot" style="background:var(--accent);">1</div>
+        <div class="flow-content">
+          <div class="flow-sub" style="color:var(--accent-light);">Deposit &amp; Mint</div>
+          <h3>User deposits RWA into the Vault</h3>
+          <p>A user holding a tokenized real-world asset (e.g., DCT representing debt certificates) deposits it into DobRwaVault. The vault queries the DobValidatorRegistry for the current USD price and mints dobRWA proportional to the asset's oracle valuation.</p>
+          <div class="code-line">mintAmount = (amount * priceUsd) / 1e18</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-dot" style="background:var(--blue);">2</div>
+        <div class="flow-content">
+          <div class="flow-sub" style="color:var(--blue);">Swap Initiated</div>
+          <h3>User swaps dobRWA for USDC on Uniswap V4</h3>
+          <p>The user initiates a standard Uniswap V4 swap on the dobRWA/USDC pool. Because DobPegHook is attached with the <code>beforeSwapReturnDelta</code> flag, the hook intercepts the swap before the AMM executes.</p>
+          <div class="code-line">params.amountSpecified &lt; 0 // exact-input only</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-dot" style="background:var(--green);">3</div>
+        <div class="flow-content">
+          <div class="flow-sub" style="color:var(--green);">NoOp Custom Accounting</div>
+          <h3>Hook settles the swap at 1:1 peg</h3>
+          <p>The hook bypasses the AMM entirely. It <strong>settles</strong> USDC from its own reserves to the PoolManager (creating a +amountOut delta that cancels the hook's -amountOut obligation) and <strong>mints ERC6909 claims</strong> for the incoming dobRWA (creating a -amountIn delta that cancels the +amountIn obligation). Net deltas = zero. The swap completes at exactly 1:1.</p>
+          <div class="code-line">delta = toBeforeSwapDelta(+amountIn, -amountOut)</div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="flow-dot" style="background:var(--text-1);">4</div>
+        <div class="flow-content">
+          <div class="flow-sub" style="color:var(--text-2);">Settlement</div>
+          <h3>User receives USDC from hook reserves</h3>
+          <p>The PoolManager adjusts the swapper's deltas (<code>swapDelta - hookDelta</code>), so the user pays dobRWA and receives exactly the same amount in USDC. The hook retains the dobRWA as ERC6909 claims in the PoolManager. No Liquidity Nodes are involved &mdash; the USDC comes entirely from the protocol's seeded reserves.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- LIQUIDATION -->
+  <section class="section" id="liquidation">
+    <div class="section-tag" style="background:var(--red-dim);color:var(--red);">Liquidation Engine</div>
+    <h2>Liquidation Mode</h2>
+    <p class="sub">When Dobprotocol flags an asset as distressed, liquidation mode activates. This is the only scenario where Liquidity Node LPs are involved &mdash; they provide the USDC and earn discounted dobRWA.</p>
+
+    <div class="liq-visual">
+      <!-- Who sets what -->
+      <div style="background:var(--bg-elevated); border:1px solid var(--border); border-radius:12px; padding:20px 24px; margin-bottom:32px;">
+        <h4 style="font-size:13px; font-weight:800; margin-bottom:12px;">Risk Assessment &amp; Discount</h4>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div style="background:var(--bg-card); border-radius:8px; padding:14px; border:1px solid var(--border-dim);">
+            <div style="font-size:11px; font-weight:700; color:var(--warning); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Dobprotocol assesses the risk</div>
+            <div style="font-size:12px; color:var(--text-2); line-height:1.55;">Dobprotocol's AI validator agents continuously monitor RWA health. When an asset shows signs of distress, they assess the risk probability and translate it into a discount rate. For example, a 20% risk of value loss becomes <code style="font-family:var(--mono); font-size:10px; color:var(--accent-light);">penaltyBps = 2000</code>. This discount is applied to the exit price, reflecting the real-world risk of holding that asset.</div>
+          </div>
+          <div style="background:var(--bg-card); border-radius:8px; padding:14px; border:1px solid var(--border-dim);">
+            <div style="font-size:11px; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">LPs set their risk appetite</div>
+            <div style="font-size:12px; color:var(--text-2); line-height:1.55;">LPs define <code style="font-family:var(--mono); font-size:10px; color:var(--accent-light);">minPenaltyBps</code> per asset &mdash; the minimum discount they require to participate. This is their risk appetite: a higher minimum means the LP only fills when the assessed risk (and therefore the discount) is large enough to justify the exposure.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Normal mode -->
+      <div class="liq-label">
+        <h3>Normal Mode (1:1 Peg)</h3>
+        <p>Full value swap with zero slippage &mdash; no liquidation active</p>
+      </div>
+      <div class="liq-scenario">
+        <div class="liq-box">
+          <div class="val" style="color:var(--accent);">1,000</div>
+          <div class="lbl">dobRWA in</div>
+        </div>
+        <div class="liq-arrow">
+          <span class="arr">&#8594;</span>
+          <span>1:1 PEG</span>
+        </div>
+        <div class="liq-box">
+          <div class="val" style="color:var(--green);">1,000</div>
+          <div class="lbl">USDC out</div>
+        </div>
+      </div>
+
+      <div style="height: 32px;"></div>
+
+      <!-- Liquidation mode -->
+      <div class="liq-label">
+        <h3 style="color:var(--red);">Liquidation Mode (20% risk assessed by Dobprotocol)</h3>
+        <p>Dobprotocol's validators assessed a 20% risk probability &mdash; exit price discounted accordingly</p>
+      </div>
+      <div class="liq-scenario">
+        <div class="liq-box">
+          <div class="val" style="color:var(--accent);">1,000</div>
+          <div class="lbl">dobRWA in</div>
+        </div>
+        <div class="liq-arrow">
+          <span class="arr" style="color:var(--red);">&#8594;</span>
+          <span>-20%</span>
+        </div>
+        <div class="liq-box">
+          <div class="val" style="color:var(--green);">800</div>
+          <div class="lbl">USDC out (to seller)</div>
+        </div>
+      </div>
+      <div style="text-align:center; margin-top: 16px;">
+        <span style="font-family:var(--mono); font-size:11px; color:var(--red); background:var(--red-dim); padding:4px 12px; border-radius:6px;">
+          200 dobRWA penalty &#8594; permanently locked as ERC6909 (burned from circulation)
+        </span>
+      </div>
+
+      <div style="height: 32px;"></div>
+
+      <!-- LP fills -->
+      <div class="liq-label">
+        <h3 style="color:var(--green);">LP Fill Mechanics</h3>
+        <p>LPs who set <code style="font-family:var(--mono); font-size:11px;">minPenaltyBps &le; 2000</code> are eligible to fill this liquidation</p>
+      </div>
+      <div style="background:var(--bg-elevated); border:1px solid var(--border); border-radius:12px; padding:20px 24px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; text-align:center;">
+          <div>
+            <div style="font-size:11px; color:var(--text-3); margin-bottom:4px;">LP pays</div>
+            <div style="font-size:20px; font-weight:900; color:var(--blue);">800 USDC</div>
+          </div>
+          <div>
+            <div style="font-size:11px; color:var(--text-3); margin-bottom:4px;">LP receives</div>
+            <div style="font-size:20px; font-weight:900; color:var(--green);">1,000 dobRWA</div>
+          </div>
+          <div>
+            <div style="font-size:11px; color:var(--text-3); margin-bottom:4px;">LP profit</div>
+            <div style="font-size:20px; font-weight:900; color:var(--accent);">+25%</div>
+          </div>
+        </div>
+        <div style="text-align:center; margin-top:12px; font-size:11px; color:var(--text-3);">
+          dobRWA = usdc / (1 - penalty%) &mdash; LP buys at discount, earns the spread when peg recovers
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- LP NODES -->
+  <section class="section" id="lp">
+    <div class="section-tag" style="background:var(--green-dim);color:var(--green);">Liquidity Nodes</div>
+    <h2>Permissionless LP System</h2>
+    <p class="sub">Anyone can become a liquidity provider. Set your own conditions, back specific assets, and earn from liquidation fills.</p>
+
+    <div class="lp-timeline">
+      <div class="lp-phase">
+        <div class="phase-num">Phase 1</div>
+        <h4>Register</h4>
+        <p>Deposit USDC to register as an LP. Minimum deposit of 100 USDC required.</p>
+        <div class="phase-detail">MIN_DEPOSIT: 100 USDC</div>
+      </div>
+      <div class="lp-phase">
+        <div class="phase-num">Phase 2</div>
+        <h4>Back Assets</h4>
+        <p>Choose which RWA assets to back. Set your conditions: min oracle price, min penalty, max exposure.</p>
+        <div class="phase-detail">MIN_ALLOCATION: 50 USDC</div>
+      </div>
+      <div class="lp-phase">
+        <div class="phase-num">Phase 3</div>
+        <h4>Get Filled</h4>
+        <p>When liquidations occur, the hook iterates backers in FIFO order. If your conditions match, your USDC is used.</p>
+        <div class="phase-detail">FIFO ordering</div>
+      </div>
+      <div class="lp-phase">
+        <div class="phase-num">Phase 4</div>
+        <h4>Claim Rewards</h4>
+        <p>Claim discounted dobRWA earned from fills. The hook burns ERC6909 claims and transfers the tokens to you.</p>
+        <div class="phase-detail">1.5% protocol fee</div>
+      </div>
+    </div>
+
+    <div style="margin-top: 32px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 24px;">
+      <h4 style="font-size: 14px; font-weight: 800; margin-bottom: 12px;">LP Condition Parameters</h4>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div style="background:var(--bg-elevated); border-radius:8px; padding:14px;">
+          <div style="font-family:var(--mono); font-size:11px; color:var(--green); margin-bottom:4px;">minOraclePrice</div>
+          <div style="font-size:12px; color:var(--text-2);">Minimum USD oracle price to accept a fill. Reject fills if the asset price drops below your threshold.</div>
+        </div>
+        <div style="background:var(--bg-elevated); border-radius:8px; padding:14px;">
+          <div style="font-family:var(--mono); font-size:11px; color:var(--green); margin-bottom:4px;">minPenaltyBps</div>
+          <div style="font-size:12px; color:var(--text-2);">Minimum liquidation penalty you require to accept a fill. The penalty itself is set by validators &mdash; this is your threshold. Set to 1000 (10%) to only participate when the discount is attractive enough.</div>
+        </div>
+        <div style="background:var(--bg-elevated); border-radius:8px; padding:14px;">
+          <div style="font-family:var(--mono); font-size:11px; color:var(--green); margin-bottom:4px;">maxExposure</div>
+          <div style="font-size:12px; color:var(--text-2);">Maximum dobRWA you're willing to accumulate for this asset. Caps your risk to a single RWA type.</div>
+        </div>
+        <div style="background:var(--bg-elevated); border-radius:8px; padding:14px;">
+          <div style="font-family:var(--mono); font-size:11px; color:var(--green); margin-bottom:4px;">usdcAllocation</div>
+          <div style="font-size:12px; color:var(--text-2);">USDC earmarked for this specific asset. Separate from your general available balance.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 24px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 24px;">
+      <h4 style="font-size: 14px; font-weight: 800; margin-bottom: 12px;">Withdrawal Rules</h4>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+        <div style="background:var(--bg-elevated); border-radius:8px; padding:14px; border-left:3px solid var(--green);">
+          <div style="font-size:12px; font-weight:700; color:var(--green); margin-bottom:6px;">Asset Healthy</div>
+          <div style="font-size:12px; color:var(--text-2); line-height:1.55;">LP can withdraw 100% of unused allocation with standard 24h timelock. Full flexibility when there's no distress.</div>
+        </div>
+        <div style="background:var(--bg-elevated); border-radius:8px; padding:14px; border-left:3px solid var(--red);">
+          <div style="font-size:12px; font-weight:700; color:var(--red); margin-bottom:6px;">Asset Distressed</div>
+          <div style="font-size:12px; color:var(--text-2); line-height:1.55;">LP can withdraw 67% immediately (24h timelock). The remaining 33% is held as a <strong style="color:var(--text-1);">reserve</strong> that unlocks when the asset returns to healthy &mdash; or after a 7-day safety delay.</div>
+        </div>
+      </div>
+      <p style="font-size:11px; color:var(--text-3); margin-top:12px; text-align:center;">The reserve ensures liquidity is available when it's needed most. LPs who backed an asset are committed during distress.</p>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- TRUST MATURITY -->
+  <section class="section" id="trust">
+    <div class="section-tag" style="background:var(--accent-dim);color:var(--accent);">Trust Flywheel</div>
+    <h2>From Owner-Backed to Market-Backed</h2>
+    <p class="sub">The protocol is designed so that the asset owner bootstraps liquidity early on, and external LPs gradually take over as trust in the system grows.</p>
+
+    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; margin-top:32px;">
+      <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:24px; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; right:0; height:3px; background:var(--warning);"></div>
+        <div style="font-size:11px; font-weight:700; color:var(--warning); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;">Bootstrap</div>
+        <h4 style="font-size:15px; font-weight:800; margin-bottom:8px;">Owner Self-Backs</h4>
+        <p style="font-size:12px; color:var(--text-2); line-height:1.6;">No external trust yet. The asset owner provides USDC as an LP for their own asset. They have the strongest incentive &mdash; they know the real state of their asset and can buy back at a discount if it's flagged as distressed.</p>
+        <div style="margin-top:14px; font-size:11px; color:var(--text-3); font-style:italic;">Like a founder investing in their own company.</div>
+      </div>
+      <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:24px; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; right:0; height:3px; background:var(--blue);"></div>
+        <div style="font-size:11px; font-weight:700; color:var(--blue); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;">Growth</div>
+        <h4 style="font-size:15px; font-weight:800; margin-bottom:8px;">External LPs Enter</h4>
+        <p style="font-size:12px; color:var(--text-2); line-height:1.6;">The validator builds a track record &mdash; accurate prices, correct risk assessments, fair liquidation outcomes. External LPs and AI strategy agents begin providing liquidity based on historical data.</p>
+        <div style="margin-top:14px; font-size:11px; color:var(--text-3); font-style:italic;">Trust is earned through verifiable on-chain history.</div>
+      </div>
+      <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:24px; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; right:0; height:3px; background:var(--green);"></div>
+        <div style="font-size:11px; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;">Mature</div>
+        <h4 style="font-size:15px; font-weight:800; margin-bottom:8px;">Market Provides Liquidity</h4>
+        <p style="font-size:12px; color:var(--text-2); line-height:1.6;">Deep external LP pool. The oracle's reputation is established. The asset owner no longer needs to self-back &mdash; the market does it for them. Multiple AI agents compete on accuracy and yield.</p>
+        <div style="margin-top:14px; font-size:11px; color:var(--text-3); font-style:italic;">The owner's capital is free to deploy elsewhere.</div>
+      </div>
+    </div>
+
+    <div style="margin-top:28px; background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:24px;">
+      <h4 style="font-size:14px; font-weight:800; margin-bottom:12px;">The Trust Flywheel</h4>
+      <div style="display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap:wrap; font-size:13px; color:var(--text-2);">
+        <span style="background:var(--accent-dim); color:var(--accent); padding:6px 14px; border-radius:8px; font-weight:700;">Accurate Oracle</span>
+        <span style="color:var(--text-3);">&rarr;</span>
+        <span style="background:var(--green-dim); color:var(--green); padding:6px 14px; border-radius:8px; font-weight:700;">LPs Trust the Discount</span>
+        <span style="color:var(--text-3);">&rarr;</span>
+        <span style="background:var(--blue-dim); color:var(--blue); padding:6px 14px; border-radius:8px; font-weight:700;">More Liquidity</span>
+        <span style="color:var(--text-3);">&rarr;</span>
+        <span style="background:var(--warning-dim); color:var(--warning); padding:6px 14px; border-radius:8px; font-weight:700;">More Assets Onboard</span>
+        <span style="color:var(--text-3);">&rarr;</span>
+        <span style="background:var(--accent-dim); color:var(--accent); padding:6px 14px; border-radius:8px; font-weight:700;">Better Oracle</span>
+      </div>
+      <p style="text-align:center; font-size:12px; color:var(--text-3); margin-top:14px;">Every correct risk assessment compounds credibility. Every fair liquidation brings more LP capital.</p>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- SAFETY -->
+  <section class="section" id="safety">
+    <div class="section-tag" style="background:var(--red-dim);color:var(--red);">Security</div>
+    <h2>Safety Rails</h2>
+    <p class="sub">Multiple layers of protection against flash-loan attacks, front-running, and excessive liquidation exposure.</p>
+
+    <div class="safety-grid">
+      <div class="safety-card">
+        <div class="s-icon" style="background:var(--warning-dim);">&#9201;</div>
+        <h4>Anti-Flash-Loan</h4>
+        <p>LPs must have been backing an asset for a minimum duration before their position is eligible for fills during liquidation events.</p>
+        <div class="s-val">MIN_BACKING_AGE: 1 hour</div>
+      </div>
+      <div class="safety-card">
+        <div class="s-icon" style="background:var(--blue-dim);">&#128274;</div>
+        <h4>Withdrawal Timelock</h4>
+        <p>LP USDC withdrawals require a time-delayed request. Prevents LPs from front-running liquidation events by pulling liquidity.</p>
+        <div class="s-val">WITHDRAWAL_DELAY: 24 hours</div>
+      </div>
+      <div class="safety-card">
+        <div class="s-icon" style="background:var(--accent-dim);">&#128202;</div>
+        <h4>Per-Asset Caps</h4>
+        <p>Each RWA asset has a maximum liquidation cap. Prevents excessive liquidation pressure on any single asset type.</p>
+        <div class="s-val">Configured per asset in Registry</div>
+      </div>
+      <div class="safety-card">
+        <div class="s-icon" style="background:var(--red-dim);">&#127760;</div>
+        <h4>Global Liquidation Cap</h4>
+        <p>A protocol-wide cap limits the total amount of dobRWA that can be liquidated across all assets simultaneously.</p>
+        <div class="s-val">globalLiquidationCap in Registry</div>
+      </div>
+      <div class="safety-card">
+        <div class="s-icon" style="background:var(--green-dim);">&#128101;</div>
+        <h4>Backer Limit</h4>
+        <p>Maximum number of LPs per asset prevents unbounded gas costs during on-chain FIFO iteration in liquidation fills.</p>
+        <div class="s-val">MAX_BACKERS_PER_ASSET: 50</div>
+      </div>
+      <div class="safety-card">
+        <div class="s-icon" style="background:var(--warning-dim);">&#128336;</div>
+        <h4>Oracle Staleness Check</h4>
+        <p>The vault rejects deposits if the oracle price is stale beyond the configured maximum delay, preventing stale-price exploits.</p>
+        <div class="s-val">MAX_ORACLE_DELAY: 1 day</div>
+      </div>
+      <div class="safety-card">
+        <div class="s-icon" style="background:var(--accent-dim);">&#128176;</div>
+        <h4>Distress Reserve (33%)</h4>
+        <p>When an LP exits a distressed asset, 33% of their unused allocation is held as a reserve. This ensures liquidity is always available during crisis. The reserve unlocks when the asset returns to healthy or after 7 days.</p>
+        <div class="s-val">RESERVE_BPS: 3300 &bull; RESERVE_DELAY: 7 days</div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <footer>
+    <div class="flogo">
+      <svg viewBox="0 0 89 89" fill="none"><circle cx="44.9" cy="44" r="44" fill="#597CE9"/><path d="M35.5 54.1C33.1 51.5 31.9 48.2 31.9 44C31.9 39.8 33.1 36.5 35.5 33.9C36.9 32.4 38.6 31.3 40.6 30.7V22C38 22.4 35.6 23.2 33.4 24.5C30.1 26.4 27.5 29 25.7 32.3C23.9 35.7 23 39.6 23 44.1C23 48.6 23.9 52.5 25.7 55.8C27.5 59.2 30.1 61.7 33.4 63.6C35.6 64.8 38 65.6 40.6 66V57.3C38.6 56.7 36.9 55.6 35.5 54.1Z" fill="#F9FAFE"/><path d="M64.1 32.3C62.2 29 59.7 26.4 56.4 24.5C54.2 23.2 51.8 22.4 49.2 22V30.7C51.2 31.4 52.9 32.4 54.3 34C56.7 36.6 57.9 39.9 57.9 44.1C57.9 48.3 56.7 51.5 54.3 54.1C52.9 55.6 51.2 56.7 49.2 57.3V66C51.8 65.6 54.2 64.8 56.4 63.6C59.7 61.7 62.2 59.1 64.1 55.8C65.9 52.5 66.9 48.6 66.9 44.1C66.9 39.6 65.9 35.7 64.1 32.3Z" fill="#F9FAFE"/><circle cx="44.9" cy="44" r="5.5" fill="#F9FAFE"/></svg>
+      <span><strong style="color:var(--text-2)">dob</strong>dex</span>
+    </div>
+    <div class="ftags">
+      <span>DobPegHook</span><span>DobRwaVault</span><span>DobValidatorRegistry</span><span>DobLPRegistry</span>
+    </div>
+  </footer>
+
+</body>
+</html>

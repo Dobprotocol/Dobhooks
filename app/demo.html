@@ -1,0 +1,2333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DobDex — Product Demo</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 89 89'><circle cx='44.9' cy='44' r='44' fill='%23597CE9'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0e1117;
+      --bg-card: #161b26;
+      --bg-elevated: #1c2333;
+      --bg-3: #242d3d;
+      --bg-4: #2e3a4e;
+      --border: rgba(255,255,255,0.08);
+      --border-subtle: rgba(255,255,255,0.04);
+      --border-hover: rgba(255,255,255,0.15);
+      --text-0: #ffffff;
+      --text-1: #e4e8f1;
+      --text-2: #9ca3b8;
+      --text-3: #636d83;
+      --accent: #975AFF;
+      --accent-hover: #a66fff;
+      --accent-light: #C89CFF;
+      --accent-dim: rgba(151,90,255,0.12);
+      --accent-glow: rgba(151,90,255,0.25);
+      --blue: #597CE9;
+      --blue-light: #7B9BF5;
+      --blue-dim: rgba(89,124,233,0.12);
+      --green: #40C057;
+      --green-dim: rgba(64,192,87,0.12);
+      --red: #F55252;
+      --red-dim: rgba(245,82,82,0.12);
+      --amber: #F7A617;
+      --amber-dim: rgba(247,166,23,0.12);
+      --cyan: #00E5CC;
+      --font: 'Inter', system-ui, -apple-system, sans-serif;
+      --ease: cubic-bezier(.4,0,.2,1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text-1);
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+    ::selection { background: rgba(151,90,255,0.3); }
+
+    /* ═══ PROGRESS BAR ═══ */
+    #progress-bar {
+      position: fixed; top: 0; left: 0; height: 3px; z-index: 1000;
+      background: linear-gradient(90deg, var(--accent), var(--blue));
+      width: 0%; transition: width 0.3s var(--ease);
+      box-shadow: 0 0 12px var(--accent);
+    }
+
+    /* ═══ FLOATING NAV ═══ */
+    .float-nav {
+      position: fixed; right: 24px; top: 50%; transform: translateY(-50%);
+      z-index: 100; display: flex; flex-direction: column; gap: 8px;
+    }
+    .float-nav a {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--text-3); display: block;
+      transition: all 0.3s var(--ease); text-decoration: none;
+      position: relative;
+    }
+    .float-nav a.active {
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      transform: scale(1.3);
+    }
+    .float-nav a:hover { background: var(--accent-light); transform: scale(1.2); }
+    .float-nav a .nav-tooltip {
+      position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;
+      color: var(--text-1); white-space: nowrap; pointer-events: none;
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .float-nav a:hover .nav-tooltip { opacity: 1; }
+
+    /* ═══ TOP NAV ═══ */
+    .topnav {
+      position: fixed; top: 3px; left: 0; right: 0; z-index: 99;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px; height: 56px;
+      background: rgba(14,17,23,0.9); backdrop-filter: blur(24px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .topnav-logo {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; user-select: none;
+    }
+    .topnav-logo svg { width: 28px; height: 28px; }
+    .topnav-logo span { font-size: 16px; font-weight: 800; color: var(--text-0); }
+    .topnav-logo span b { color: var(--accent); }
+    .topnav-links { display: flex; gap: 24px; }
+    .topnav-links a {
+      color: var(--text-3); text-decoration: none; font-size: 12px;
+      font-weight: 600; transition: color 0.15s; letter-spacing: 0.3px;
+    }
+    .topnav-links a:hover { color: var(--text-0); }
+    .topnav-badge {
+      padding: 5px 14px; border-radius: 999px; font-size: 11px; font-weight: 700;
+      background: var(--accent); color: #fff; text-decoration: none;
+      letter-spacing: 0.3px;
+    }
+    .topnav-badge:hover { background: var(--accent-hover); }
+
+    /* ═══ SECTIONS ═══ */
+    .demo-section {
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 80px 32px; position: relative; overflow: hidden;
+    }
+    .demo-section .content {
+      max-width: 960px; width: 100%; position: relative; z-index: 2;
+    }
+
+    /* Alternating section backgrounds */
+    .demo-section.bg-gradient {
+      background: linear-gradient(135deg, #131b3a 0%, #1a1040 40%, #0e1117 100%);
+    }
+    .demo-section.bg-elevated {
+      background: var(--bg-elevated);
+    }
+    .demo-section.bg-blue-tint {
+      background: linear-gradient(180deg, #0f1729 0%, #0e1117 100%);
+    }
+    .demo-section.bg-accent-tint {
+      background: linear-gradient(180deg, #150f24 0%, #0e1117 100%);
+    }
+
+    /* ═══ ANIMATIONS ═══ */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeInLeft {
+      from { opacity: 0; transform: translateX(-40px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes fadeInRight {
+      from { opacity: 0; transform: translateX(40px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.85); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 20px rgba(151,90,255,0.15); }
+      50% { box-shadow: 0 0 40px rgba(151,90,255,0.3); }
+    }
+    @keyframes countUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes checkIn {
+      from { opacity: 0; transform: scale(0) rotate(-45deg); }
+      to { opacity: 1; transform: scale(1) rotate(0deg); }
+    }
+    @keyframes flowPulse {
+      0% { opacity: 0.3; }
+      50% { opacity: 1; }
+      100% { opacity: 0.3; }
+    }
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    @keyframes typewriter {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+    @keyframes blink {
+      0%, 50% { border-color: var(--accent); }
+      51%, 100% { border-color: transparent; }
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    @keyframes drawLine {
+      from { stroke-dashoffset: 1000; }
+      to { stroke-dashoffset: 0; }
+    }
+    @keyframes ripple {
+      0% { transform: scale(1); opacity: 0.4; }
+      100% { transform: scale(2.5); opacity: 0; }
+    }
+
+    /* Elements hidden until revealed */
+    .anim-target {
+      opacity: 0; transform: translateY(24px);
+    }
+    .anim-target.visible {
+      animation: revealUp 0.6s var(--ease) both;
+    }
+    .anim-target.fade-left { transform: translateX(-30px) translateY(0); }
+    .anim-target.fade-left.visible { animation-name: revealLeft; }
+    .anim-target.fade-right { transform: translateX(30px) translateY(0); }
+    .anim-target.fade-right.visible { animation-name: revealRight; }
+    .anim-target.fade-in.visible { animation-name: revealFade; }
+    .anim-target.scale-in { transform: scale(0.85); }
+    .anim-target.scale-in.visible { animation-name: revealScale; }
+
+    @keyframes revealUp {
+      from { opacity: 0; transform: translateY(24px); filter: blur(4px); }
+      to { opacity: 1; transform: translateY(0); filter: blur(0); }
+    }
+    @keyframes revealLeft {
+      from { opacity: 0; transform: translateX(-30px); filter: blur(4px); }
+      to { opacity: 1; transform: translateX(0); filter: blur(0); }
+    }
+    @keyframes revealRight {
+      from { opacity: 0; transform: translateX(30px); filter: blur(4px); }
+      to { opacity: 1; transform: translateX(0); filter: blur(0); }
+    }
+    @keyframes revealFade {
+      from { opacity: 0; filter: blur(4px); }
+      to { opacity: 1; filter: blur(0); }
+    }
+    @keyframes revealScale {
+      from { opacity: 0; transform: scale(0.85); filter: blur(4px); }
+      to { opacity: 1; transform: scale(1); filter: blur(0); }
+    }
+
+    /* Card hover */
+    .problem-card, .chain-card, .contract-card, .roadmap-item, .test-cat {
+      transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+    }
+    .problem-card:hover, .chain-card:hover, .contract-card:hover, .roadmap-item:hover, .test-cat:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+    }
+
+    /* Shimmer on badges */
+    .hero-badge-item { position: relative; overflow: hidden; }
+    .hero-badge-item::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
+      background-size: 200% 100%;
+      animation: shimmer 3s ease-in-out infinite;
+    }
+
+    /* Pulse on start button */
+    .start-btn { position: relative; }
+    .start-btn::before {
+      content: ''; position: absolute; inset: -4px; border-radius: 18px;
+      background: var(--accent); opacity: 0; z-index: -1;
+      animation: btnPulse 2s var(--ease) infinite;
+    }
+    @keyframes btnPulse {
+      0%, 100% { opacity: 0; transform: scale(1); }
+      50% { opacity: 0.15; transform: scale(1.05); }
+    }
+
+    /* Floating mockup */
+    .hero-visual.visible .hero-mockup {
+      animation: float 4s ease-in-out infinite;
+    }
+
+    /* Auto-play progress indicator */
+    .section-timer {
+      position: fixed; bottom: 80px; right: 24px; z-index: 200;
+      width: 48px; height: 48px; display: none;
+    }
+    .section-timer.active { display: block; }
+    .section-timer svg { width: 48px; height: 48px; transform: rotate(-90deg); }
+    .section-timer circle {
+      fill: none; stroke: var(--accent); stroke-width: 3;
+      stroke-dasharray: 126; stroke-dashoffset: 126;
+      transition: stroke-dashoffset 0.3s linear;
+    }
+    .section-timer .timer-label {
+      position: absolute; inset: 0; display: flex; align-items: center;
+      justify-content: center; font-size: 10px; font-weight: 700; color: var(--text-2);
+    }
+
+    /* Pause/Play overlay */
+    .demo-controls {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      z-index: 200; display: none; gap: 8px; align-items: center;
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: 12px; padding: 8px 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .demo-controls.active { display: flex; }
+    .demo-controls button {
+      background: none; border: none; color: var(--text-1); cursor: pointer;
+      width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+      border-radius: 8px; transition: background 0.2s;
+    }
+    .demo-controls button:hover { background: var(--bg-3); }
+    .demo-controls .ctrl-label {
+      font-size: 11px; color: var(--text-2); font-weight: 600; min-width: 80px; text-align: center;
+    }
+
+    /* ═══ AMBIENT GLOWS ═══ */
+    .glow {
+      position: absolute; border-radius: 50%;
+      filter: blur(120px); pointer-events: none; opacity: 0.07;
+    }
+    .glow-purple { background: var(--accent); }
+    .glow-blue { background: var(--blue); }
+    .glow-green { background: var(--green); }
+
+    /* ═══ SECTION 1: HERO ═══ */
+    .hero-section { padding-top: 100px; }
+    .hero-tag {
+      font-size: 13px; font-weight: 500; color: var(--text-3);
+      letter-spacing: 1.5px; text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+    .hero-title {
+      font-size: 72px; font-weight: 900; letter-spacing: -4px;
+      line-height: 1.0; margin-bottom: 16px; text-align: center;
+    }
+    .hero-title .grad {
+      background: linear-gradient(135deg, #C89CFF, #7B9BF5, #597CE9);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: 22px; color: var(--text-2); text-align: center;
+      margin-bottom: 8px; font-weight: 500;
+    }
+    .hero-sub-tech {
+      font-size: 14px; color: var(--text-3); text-align: center;
+      margin-bottom: 32px; font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+    .hero-badges {
+      display: flex; gap: 12px; justify-content: center;
+      flex-wrap: wrap; margin-bottom: 40px;
+    }
+    .hero-badge-item {
+      padding: 6px 16px; border-radius: 8px;
+      font-size: 12px; font-weight: 700;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-2);
+      letter-spacing: 0.3px;
+    }
+    .hero-badge-item.purple { border-color: rgba(151,90,255,0.3); color: var(--accent-light); background: var(--accent-dim); }
+    .hero-badge-item.blue { border-color: rgba(89,124,233,0.3); color: var(--blue); background: var(--blue-dim); }
+    .hero-badge-item.green { border-color: rgba(64,192,87,0.3); color: var(--green); background: var(--green-dim); }
+    .hero-badge-item.amber { border-color: rgba(247,166,23,0.3); color: var(--amber); background: var(--amber-dim); }
+
+    .start-btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 16px 40px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, var(--accent), #7B3FE4);
+      color: #fff; font-family: var(--font); font-size: 17px; font-weight: 800;
+      cursor: pointer; transition: all 0.2s var(--ease);
+      letter-spacing: -0.3px;
+      animation: pulseGlow 3s infinite;
+    }
+    .start-btn:hover { transform: translateY(-2px); background: linear-gradient(135deg, var(--accent-hover), #8B4FFF); }
+    .start-btn svg { width: 20px; height: 20px; }
+
+    .hero-visual {
+      margin-top: 48px; position: relative;
+      display: flex; justify-content: center;
+    }
+    .hero-mockup {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px; max-width: 420px; width: 100%;
+      position: relative; overflow: hidden;
+    }
+    .hero-mockup::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(151,90,255,0.05), rgba(89,124,233,0.05));
+      pointer-events: none;
+    }
+    .mockup-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .mockup-title { font-size: 14px; font-weight: 800; color: var(--text-0); }
+    .mockup-badge {
+      font-size: 10px; font-weight: 700; padding: 3px 10px;
+      border-radius: 999px; background: var(--green-dim);
+      color: var(--green);
+    }
+    .mockup-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px; background: var(--bg-elevated);
+      border-radius: 10px; margin-bottom: 8px;
+      border: 1px solid var(--border-subtle);
+    }
+    .mockup-row-label { font-size: 12px; color: var(--text-3); font-weight: 500; }
+    .mockup-row-val { font-size: 14px; font-weight: 700; color: var(--text-0); }
+    .mockup-row-val.accent { color: var(--accent-light); }
+    .mockup-row-val.green { color: var(--green); }
+
+    /* ═══ SECTION 2: PROBLEM ═══ */
+    .problem-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 20px; margin-top: 48px;
+    }
+    .problem-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 32px; text-align: center;
+      position: relative; overflow: hidden;
+      transition: all 0.3s var(--ease);
+    }
+    .problem-card:hover {
+      border-color: var(--red); transform: translateY(-4px);
+      box-shadow: 0 8px 32px rgba(245,82,82,0.08);
+    }
+    .problem-icon {
+      width: 64px; height: 64px; border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px; font-size: 28px;
+      background: var(--red-dim); border: 1px solid rgba(245,82,82,0.15);
+    }
+    .problem-card h3 {
+      font-size: 18px; font-weight: 800; margin-bottom: 10px;
+      color: var(--text-0); letter-spacing: -0.5px;
+    }
+    .problem-card p { font-size: 13px; color: var(--text-2); line-height: 1.7; }
+    .problem-x {
+      position: absolute; top: 12px; right: 16px;
+      font-size: 22px; color: var(--red); opacity: 0.3; font-weight: 900;
+    }
+
+    .section-label {
+      display: inline-block; padding: 5px 16px; border-radius: 999px;
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 1px; margin-bottom: 16px;
+      border: 1px solid;
+    }
+    .section-label.red { background: var(--red-dim); color: var(--red); border-color: rgba(245,82,82,0.2); }
+    .section-label.purple { background: var(--accent-dim); color: var(--accent-light); border-color: rgba(151,90,255,0.2); }
+    .section-label.green { background: var(--green-dim); color: var(--green); border-color: rgba(64,192,87,0.2); }
+    .section-label.blue { background: var(--blue-dim); color: var(--blue-light); border-color: rgba(89,124,233,0.2); }
+    .section-label.amber { background: var(--amber-dim); color: var(--amber); border-color: rgba(247,166,23,0.2); }
+
+    .section-title {
+      font-size: 44px; font-weight: 900; letter-spacing: -2px;
+      line-height: 1.1; margin-bottom: 12px;
+    }
+    .section-sub {
+      font-size: 16px; color: var(--text-2); line-height: 1.7;
+      max-width: 540px;
+    }
+
+    /* ═══ SECTION 3: ARCHITECTURE ═══ */
+    .arch-pipeline {
+      display: flex; align-items: center; justify-content: center;
+      gap: 0; margin-top: 48px; flex-wrap: wrap;
+    }
+    .arch-node {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px 28px; text-align: center;
+      min-width: 200px; position: relative;
+      transition: all 0.3s var(--ease);
+    }
+    .arch-node:hover {
+      border-color: rgba(151,90,255,0.4);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 32px rgba(151,90,255,0.08);
+    }
+    .arch-node.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 24px rgba(151,90,255,0.15);
+    }
+    .arch-node-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 12px; font-size: 22px;
+    }
+    .arch-node-icon.purple { background: var(--accent-dim); }
+    .arch-node-icon.blue { background: var(--blue-dim); }
+    .arch-node-icon.green { background: var(--green-dim); }
+    .arch-node h4 { font-size: 15px; font-weight: 800; margin-bottom: 4px; color: var(--text-0); }
+    .arch-node p { font-size: 11px; color: var(--text-3); font-weight: 500; }
+    .arch-arrow {
+      font-size: 24px; color: var(--text-3); padding: 0 12px;
+      display: flex; align-items: center;
+    }
+    .arch-arrow.animated {
+      animation: flowPulse 1.5s infinite;
+      color: var(--accent);
+    }
+
+    .arch-highlight {
+      margin-top: 32px; text-align: center;
+      padding: 20px 28px; border-radius: 12px;
+      background: linear-gradient(135deg, rgba(151,90,255,0.08), rgba(89,124,233,0.08));
+      border: 1px solid rgba(151,90,255,0.2);
+      display: inline-block;
+    }
+    .arch-highlight code {
+      font-family: 'Courier New', monospace;
+      font-size: 14px; font-weight: 700; color: var(--accent-light);
+    }
+    .arch-highlight-sub {
+      font-size: 12px; color: var(--text-3); margin-top: 4px;
+    }
+
+    /* ═══ SECTION 4: TRUST FLYWHEEL ═══ */
+    .flywheel-stages {
+      display: flex; align-items: flex-start; justify-content: center;
+      gap: 0; margin-top: 48px; flex-wrap: wrap;
+    }
+    .flywheel-stage { position: relative; flex: 0 0 auto; }
+    .flywheel-num {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 900; color: var(--white);
+      margin: 0 auto 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    }
+    .flywheel-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px 20px; text-align: center;
+      width: 195px; transition: all 0.3s var(--ease);
+    }
+    .flywheel-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+      border-color: rgba(255,255,255,0.15);
+    }
+    .flywheel-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 14px; border: 1px solid;
+    }
+    .flywheel-card h3 {
+      font-size: 15px; font-weight: 800; color: var(--text-0);
+      margin-bottom: 8px; letter-spacing: -0.3px;
+    }
+    .flywheel-card p {
+      font-size: 12px; color: var(--text-2); line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    .flywheel-tag {
+      display: inline-block; font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.8px;
+      padding: 4px 10px; border-radius: 6px;
+    }
+    .flywheel-connector {
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 4px; margin-top: 60px;
+    }
+    .flywheel-summary {
+      margin-top: 40px;
+    }
+    .flywheel-summary-inner {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 24px;
+      font-size: 14px; color: var(--text-1);
+    }
+    .flywheel-summary-icon { font-size: 20px; }
+
+    @media (max-width: 768px) {
+      .flywheel-stages { flex-direction: column; align-items: center; gap: 0; }
+      .flywheel-connector { transform: rotate(90deg); margin: 8px 0; padding: 0; }
+      .flywheel-card { width: 260px; }
+    }
+
+    /* ═══ SECTION 5: SWAP SIMULATION ═══ */
+    .swap-demo {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 32px; margin-top: 40px; align-items: start;
+    }
+    .swap-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 28px; position: relative;
+      overflow: hidden;
+    }
+    .swap-card::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(151,90,255,0.03) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .swap-card-title {
+      font-size: 16px; font-weight: 800; margin-bottom: 20px;
+      color: var(--text-0); position: relative; z-index: 1;
+    }
+    .swap-input-box {
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: 14px; padding: 16px; margin-bottom: 12px;
+      position: relative; z-index: 1;
+    }
+    .swap-input-label {
+      font-size: 11px; color: var(--text-3); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+    }
+    .swap-input-row {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .swap-input-amount {
+      font-size: 28px; font-weight: 800; color: var(--text-0);
+      letter-spacing: -1px;
+    }
+    .swap-input-token {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 14px; border-radius: 10px;
+      background: var(--bg-3); border: 1px solid var(--border);
+      font-size: 14px; font-weight: 700; color: var(--text-0);
+    }
+    .swap-input-token .token-dot {
+      width: 20px; height: 20px; border-radius: 50%;
+    }
+    .swap-arrow {
+      display: flex; justify-content: center; margin: -4px 0;
+      position: relative; z-index: 2;
+    }
+    .swap-arrow-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--bg-3); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; color: var(--text-2);
+    }
+    .swap-result {
+      margin-top: 16px; padding: 14px 16px;
+      background: var(--green-dim); border: 1px solid rgba(64,192,87,0.2);
+      border-radius: 12px; text-align: center;
+      font-size: 14px; font-weight: 700; color: var(--green);
+      position: relative; z-index: 1;
+      opacity: 0; transition: opacity 0.5s var(--ease);
+    }
+    .swap-result.show { opacity: 1; }
+
+    /* Steps panel */
+    .swap-steps {
+      display: flex; flex-direction: column; gap: 0;
+      position: relative; z-index: 1;
+    }
+    .swap-step {
+      display: flex; align-items: flex-start; gap: 16px;
+      padding: 16px 0; border-bottom: 1px solid var(--border-subtle);
+      opacity: 0; transform: translateX(-20px);
+      transition: all 0.5s var(--ease);
+    }
+    .swap-step.active {
+      opacity: 1; transform: translateX(0);
+    }
+    .swap-step:last-child { border-bottom: none; }
+    .swap-step-num {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800; flex-shrink: 0;
+      background: var(--bg-3); color: var(--text-3);
+      border: 1px solid var(--border);
+      transition: all 0.3s var(--ease);
+    }
+    .swap-step.active .swap-step-num {
+      background: var(--accent); color: #fff;
+      border-color: var(--accent);
+      box-shadow: 0 0 12px rgba(151,90,255,0.3);
+    }
+    .swap-step.done .swap-step-num {
+      background: var(--green); color: #fff;
+      border-color: var(--green);
+      box-shadow: 0 0 12px rgba(64,192,87,0.3);
+    }
+    .swap-step-text h4 {
+      font-size: 14px; font-weight: 700; color: var(--text-0);
+      margin-bottom: 2px;
+    }
+    .swap-step-text p {
+      font-size: 12px; color: var(--text-3); font-weight: 500;
+    }
+    .swap-step-text .mono {
+      font-family: 'Courier New', monospace; color: var(--accent-light);
+    }
+
+    /* ═══ SECTION 5: LIQUIDATION ═══ */
+    .liq-demo {
+      margin-top: 40px; max-width: 680px; width: 100%;
+    }
+    .liq-timeline {
+      position: relative;
+      padding-left: 40px;
+    }
+    .liq-timeline::before {
+      content: ''; position: absolute; left: 15px; top: 0; bottom: 0;
+      width: 2px; background: var(--border);
+    }
+    .liq-event {
+      position: relative; margin-bottom: 24px;
+      opacity: 0; transform: translateY(20px);
+      transition: all 0.5s var(--ease);
+    }
+    .liq-event.active {
+      opacity: 1; transform: translateY(0);
+    }
+    .liq-event-dot {
+      position: absolute; left: -33px; top: 4px;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--bg-3); border: 2px solid var(--text-3);
+      transition: all 0.3s var(--ease);
+    }
+    .liq-event.active .liq-event-dot {
+      background: var(--accent); border-color: var(--accent);
+      box-shadow: 0 0 10px rgba(151,90,255,0.4);
+    }
+    .liq-event.alert .liq-event-dot {
+      background: var(--red); border-color: var(--red);
+      box-shadow: 0 0 10px rgba(245,82,82,0.4);
+    }
+    .liq-event.success .liq-event-dot {
+      background: var(--green); border-color: var(--green);
+      box-shadow: 0 0 10px rgba(64,192,87,0.4);
+    }
+    .liq-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px 24px;
+      transition: border-color 0.3s;
+    }
+    .liq-event.active .liq-card { border-color: rgba(151,90,255,0.3); }
+    .liq-event.alert .liq-card { border-color: rgba(245,82,82,0.3); }
+    .liq-event.success .liq-card { border-color: rgba(64,192,87,0.3); }
+    .liq-card h4 {
+      font-size: 14px; font-weight: 800; color: var(--text-0);
+      margin-bottom: 4px; display: flex; align-items: center; gap: 8px;
+    }
+    .liq-card p { font-size: 12px; color: var(--text-2); line-height: 1.6; }
+    .liq-card .mono {
+      font-family: 'Courier New', monospace;
+      font-size: 13px; font-weight: 700;
+    }
+    .liq-status {
+      display: inline-block; padding: 2px 10px;
+      border-radius: 999px; font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .liq-status.red { background: var(--red-dim); color: var(--red); }
+    .liq-status.green { background: var(--green-dim); color: var(--green); }
+    .liq-status.amber { background: var(--amber-dim); color: var(--amber); }
+
+    /* ═══ SECTION 6: MULTI-CHAIN ═══ */
+    .chain-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 20px; margin-top: 40px;
+    }
+    .chain-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px; text-align: center;
+      transition: all 0.3s var(--ease); position: relative;
+      overflow: hidden;
+    }
+    .chain-card:hover {
+      border-color: rgba(151,90,255,0.3);
+      transform: translateY(-4px);
+    }
+    .chain-card.primary {
+      border-color: rgba(151,90,255,0.3);
+      background: linear-gradient(180deg, rgba(151,90,255,0.05) 0%, var(--bg-card) 100%);
+    }
+    .chain-card.primary::before {
+      content: 'PRIMARY'; position: absolute; top: 12px; right: 12px;
+      font-size: 9px; font-weight: 800; letter-spacing: 0.5px;
+      padding: 3px 8px; border-radius: 4px;
+      background: var(--accent); color: #fff;
+    }
+    .chain-logo {
+      width: 56px; height: 56px; border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px; font-size: 28px;
+    }
+    .chain-card h3 { font-size: 17px; font-weight: 800; margin-bottom: 4px; color: var(--text-0); }
+    .chain-card .chain-type {
+      font-size: 12px; font-weight: 600; color: var(--accent-light);
+      margin-bottom: 12px;
+    }
+    .chain-card p { font-size: 12px; color: var(--text-2); line-height: 1.6; margin-bottom: 16px; }
+    .chain-link {
+      display: inline-block; padding: 6px 16px; border-radius: 8px;
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      font-size: 11px; font-weight: 600; color: var(--text-2);
+      text-decoration: none; transition: all 0.2s;
+    }
+    .chain-link:hover { border-color: var(--accent); color: var(--accent-light); }
+
+    .chain-footer {
+      text-align: center; margin-top: 24px;
+      font-size: 13px; color: var(--text-3);
+      font-family: 'Courier New', monospace;
+    }
+
+    /* ═══ SECTION 8: MARKET ═══ */
+    .market-rings {
+      display: flex; align-items: center; justify-content: center;
+      position: relative; height: 320px; margin-top: 40px;
+    }
+    .market-ring {
+      border-radius: 50%; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      position: absolute; transition: all 0.5s var(--ease);
+    }
+    .market-ring:hover { transform: scale(1.04); }
+    .ring-tam {
+      width: 310px; height: 310px;
+      background: rgba(89,124,233,0.06);
+      border: 2px dashed rgba(89,124,233,0.2);
+    }
+    .ring-sam {
+      width: 210px; height: 210px;
+      background: rgba(89,124,233,0.12);
+      border: 2px dashed rgba(89,124,233,0.3);
+    }
+    .ring-som {
+      width: 120px; height: 120px;
+      background: var(--blue);
+      box-shadow: 0 0 30px rgba(89,124,233,0.3);
+    }
+    .ring-label {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.2px; opacity: 0.6;
+    }
+    .ring-val {
+      font-size: 26px; font-weight: 900; letter-spacing: -1px;
+    }
+    .ring-som .ring-label, .ring-som .ring-val { color: var(--white); }
+    .ring-som .ring-val { font-size: 20px; }
+    .ring-tam .ring-label, .ring-tam .ring-val { color: var(--blue); }
+    .ring-sam .ring-label, .ring-sam .ring-val { color: var(--blue); }
+    .market-stats {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 16px; margin-top: 40px; max-width: 700px; margin-left: auto; margin-right: auto;
+    }
+    .market-stat {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px 16px; text-align: center;
+      transition: all 0.3s var(--ease);
+    }
+    .market-stat:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+      border-color: rgba(89,124,233,0.3);
+    }
+    .market-stat-val {
+      font-size: 24px; font-weight: 900; color: var(--blue);
+      letter-spacing: -0.5px; margin-bottom: 4px;
+    }
+    .market-stat-label {
+      font-size: 11px; color: var(--text-3); font-weight: 600;
+    }
+    .market-source {
+      margin-top: 24px; font-size: 11px; color: var(--text-3);
+      font-style: italic;
+    }
+    @media (max-width: 768px) {
+      .market-rings { height: 240px; }
+      .ring-tam { width: 230px; height: 230px; }
+      .ring-sam { width: 160px; height: 160px; }
+      .ring-som { width: 100px; height: 100px; }
+      .ring-val { font-size: 20px; }
+      .ring-som .ring-val { font-size: 16px; }
+      .market-stats { grid-template-columns: 1fr; }
+    }
+
+    /* ═══ SECTION 9: CONTRACTS ═══ */
+    .contract-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 16px; margin-top: 40px;
+    }
+    .contract-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px;
+      transition: all 0.3s var(--ease);
+      position: relative;
+    }
+    .contract-card:hover {
+      border-color: rgba(151,90,255,0.3);
+      transform: translateY(-3px);
+    }
+    .contract-card.wide { grid-column: span 2; }
+    .contract-name {
+      font-size: 15px; font-weight: 800; color: var(--text-0);
+      margin-bottom: 4px; display: flex; align-items: center; gap: 8px;
+    }
+    .contract-loc {
+      font-size: 11px; font-weight: 700; color: var(--text-3);
+      font-family: 'Courier New', monospace; margin-bottom: 10px;
+    }
+    .contract-desc {
+      font-size: 12px; color: var(--text-2); line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    .contract-features {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .contract-feat {
+      padding: 3px 10px; border-radius: 6px;
+      font-size: 10px; font-weight: 700;
+      background: var(--bg-elevated); border: 1px solid var(--border-subtle);
+      color: var(--text-3);
+    }
+    .contract-feat.purple { color: var(--accent-light); border-color: rgba(151,90,255,0.2); background: var(--accent-dim); }
+    .contract-feat.green { color: var(--green); border-color: rgba(64,192,87,0.2); background: var(--green-dim); }
+    .contract-feat.blue { color: var(--blue); border-color: rgba(89,124,233,0.2); background: var(--blue-dim); }
+
+    .contract-total {
+      text-align: center; margin-top: 24px;
+      font-size: 36px; font-weight: 900; color: var(--text-0);
+      letter-spacing: -1.5px;
+    }
+    .contract-total span { color: var(--accent-light); }
+    .contract-total-sub {
+      font-size: 14px; color: var(--text-3); margin-top: 4px;
+    }
+
+    /* Security */
+    .security-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 12px; margin-top: 24px;
+    }
+    .security-item {
+      padding: 16px; border-radius: 10px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      text-align: center;
+    }
+    .security-item .sec-icon { font-size: 20px; margin-bottom: 6px; }
+    .security-item h5 { font-size: 11px; font-weight: 700; color: var(--text-0); }
+    .security-item p { font-size: 10px; color: var(--text-3); margin-top: 2px; }
+
+    /* ═══ SECTION 8: TESTS ═══ */
+    .test-header {
+      text-align: center; margin-top: 40px; margin-bottom: 32px;
+    }
+    .test-big-num {
+      font-size: 80px; font-weight: 900; letter-spacing: -4px;
+      color: var(--green);
+      text-shadow: 0 0 40px rgba(64,192,87,0.3);
+    }
+    .test-big-label {
+      font-size: 18px; font-weight: 700; color: var(--text-2);
+    }
+    .test-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 16px; max-width: 720px; margin: 0 auto;
+    }
+    .test-cat {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px;
+      transition: all 0.3s var(--ease);
+    }
+    .test-cat:hover { border-color: rgba(64,192,87,0.3); }
+    .test-cat-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .test-cat-name { font-size: 13px; font-weight: 800; color: var(--text-0); }
+    .test-cat-count {
+      font-size: 12px; font-weight: 700; color: var(--green);
+      font-family: 'Courier New', monospace;
+    }
+    .test-checks {
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .test-check {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11px; color: var(--text-2); font-weight: 500;
+      opacity: 0; transition: opacity 0.3s var(--ease);
+    }
+    .test-check.show { opacity: 1; }
+    .test-check-icon {
+      width: 18px; height: 18px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--green-dim); color: var(--green);
+      font-size: 10px; font-weight: 900; flex-shrink: 0;
+    }
+
+    /* ═══ SECTION 9: ROADMAP ═══ */
+    .roadmap-list {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 16px; margin-top: 40px; max-width: 700px;
+    }
+    .roadmap-item {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px;
+      transition: all 0.3s var(--ease);
+      display: flex; gap: 16px; align-items: flex-start;
+    }
+    .roadmap-item:hover { border-color: rgba(151,90,255,0.3); transform: translateY(-3px); }
+    .roadmap-num {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 900; flex-shrink: 0;
+      background: var(--accent-dim); color: var(--accent-light);
+      border: 1px solid rgba(151,90,255,0.2);
+    }
+    .roadmap-item h4 { font-size: 15px; font-weight: 800; color: var(--text-0); margin-bottom: 4px; }
+    .roadmap-item p { font-size: 12px; color: var(--text-2); line-height: 1.6; }
+
+    /* ═══ SECTION 10: CTA ═══ */
+    .cta-section {
+      text-align: center;
+      min-height: 80vh;
+    }
+    .cta-links {
+      display: grid; grid-template-columns: repeat(2, 1fr);
+      gap: 16px; margin-top: 40px; max-width: 560px;
+    }
+    .cta-link {
+      display: flex; align-items: center; gap: 14px;
+      padding: 20px 24px; border-radius: 14px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      text-decoration: none; transition: all 0.2s var(--ease);
+    }
+    .cta-link:hover {
+      border-color: var(--accent); transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(151,90,255,0.08);
+    }
+    .cta-link-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .cta-link-icon.purple { background: var(--accent-dim); }
+    .cta-link-icon.blue { background: var(--blue-dim); }
+    .cta-link-icon.green { background: var(--green-dim); }
+    .cta-link h4 { font-size: 14px; font-weight: 800; color: var(--text-0); text-align: left; }
+    .cta-link p { font-size: 11px; color: var(--text-3); text-align: left; }
+    .cta-built {
+      margin-top: 48px; font-size: 13px; color: var(--text-3);
+    }
+    .cta-built a { color: var(--accent-light); text-decoration: none; }
+    .cta-built a:hover { text-decoration: underline; }
+
+    /* ═══ PARTICLES ═══ */
+    .particles {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      overflow: hidden;
+    }
+    .particle {
+      position: absolute; width: 2px; height: 2px;
+      background: var(--accent); border-radius: 50%;
+      opacity: 0; animation: particleFloat linear infinite;
+    }
+    @keyframes particleFloat {
+      0% { opacity: 0; transform: translateY(100vh) scale(0); }
+      10% { opacity: 0.6; }
+      90% { opacity: 0.6; }
+      100% { opacity: 0; transform: translateY(-10vh) scale(1); }
+    }
+
+    /* ═══ AUDIO CONTROL ═══ */
+    .audio-btn {
+      position: fixed; bottom: 24px; right: 24px; z-index: 200;
+      width: 48px; height: 48px; border-radius: 50%;
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      color: var(--text-1); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s var(--ease);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    }
+    .audio-btn:hover { background: var(--bg-3); border-color: var(--accent); }
+    .audio-btn svg { width: 22px; height: 22px; }
+    .audio-btn.muted { opacity: 0.5; }
+    .audio-pulse {
+      position: fixed; bottom: 24px; right: 24px; z-index: 199;
+      width: 48px; height: 48px; border-radius: 50%;
+      border: 2px solid var(--accent); opacity: 0;
+      pointer-events: none;
+    }
+    .audio-pulse.playing {
+      animation: audioPulse 1.5s var(--ease) infinite;
+    }
+    @keyframes audioPulse {
+      0% { transform: scale(1); opacity: 0.5; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+
+    /* ═══ RESPONSIVE ═══ */
+    @media (max-width: 768px) {
+      .hero-title { font-size: 40px; letter-spacing: -2px; }
+      .hero-sub { font-size: 17px; }
+      .problem-grid, .chain-grid, .contract-grid, .test-grid {
+        grid-template-columns: 1fr;
+      }
+      .swap-demo { grid-template-columns: 1fr; }
+      .arch-pipeline { flex-direction: column; }
+      .arch-arrow { transform: rotate(90deg); }
+      .roadmap-list, .cta-links { grid-template-columns: 1fr; }
+      .security-grid { grid-template-columns: repeat(2, 1fr); }
+      .float-nav { display: none; }
+      .topnav-links { display: none; }
+      .demo-section { padding: 60px 20px; }
+      .section-title { font-size: 32px; }
+      .contract-card.wide { grid-column: span 1; }
+      .hero-visual { margin-top: 32px; }
+    }
+    @media (max-width: 480px) {
+      .hero-title { font-size: 32px; letter-spacing: -1.5px; }
+      .hero-badges { gap: 8px; }
+      .hero-badge-item { font-size: 10px; padding: 4px 10px; }
+      .start-btn { padding: 14px 28px; font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Progress Bar -->
+<div id="progress-bar"></div>
+
+<!-- Particles -->
+<div class="particles" id="particles"></div>
+
+<!-- Floating Nav -->
+<nav class="float-nav" id="floatNav">
+  <a href="#hero"><span class="nav-tooltip">Hero</span></a>
+  <a href="#problem"><span class="nav-tooltip">Problem</span></a>
+  <a href="#architecture"><span class="nav-tooltip">Architecture</span></a>
+  <a href="#trust-flywheel"><span class="nav-tooltip">Trust Flywheel</span></a>
+  <a href="#swap"><span class="nav-tooltip">Swap Demo</span></a>
+  <a href="#liquidation"><span class="nav-tooltip">Liquidation</span></a>
+  <a href="#chains"><span class="nav-tooltip">Multi-Chain</span></a>
+  <a href="#market"><span class="nav-tooltip">Market</span></a>
+  <a href="#contracts"><span class="nav-tooltip">Contracts</span></a>
+  <a href="#tests"><span class="nav-tooltip">Tests</span></a>
+  <a href="#roadmap"><span class="nav-tooltip">Roadmap</span></a>
+  <a href="#cta"><span class="nav-tooltip">Try It</span></a>
+</nav>
+
+<!-- Top Nav -->
+<header class="topnav">
+  <a class="topnav-logo" href="landing.html">
+    <svg viewBox="0 0 89 89" fill="none"><circle cx="44.9" cy="44" r="44" fill="#597CE9"/><path d="M35.5 54.1C33.1 51.5 31.9 48.2 31.9 44C31.9 39.8 33.1 36.5 35.5 33.9C36.9 32.4 38.6 31.3 40.6 30.7V22C38 22.4 35.6 23.2 33.4 24.5C30.1 26.4 27.5 29 25.7 32.3C23.9 35.7 23 39.6 23 44.1C23 48.6 23.9 52.5 25.7 55.8C27.5 59.2 30.1 61.7 33.4 63.6C35.6 64.8 38 65.6 40.6 66V57.3C38.6 56.7 36.9 55.6 35.5 54.1Z" fill="#F9FAFE"/><path d="M64.1 32.3C62.2 29 59.7 26.4 56.4 24.5C54.2 23.2 51.8 22.4 49.2 22V30.7C51.2 31.4 52.9 32.4 54.3 34C56.7 36.6 57.9 39.9 57.9 44.1C57.9 48.3 56.7 51.5 54.3 54.1C52.9 55.6 51.2 56.7 49.2 57.3V66C51.8 65.6 54.2 64.8 56.4 63.6C59.7 61.7 62.2 59.1 64.1 55.8C65.9 52.5 66.9 48.6 66.9 44.1C66.9 39.6 65.9 35.7 64.1 32.3Z" fill="#F9FAFE"/><circle cx="44.9" cy="44" r="5.5" fill="#F9FAFE"/></svg>
+    <span><b>dob</b>dex</span>
+  </a>
+  <div class="topnav-links">
+    <a href="index.html">App</a>
+    <a href="protocol.html">Protocol</a>
+    <a href="deck.html">Deck</a>
+    <a href="https://github.com/Dobprotocol/DobDex" target="_blank">GitHub</a>
+  </div>
+  <a class="topnav-badge" href="#swap">Product Demo</a>
+</header>
+
+
+<!-- ════════════════════════════════════════════
+     SECTION 1: HERO
+     ════════════════════════════════════════════ -->
+<section class="demo-section hero-section bg-gradient" id="hero">
+  <div class="glow glow-purple" style="width:600px;height:600px;top:-10%;left:5%;"></div>
+  <div class="glow glow-blue" style="width:500px;height:500px;top:10%;right:0%;"></div>
+  <div class="content" style="text-align:center;">
+    <div class="hero-tag anim-target fade-up" style="transition-delay:0.1s;">
+      Live on Unichain &middot; Powered by Reactive Network
+    </div>
+    <h1 class="hero-title anim-target fade-up" style="transition-delay:0.2s;">
+      <span class="grad">DobDex</span>
+    </h1>
+    <p class="hero-sub anim-target fade-up" style="transition-delay:0.35s;">
+      Zero-Slippage RWA Liquidity Infrastructure
+    </p>
+    <p class="hero-sub-tech anim-target fade-up" style="transition-delay:0.45s;">
+      Oracle-Pegged Swaps &middot; Permissionless Liquidity &middot; Multi-Chain
+    </p>
+    <div class="hero-badges anim-target fade-up" style="transition-delay:0.55s;">
+      <span class="hero-badge-item purple">Unichain + Reactive</span>
+      <span class="hero-badge-item blue">10 RWA Tokens</span>
+      <span class="hero-badge-item green">77 Tests Passing</span>
+      <span class="hero-badge-item amber">$340k Hackathon</span>
+    </div>
+    <div class="anim-target fade-up" style="transition-delay:0.65s;">
+      <button class="start-btn" onclick="startDemo()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        Start Demo
+      </button>
+    </div>
+    <div class="hero-visual anim-target scale-in" style="transition-delay:0.8s;">
+      <div class="hero-mockup">
+        <div class="mockup-header">
+          <span class="mockup-title">Sell RWA</span>
+          <span class="mockup-badge">Zero Slippage</span>
+        </div>
+        <div class="mockup-row">
+          <span class="mockup-row-label">You Sell</span>
+          <span class="mockup-row-val">10 DCT</span>
+        </div>
+        <div class="mockup-row">
+          <span class="mockup-row-label">Oracle Price</span>
+          <span class="mockup-row-val accent">$100.00</span>
+        </div>
+        <div class="mockup-row">
+          <span class="mockup-row-label">You Receive</span>
+          <span class="mockup-row-val green">1,000 dUSDC</span>
+        </div>
+        <div class="mockup-row">
+          <span class="mockup-row-label">Slippage</span>
+          <span class="mockup-row-val green">0.00%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════
+     SECTION 2: THE PROBLEM
+     ════════════════════════════════════════════ -->
+<section class="demo-section bg-elevated" id="problem">
+  <div class="glow glow-purple" style="width:400px;height:400px;bottom:10%;right:10%;opacity:0.05;"></div>
+  <div class="content">
+    <div class="section-label red anim-target fade-up">The Problem</div>
+    <h2 class="section-title anim-target fade-up" style="transition-delay:0.1s;">
+      RWA Tokens Are <span style="color:var(--red);">Illiquid</span>
+    </h2>
+    <p class="section-sub anim-target fade-up" style="transition-delay:0.2s;">
+      Tokenized real-world assets face three critical infrastructure gaps that prevent adoption.
+    </p>
+    <div class="problem-grid">
+      <div class="problem-card anim-target fade-up" style="transition-delay:0.3s;">
+        <span class="problem-x">&times;</span>
+        <div class="problem-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F55252" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        </div>
+        <h3>No Exit Liquidity</h3>
+        <p>RWA token holders are stuck. No buyers, no market makers, no way to convert back to stablecoins. Assets become digital dead weight.</p>
+      </div>
+      <div class="problem-card anim-target fade-up" style="transition-delay:0.45s;">
+        <span class="problem-x">&times;</span>
+        <div class="problem-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F55252" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <h3>AMM Slippage</h3>
+        <p>Traditional DEXs impose x*y=k price impact. Selling $100k of RWA tokens on a traditional DEX could mean 5-20% slippage loss.</p>
+      </div>
+      <div class="problem-card anim-target fade-up" style="transition-delay:0.6s;">
+        <span class="problem-x">&times;</span>
+        <div class="problem-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F55252" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <h3>No Liquidation</h3>
+        <p>When RWA assets face distress, there is no orderly exit mechanism. No LPs, no penalty pricing, no risk-adjusted fills.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════
+     SECTION 3: ARCHITECTURE
+     ════════════════════════════════════════════ -->
+<section class="demo-section bg-accent-tint" id="architecture">
+  <div class="glow glow-purple" style="width:500px;height:500px;top:20%;left:-10%;"></div>
+  <div class="glow glow-blue" style="width:300px;height:300px;bottom:10%;right:5%;opacity:0.05;"></div>
+  <div class="content" style="text-align:center;">
+    <div class="section-label purple anim-target fade-up">The Solution</div>
+    <h2 class="section-title anim-target fade-up" style="transition-delay:0.1s;">
+      Dobprotocol <span style="color:var(--accent-light);">Pipeline</span>
+    </h2>
+    <p class="section-sub anim-target fade-up" style="transition-delay:0.2s;margin:0 auto 0;">
+      Three specialized layers working together. DobDex is the final liquidity piece.
+    </p>
+    <div class="arch-pipeline">
+      <div class="arch-node anim-target fade-up" style="transition-delay:0.3s;">
+        <div class="arch-node-icon green">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#40C057" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <h4>DobValidator</h4>
+        <p>AI-Powered Oracle</p>
+      </div>
+      <div class="arch-arrow animated anim-target fade-in" style="transition-delay:0.5s;">&#10132;</div>
+      <div class="arch-node anim-target fade-up" style="transition-delay:0.55s;">
+        <div class="arch-node-icon blue">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#597CE9" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+        </div>
+        <h4>Token Studio</h4>
+        <p>ERC-20 Tokenization</p>
+      </div>
+      <div class="arch-arrow animated anim-target fade-in" style="transition-delay:0.7s;">&#10132;</div>
+      <div class="arch-node active anim-target fade-up" style="transition-delay:0.75s;">
+        <div class="arch-node-icon purple">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#975AFF" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+        </div>
+        <h4>DobDex</h4>
+        <p>Liquidity Layer</p>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:32px;" class="anim-target fade-up" style="transition-delay:0.9s;">
+      <div class="arch-highlight">
+        <code>Custom Accounting Hook (NoOp Pattern)</code>
+        <div class="arch-highlight-sub">beforeSwap + beforeSwapReturnDelta &mdash; skip AMM math, settle at exact oracle price</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════
+     SECTION 4: TRUST FLYWHEEL
+     ════════════════════════════════════════════ -->
+<section class="demo-section bg-blue-tint" id="trust-flywheel">
+  <div class="glow glow-blue" style="width:500px;height:500px;top:10%;right:-10%;opacity:0.05;"></div>
+  <div class="glow glow-purple" style="width:300px;height:300px;bottom:15%;left:5%;opacity:0.04;"></div>
+  <div class="content" style="text-align:center;">
+    <div class="section-label amber anim-target fade-up">Trust Architecture</div>
+    <h2 class="section-title anim-target fade-up" style="transition-delay:0.1s;">
+      The Trust <span style="color:var(--amber);">Flywheel</span>
+    </h2>
+    <p class="section-sub anim-target fade-up" style="transition-delay:0.2s;margin:0 auto;">
+      Every asset goes through progressive validation. Each layer adds trust &mdash; until retail can trade with confidence.
+    </p>
+
+    <!-- Flywheel stages -->
+    <div class="flywheel-stages">
+
+      <div class="flywheel-stage anim-target fade-up" style="transition-delay:0.3s;">
+        <div class="flywheel-num" style="background:var(--amber);">1</div>
+        <div class="flywheel-card">
+          <div class="flywheel-icon" style="background:var(--amber-dim);border-color:rgba(247,166,23,0.2);">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F7A617" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <h3>Asset Owner</h3>
+          <p>The owner backs the asset first &mdash; staking reputation, providing documentation, and putting skin in the game.</p>
+          <div class="flywheel-tag" style="color:var(--amber);background:var(--amber-dim);">Skin in the Game</div>
+        </div>
+      </div>
+
+      <div class="flywheel-connector anim-target fade-in" style="transition-delay:0.45s;">
+        <svg width="40" height="24" viewBox="0 0 40 24"><path d="M4 12h32" stroke="var(--text-3)" stroke-width="2" stroke-dasharray="4 4"/><path d="M30 6l6 6-6 6" stroke="var(--text-3)" stroke-width="2" fill="none"/></svg>
+      </div>
+
+      <div class="flywheel-stage anim-target fade-up" style="transition-delay:0.5s;">
+        <div class="flywheel-num" style="background:var(--blue);">2</div>
+        <div class="flywheel-card">
+          <div class="flywheel-icon" style="background:var(--blue-dim);border-color:rgba(89,124,233,0.2);">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#597CE9" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </div>
+          <h3>Trusted Validators</h3>
+          <p>Partners like <strong>EY</strong> and <strong>McKinsey</strong> audit fundamentals, verify revenue streams, and assess risk profiles.</p>
+          <div class="flywheel-tag" style="color:var(--blue);background:var(--blue-dim);">Institutional Due Diligence</div>
+        </div>
+      </div>
+
+      <div class="flywheel-connector anim-target fade-in" style="transition-delay:0.65s;">
+        <svg width="40" height="24" viewBox="0 0 40 24"><path d="M4 12h32" stroke="var(--text-3)" stroke-width="2" stroke-dasharray="4 4"/><path d="M30 6l6 6-6 6" stroke="var(--text-3)" stroke-width="2" fill="none"/></svg>
+      </div>
+
+      <div class="flywheel-stage anim-target fade-up" style="transition-delay:0.7s;">
+        <div class="flywheel-num" style="background:var(--green);">3</div>
+        <div class="flywheel-card">
+          <div class="flywheel-icon" style="background:var(--green-dim);border-color:rgba(64,192,87,0.2);">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#40C057" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 12h.01"/><path d="M17 12h.01"/><path d="M7 12h.01"/></svg>
+          </div>
+          <h3>Institutional LPs</h3>
+          <p>Blockchain treasury firms back the asset with <strong>real capital</strong> on Liquidity Nodes &mdash; providing exit liquidity.</p>
+          <div class="flywheel-tag" style="color:var(--green);background:var(--green-dim);">Capital Backing</div>
+        </div>
+      </div>
+
+      <div class="flywheel-connector anim-target fade-in" style="transition-delay:0.85s;">
+        <svg width="40" height="24" viewBox="0 0 40 24"><path d="M4 12h32" stroke="var(--text-3)" stroke-width="2" stroke-dasharray="4 4"/><path d="M30 6l6 6-6 6" stroke="var(--text-3)" stroke-width="2" fill="none"/></svg>
+      </div>
+
+      <div class="flywheel-stage anim-target fade-up" style="transition-delay:0.9s;">
+        <div class="flywheel-num" style="background:var(--accent);">4</div>
+        <div class="flywheel-card">
+          <div class="flywheel-icon" style="background:var(--accent-dim);border-color:rgba(151,90,255,0.2);">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#975AFF" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <h3>Retail Investors</h3>
+          <p>Only after owner-backed, professionally validated, and institutionally supported &mdash; retail can trade on DobDex.</p>
+          <div class="flywheel-tag" style="color:var(--accent-light);background:var(--accent-dim);">Confident Trading</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Flywheel summary -->
+    <div class="flywheel-summary anim-target fade-up" style="transition-delay:1.1s;">
+      <div class="flywheel-summary-inner">
+        <span class="flywheel-summary-icon">&#x1f504;</span>
+        <span>Every layer adds trust. <strong>Owner &rarr; Validator &rarr; Institution &rarr; Retail.</strong> That&rsquo;s the flywheel.</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════
+     SECTION 5: SWAP SIMULATION
+     ════════════════════════════════════════════ -->
+<section class="demo-section bg-elevated" id="swap">
+  <div class="glow glow-green" style="width:400px;height:400px;bottom:5%;left:5%;opacity:0.04;"></div>
+  <div class="content">
+    <div class="section-label green anim-target fade-up">Live Simulation</div>
+    <h2 class="section-title anim-target fade-up" style="transition-delay:0.1s;">
+      Sell <span style="color:var(--green);">10 DCT</span> for dUSDC
+    </h2>
+    <p class="section-sub anim-target fade-up" style="transition-delay:0.2s;">
+      Watch the protocol execute a zero-slippage swap in real time.
+    </p>
+    <div class="swap-demo">
+      <!-- Left: Swap Card -->
+      <div class="swap-card anim-target fade-left" style="transition-delay:0.3s;" id="swapCard">
+        <div class="swap-card-title">Sell RWA</div>
+        <div class="swap-input-box">
+          <div class="swap-input-label">You Sell</div>
+          <div class="swap-input-row">
+            <span class="swap-input-amount" id="sellAmount">0</span>
+            <div class="swap-input-token">
+              <span class="token-dot" style="background:linear-gradient(135deg,#597CE9,#975AFF);"></span>
+              DCT
+            </div>
+          </div>
+        </div>
+        <div class="swap-arrow">
+          <div class="swap-arrow-icon">&darr;</div>
+        </div>
+        <div class="swap-input-box">
+          <div class="swap-input-label">You Receive</div>
+          <div class="swap-input-row">
+            <span class="swap-input-amount" id="receiveAmount" style="color:var(--green);">0</span>
+            <div class="swap-input-token">
+              <span class="token-dot" style="background:var(--green);"></span>
+              dUSDC
+            </div>
+          </div>
+        </div>
+        <div class="swap-result" id="swapResult">
+          Received 1,000 dUSDC &mdash; Zero Slippage &#10003;
+        </div>
+      </div>
+      <!-- Right: Steps -->
+      <div class="anim-target fade-right" style="transition-delay:0.4s;">
+        <div class="swap-steps" id="swapSteps">
+          <div class="swap-step" data-step="1">
+            <div class="swap-step-num">1</div>
+            <div class="swap-step-text">
+              <h4>Token Selected</h4>
+              <p>DCT (Datacenter Token) &mdash; <span class="mono">Oracle: $100</span></p>
+            </div>
+          </div>
+          <div class="swap-step" data-step="2">
+            <div class="swap-step-num">2</div>
+            <div class="swap-step-text">
+              <h4>Depositing to Vault</h4>
+              <p><span class="mono">10 DCT &rarr; DobRwaVault</span></p>
+            </div>
+          </div>
+          <div class="swap-step" data-step="3">
+            <div class="swap-step-num">3</div>
+            <div class="swap-step-text">
+              <h4>Oracle Query</h4>
+              <p>DobValidatorRegistry.getPrice(DCT) = <span class="mono">$100.00</span></p>
+            </div>
+          </div>
+          <div class="swap-step" data-step="4">
+            <div class="swap-step-num">4</div>
+            <div class="swap-step-text">
+              <h4>beforeSwapReturnDelta</h4>
+              <p>Hook intercepts &mdash; NoOp skip AMM. <span class="mono">10 &times; $100 = 1,000</span></p>
+            </div>
+          </div>
+          <div class="swap-step" data-step="5">
+            <div class="swap-step-num">5</div>
+            <div class="swap-step-text">
+              <h4>dUSDC Minted</h4>
+              <p><span class="mono" style="color:var(--green);">1,000 dUSDC</span> settled to user. Zero slippage.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════
+     SECTION 5: LIQUIDATION
+     ════════════════════════════════════════════ -->
+<section class="demo-section bg-accent-tint" id="liquidation">
+  <div class="glow glow-purple" style="width:400px;height:400px;top:15%;right:-5%;opacity:0.05;"></div>
+  <div class="content">
+    <div class="section-label amber anim-target fade-up">Liquidation Engine</div>
+    <h2 class="section-title anim-target fade-up" style="transition-delay:0.1s;">
+      Distressed Asset <span style="color:var(--amber);">Liquidation</span>
+    </h2>
+    <p class="section-sub anim-target fade-up" style="transition-delay:0.2s;">
+      AI-detected distress triggers orderly LP-backed fills with risk-adjusted pricing.
+    </p>
+    <div class="liq-demo anim-target fade-up" style="transition-delay:0.3s;">
+      <div class="liq-timeline" id="liqTimeline">
+        <div class="liq-event" data-liq="1">
+          <div class="liq-event-dot"></div>
+          <div class="liq-card">
+            <h4>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F55252" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              AI Distress Detection
+              <span class="liq-status red">ALERT</span>
+            </h4>
+            <p>Dobprotocol AI validator detects distress signal on <strong style="color:var(--text-0);">SFT</strong> (Solar Farm Token). Asset flagged for liquidation review.</p>
+          </div>
+        </div>
+        <div class="liq-event" data-liq="2">
+          <div class="liq-event-dot"></div>
+          <div class="liq-card">
+            <h4>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F7A617" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Penalty Rate Set
+              <span class="liq-status amber">CONFIGURED</span>
+            </h4>
+            <p>Liquidation penalty: <span class="mono" style="color:var(--amber);">20% (2000 bps)</span><br>Risk assessment reflects 20% probability of further value loss.</p>
+          </div>
+        </div>
+        <div class="liq-event" data-liq="3">
+          <div class="liq-event-dot"></div>
+          <div class="liq-card">
+            <h4>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#597CE9" stroke-width="2.5" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+              LP Matched &mdash; FIFO
+            </h4>
+            <p>LP1 conditions check: <span class="mono" style="color:var(--green);">minPenaltyBps 15% &le; 20% &#10003;</span><br>LP1 USDC allocation is sufficient for this fill.</p>
+          </div>
+        </div>
+        <div class="liq-event" data-liq="4">
+          <div class="liq-event-dot"></div>
+          <div class="liq-card">
+            <h4>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#40C057" stroke-width="2.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              Fill Executed
+              <span class="liq-status green">FILLED</span>
+            </h4>
+            <p>LP1 provides <span class="mono" style="color:var(--blue);">8,000 USDC</span> &rarr; receives <span class="mono" style="color:var(--green);">10,000 dUSDC worth of SFT</span><br>Spread profit: <span class="mono" style="color:var(--green);">2,000 dUSDC (25% return)</span></p>
+          </div>
+        </div>
+        <div class="liq-event" data-liq="5">
+          <div class="liq-event-dot"></div>
+          <div class="liq-card">
+            <h4>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#975AFF" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Reserve Hold
+            </h4>
+            <p>33% reserve: <span class="mono" style="color:var(--accent-light);">2,640 USDC locked for 24h</span><br>MIN_BACKING_AGE enforced. Prevents flash-liquidation attacks.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════
+     SECTION 6: MULTI-CHAIN
+     ════════════════════════════════════════════ -->
+<section class="demo-section bg-blue-tint" id="chains">
+  <div class="glow glow-blue" style="width:500px;height:500px;top:10%;left:-10%;opacity:0.05;"></div>
+  <div class="content" style="text-align:center;">
+    <div class="section-label blue anim-target fade-up">Multi-Chain</div>
+    <h2 class="section-title anim-target fade-up" style="transition-delay:0.1s;">
+      Deployed on <span style="color:var(--blue);">3 Chains</span>
+    </h2>
+    <p class="section-sub anim-target fade-up" style="transition-delay:0.2s;margin:0 auto 0;">
+      Same deployer address, deterministic contract addresses, unified protocol.
+    </p>
+    <div class="chain-grid">
+      <div class="chain-card primary anim-target fade-up" style="transition-delay:0.3s;">
+        <div class="chain-logo" style="background:rgba(255,0,122,0.1);">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF007A" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+        <h3>Unichain Sepolia</h3>
+        <div class="chain-type" style="color:#FF007A;">Full Uniswap V4 Hook</div>
+        <p>DobPegHook + Custom Accounting on Uniswap's native L2. 200ms Flashblocks for real-time oracle updates.</p>
+        <a class="chain-link" href="https://sepolia.uniscan.xyz" target="_blank">View on Uniscan &rarr;</a>
+      </div>
+      <div class="chain-card anim-target fade-up" style="transition-delay:0.45s;">
+        <div class="chain-logo" style="background:rgba(0,211,149,0.1);">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00D395" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3>Reactive Network</h3>
+        <div class="chain-type" style="color:#00D395;">Cross-Chain Oracle Sync</div>
+        <p>ReactiveOracleSync monitors oracle events on Unichain and triggers automated liquidation alerts. No off-chain bots.</p>
+        <a class="chain-link" href="https://lasna.reactscan.net" target="_blank">View on ReactScan &rarr;</a>
+      </div>
+    </div>
+    <div class="chain-footer anim-target fade-up" style="transition-delay:0.75s;">
+      Deployer: 0x7Edc...732E &middot; CREATE2 deterministic &middot; Same ABI across all chains
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════
+     SECTION 8: MARKET OPPORTUNITY
+     ════════════════════════════════════════════ -->
+<section class="demo-section bg-gradient" id="market">
+  <div class="glow glow-blue" style="width:500px;height:500px;top:10%;left:-10%;opacity:0.05;"></div>
+  <div class="content" style="text-align:center;">
+    <div class="section-label blue anim-target fade-up">Product-Market Fit</div>
+    <h2 class="section-title anim-target fade-up" style="transition-delay:0.1s;">
+      <span style="color:var(--blue);">$1.33T</span> Market Opportunity
+    </h2>
+    <p class="section-sub anim-target fade-up" style="transition-delay:0.2s;margin:0 auto;">
+      Beginning with energy and data center infrastructure in Latin America.
+    </p>
+
+    <!-- TAM / SAM / SOM rings -->
+    <div class="market-rings anim-target fade-in" style="transition-delay:0.35s;">
+      <div class="market-ring ring-tam">
+        <span class="ring-label">TAM</span>
+        <span class="ring-val">$1.33T</span>
+      </div>
+      <div class="market-ring ring-sam">
+        <span class="ring-label">SAM</span>
+        <span class="ring-val">$18B</span>
+      </div>
+      <div class="market-ring ring-som">
+        <span class="ring-label">SOM</span>
+        <span class="ring-val">$27M</span>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="market-stats">
+      <div class="market-stat anim-target fade-up" style="transition-delay:0.5s;">
+        <div class="market-stat-val">$250B+</div>
+        <div class="market-stat-label">Annual LATAM infrastructure gap</div>
+      </div>
+      <div class="market-stat anim-target fade-up" style="transition-delay:0.6s;">
+        <div class="market-stat-val">$16T+</div>
+        <div class="market-stat-label">Global RWA market moving on-chain</div>
+      </div>
+      <div class="market-stat anim-target fade-up" style="transition-delay:0.7s;">
+        <div class="market-stat-val">1.5%</div>
+        <div class="market-stat-label">Protocol fee on liquidation fills</div>
+      </div>
+    </div>
+
+    <p class="market-source anim-target fade-up" style="transition-delay:0.85s;">
+      Source: Inter-American Development Bank (IDB), 2023
+    </p>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════
+     SECTION 9: CONTRACTS
+     ════════════════════════════════════════════ -->
+<section class="demo-section bg-elevated" id="contracts">
+  <div class="glow glow-purple" style="width:400px;height:400px;bottom:10%;right:-5%;opacity:0.04;"></div>
+  <div class="content" style="text-align:center;">
+    <div class="section-label purple anim-target fade-up">Smart Contracts</div>
+    <h2 class="section-title anim-target fade-up" style="transition-delay:0.1s;">
+      Contract <span style="color:var(--accent-light);">Architecture</span>
+    </h2>
+    <p class="section-sub anim-target fade-up" style="transition-delay:0.2s;margin:0 auto 0;">
+      Five modular contracts. Clean separation of concerns.
+    </p>
+    <div class="contract-grid" style="text-align:left;">
+      <div class="contract-card wide anim-target fade-up" style="transition-delay:0.3s;">
+        <div class="contract-name">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#975AFF" stroke-width="2.5" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          DobPegHook.sol
+        </div>
+        <div class="contract-loc">366 lines</div>
+        <div class="contract-desc">Custom Accounting Hook. Intercepts swaps via beforeSwap + beforeSwapReturnDelta, settles at exact 1:1 oracle price. The core innovation.</div>
+        <div class="contract-features">
+          <span class="contract-feat purple">NoOp Pattern</span>
+          <span class="contract-feat purple">Custom Accounting</span>
+          <span class="contract-feat blue">EIP-1153 Flash Accounting</span>
+          <span class="contract-feat green">ReentrancyGuard</span>
+        </div>
+      </div>
+      <div class="contract-card anim-target fade-up" style="transition-delay:0.4s;">
+        <div class="contract-name">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#597CE9" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+          DobRwaVault.sol
+        </div>
+        <div class="contract-loc">129 lines</div>
+        <div class="contract-desc">Central RWA depository. Accepts token deposits, queries oracle, mints/burns dUSDC ERC-20.</div>
+        <div class="contract-features">
+          <span class="contract-feat blue">ERC-20 dUSDC</span>
+          <span class="contract-feat green">Deposit/Withdraw</span>
+        </div>
+      </div>
+      <div class="contract-card anim-target fade-up" style="transition-delay:0.5s;">
+        <div class="contract-name">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#40C057" stroke-width="2.5" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          DobValidatorRegistry.sol
+        </div>
+        <div class="contract-loc">163 lines</div>
+        <div class="contract-desc">On-chain oracle + liquidation config. AI agents set prices. Manages penaltyBps, caps, staleness.</div>
+        <div class="contract-features">
+          <span class="contract-feat green">AI Oracle</span>
+          <span class="contract-feat">MAX_ORACLE_DELAY</span>
+          <span class="contract-feat">Liquidation Config</span>
+        </div>
+      </div>
+      <div class="contract-card wide anim-target fade-up" style="transition-delay:0.6s;">
+        <div class="contract-name">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F7A617" stroke-width="2.5" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+          DobLPRegistry.sol
+        </div>
+        <div class="contract-loc">652 lines</div>
+        <div class="contract-desc">Permissionless LP system for liquidation fills. LPs deposit USDC, set conditions (minOraclePrice, minPenaltyBps, maxExposure), filled FIFO during liquidation events.</div>
+        <div class="contract-features">
+          <span class="contract-feat purple">FIFO Matching</span>
+          <span class="contract-feat">minPenaltyBps</span>
+          <span class="contract-feat">maxExposure</span>
+          <span class="contract-feat green">Time-locked Withdrawals</span>
+          <span class="contract-feat blue">MIN_BACKING_AGE</span>
+        </div>
+      </div>
+      <div class="contract-card anim-target fade-up" style="transition-delay:0.7s;">
+        <div class="contract-name">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C89CFF" stroke-width="2.5" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          DobDirectSwap.sol
+        </div>
+        <div class="contract-loc">106 lines</div>
+        <div class="contract-desc">Lightweight 1:1 peg swap via oracle. Optimized for chains without Uniswap V4.</div>
+        <div class="contract-features">
+          <span class="contract-feat">Lightweight</span>
+          <span class="contract-feat green">Cross-Chain</span>
+        </div>
+      </div>
+    </div>
+    <div class="contract-total anim-target fade-up" style="transition-delay:0.8s;">
+      ~<span id="locCount">0</span> <span>lines of Solidity</span>
+      <div class="contract-total-sub">Production-ready, auditable codebase</div>
+    </div>
+
+    <!-- Security Features -->
+    <div class="security-grid" style="margin-top:32px;">
+      <div class="security-item anim-target fade-up" style="transition-delay:0.85s;">
+        <div class="sec-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#40C057" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h5>ReentrancyGuard</h5>
+        <p>All state-changing calls</p>
+      </div>
+      <div class="security-item anim-target fade-up" style="transition-delay:0.9s;">
+        <div class="sec-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#597CE9" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <h5>MIN_BACKING_AGE</h5>
+        <p>24h time-lock</p>
+      </div>
+      <div class="security-item anim-target fade-up" style="transition-delay:0.95s;">
+        <div class="sec-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F7A617" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <h5>Time-Locked Withdrawals</h5>
+        <p>Flash loan protection</p>
+      </div>
+      <div class="security-item anim-target fade-up" style="transition-delay:1.0s;">
+        <div class="sec-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#975AFF" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <h5>Oracle Staleness</h5>
+        <p>MAX_ORACLE_DELAY</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════
+     SECTION 8: TESTS
+     ════════════════════════════════════════════ -->
+<section class="demo-section bg-accent-tint" id="tests">
+  <div class="glow glow-green" style="width:400px;height:400px;top:20%;right:-5%;opacity:0.04;"></div>
+  <div class="content" style="text-align:center;">
+    <div class="section-label green anim-target fade-up">Test Suite</div>
+    <h2 class="section-title anim-target fade-up" style="transition-delay:0.1s;">
+      <span style="color:var(--green);">77 Tests</span>, 0 Failures
+    </h2>
+    <div class="test-header anim-target scale-in" style="transition-delay:0.2s;">
+      <div class="test-big-num" id="testCount">0</div>
+      <div class="test-big-label">Tests Passing</div>
+    </div>
+    <div class="test-grid">
+      <div class="test-cat anim-target fade-up" style="transition-delay:0.3s;">
+        <div class="test-cat-header">
+          <span class="test-cat-name">Oracle</span>
+          <span class="test-cat-count">3 / 3</span>
+        </div>
+        <div class="test-checks" data-testgroup="oracle">
+          <div class="test-check"><span class="test-check-icon">&#10003;</span> setPrice updates</div>
+          <div class="test-check"><span class="test-check-icon">&#10003;</span> staleness revert</div>
+          <div class="test-check"><span class="test-check-icon">&#10003;</span> owner-only access</div>
+        </div>
+      </div>
+      <div class="test-cat anim-target fade-up" style="transition-delay:0.4s;">
+        <div class="test-cat-header">
+          <span class="test-cat-name">Vault</span>
+          <span class="test-cat-count">3 / 3</span>
+        </div>
+        <div class="test-checks" data-testgroup="vault">
+          <div class="test-check"><span class="test-check-icon">&#10003;</span> deposit mints dUSDC</div>
+          <div class="test-check"><span class="test-check-icon">&#10003;</span> withdraw burns</div>
+          <div class="test-check"><span class="test-check-icon">&#10003;</span> zero-price revert</div>
+        </div>
+      </div>
+      <div class="test-cat anim-target fade-up" style="transition-delay:0.5s;">
+        <div class="test-cat-header">
+          <span class="test-cat-name">Hook Swap</span>
+          <span class="test-cat-count">2 / 2</span>
+        </div>
+        <div class="test-checks" data-testgroup="hook">
+          <div class="test-check"><span class="test-check-icon">&#10003;</span> sell RWA at peg</div>
+          <div class="test-check"><span class="test-check-icon">&#10003;</span> buy RWA at peg</div>
+        </div>
+      </div>
+      <div class="test-cat anim-target fade-up" style="transition-delay:0.6s;">
+        <div class="test-cat-header">
+          <span class="test-cat-name">Liquidation</span>
+          <span class="test-cat-count">8 / 8</span>
+        </div>
+        <div class="test-checks" data-testgroup="liq">
+          <div class="test-check"><span class="test-check-icon">&#10003;</span> penalty calculation</div>
+          <div class="test-check"><span class="test-check-icon">&#10003;</span> cap enforcement</div>
+          <div class="test-check"><span class="test-check-icon">&#10003;</span> FIFO fill order</div>
+        </div>
+      </div>
+      <div class="test-cat anim-target fade-up" style="transition-delay:0.7s;">
+        <div class="test-cat-header">
+          <span class="test-cat-name">LP System</span>
+          <span class="test-cat-count">20 / 20</span>
+        </div>
+        <div class="test-checks" data-testgroup="lp">
+          <div class="test-check"><span class="test-check-icon">&#10003;</span> deposit/withdraw</div>
+          <div class="test-check"><span class="test-check-icon">&#10003;</span> backing conditions</div>
+          <div class="test-check"><span class="test-check-icon">&#10003;</span> time-lock enforced</div>
+        </div>
+      </div>
+      <div class="test-cat anim-target fade-up" style="transition-delay:0.8s;">
+        <div class="test-cat-header">
+          <span class="test-cat-name">Token Factory</span>
+          <span class="test-cat-count">8 / 8</span>
+        </div>
+        <div class="test-checks" data-testgroup="factory">
+          <div class="test-check"><span class="test-check-icon">&#10003;</span> create token</div>
+          <div class="test-check"><span class="test-check-icon">&#10003;</span> faucet mint</div>
+          <div class="test-check"><span class="test-check-icon">&#10003;</span> owner controls</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════
+     SECTION 9: ROADMAP
+     ════════════════════════════════════════════ -->
+<section class="demo-section bg-blue-tint" id="roadmap">
+  <div class="glow glow-purple" style="width:400px;height:400px;top:10%;left:-8%;opacity:0.04;"></div>
+  <div class="content" style="text-align:center;">
+    <div class="section-label purple anim-target fade-up">What's Next</div>
+    <h2 class="section-title anim-target fade-up" style="transition-delay:0.1s;">
+      Roadmap
+    </h2>
+    <p class="section-sub anim-target fade-up" style="transition-delay:0.2s;margin:0 auto 0;">
+      Building toward mainnet and the future of RWA infrastructure.
+    </p>
+    <div class="roadmap-list" style="margin-left:auto;margin-right:auto;">
+      <div class="roadmap-item anim-target fade-up" style="transition-delay:0.3s;">
+        <div class="roadmap-num">1</div>
+        <div>
+          <h4>Reactive Automation</h4>
+          <p>Rebuild DobValidatorRegistry oracle in Rust via Stylus. 10-100x cheaper gas for AI-driven risk models on-chain.</p>
+        </div>
+      </div>
+      <div class="roadmap-item anim-target fade-up" style="transition-delay:0.4s;">
+        <div class="roadmap-num">2</div>
+        <div>
+          <h4>AI Agent Marketplace</h4>
+          <p>Composable agent ecosystem: Validator agents update oracles, LP Strategy agents manage liquidity autonomously.</p>
+        </div>
+      </div>
+      <div class="roadmap-item anim-target fade-up" style="transition-delay:0.5s;">
+        <div class="roadmap-num">3</div>
+        <div>
+          <h4>Cross-Chain dUSDC</h4>
+          <p>LayerZero OFT integration for seamless dUSDC transfers across L2s. One stablecoin, every chain.</p>
+        </div>
+      </div>
+      <div class="roadmap-item anim-target fade-up" style="transition-delay:0.6s;">
+        <div class="roadmap-num">4</div>
+        <div>
+          <h4>Mainnet Deployment</h4>
+          <p>Unichain mainnet launch with institutional-grade oracle feeds and full audit completion.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ════════════════════════════════════════════
+     SECTION 10: CTA
+     ════════════════════════════════════════════ -->
+<section class="demo-section cta-section bg-gradient" id="cta">
+  <div class="glow glow-purple" style="width:600px;height:600px;top:20%;left:30%;opacity:0.06;"></div>
+  <div class="content" style="text-align:center;">
+    <div class="section-label green anim-target fade-up">Try It Now</div>
+    <h2 class="section-title anim-target fade-up" style="transition-delay:0.1s;">
+      Experience <span style="color:var(--accent-light);">DobDex</span>
+    </h2>
+    <p class="section-sub anim-target fade-up" style="transition-delay:0.2s;margin:0 auto 0;">
+      Connect your wallet and swap RWA tokens with zero slippage on testnet.
+    </p>
+    <div class="cta-links" style="margin-left:auto;margin-right:auto;">
+      <a class="cta-link anim-target fade-up" style="transition-delay:0.3s;" href="index.html">
+        <div class="cta-link-icon purple">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#975AFF" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+        <div>
+          <h4>Launch App</h4>
+          <p>Swap RWA tokens live on testnet</p>
+        </div>
+      </a>
+      <a class="cta-link anim-target fade-up" style="transition-delay:0.4s;" href="https://github.com/Dobprotocol/DobDex" target="_blank">
+        <div class="cta-link-icon blue">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#597CE9" stroke-width="2" stroke-linecap="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+        </div>
+        <div>
+          <h4>Source Code</h4>
+          <p>Open-source on GitHub</p>
+        </div>
+      </a>
+      <a class="cta-link anim-target fade-up" style="transition-delay:0.5s;" href="protocol.html">
+        <div class="cta-link-icon green">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#40C057" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <div>
+          <h4>Protocol Docs</h4>
+          <p>Deep dive into the architecture</p>
+        </div>
+      </a>
+      <a class="cta-link anim-target fade-up" style="transition-delay:0.6s;" href="deck.html">
+        <div class="cta-link-icon" style="background:var(--amber-dim);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F7A617" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <div>
+          <h4>Pitch Deck</h4>
+          <p>16-slide investor presentation</p>
+        </div>
+      </a>
+    </div>
+    <div class="cta-built anim-target fade-up" style="transition-delay:0.7s;">
+      Built by <a href="https://dobprotocol.com" target="_blank">Dobprotocol</a> &middot;
+      <a href="https://docs.dobprotocol.com/dex/overview" target="_blank">Docs</a> &middot;
+      Deployed on <a href="https://unichain.org" target="_blank">Unichain</a> &middot; Powered by <a href="https://reactive.network" target="_blank">Reactive Network</a>
+    </div>
+
+    <!-- Footer logo -->
+    <div style="margin-top:64px;opacity:0.4;" class="anim-target fade-in" style="transition-delay:0.9s;">
+      <svg viewBox="0 0 89 89" fill="none" width="40" height="40"><circle cx="44.9" cy="44" r="44" fill="#597CE9"/><path d="M35.5 54.1C33.1 51.5 31.9 48.2 31.9 44C31.9 39.8 33.1 36.5 35.5 33.9C36.9 32.4 38.6 31.3 40.6 30.7V22C38 22.4 35.6 23.2 33.4 24.5C30.1 26.4 27.5 29 25.7 32.3C23.9 35.7 23 39.6 23 44.1C23 48.6 23.9 52.5 25.7 55.8C27.5 59.2 30.1 61.7 33.4 63.6C35.6 64.8 38 65.6 40.6 66V57.3C38.6 56.7 36.9 55.6 35.5 54.1Z" fill="#F9FAFE"/><path d="M64.1 32.3C62.2 29 59.7 26.4 56.4 24.5C54.2 23.2 51.8 22.4 49.2 22V30.7C51.2 31.4 52.9 32.4 54.3 34C56.7 36.6 57.9 39.9 57.9 44.1C57.9 48.3 56.7 51.5 54.3 54.1C52.9 55.6 51.2 56.7 49.2 57.3V66C51.8 65.6 54.2 64.8 56.4 63.6C59.7 61.7 62.2 59.1 64.1 55.8C65.9 52.5 66.9 48.6 66.9 44.1C66.9 39.6 65.9 35.7 64.1 32.3Z" fill="#F9FAFE"/><circle cx="44.9" cy="44" r="5.5" fill="#F9FAFE"/></svg>
+    </div>
+  </div>
+</section>
+
+
+<!-- Audio Control -->
+<div class="audio-pulse" id="audioPulse"></div>
+<button class="audio-btn" id="audioBtn" title="Toggle narration">
+  <svg id="audioIconOn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+    <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+  </svg>
+  <svg id="audioIconOff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+    <line x1="23" y1="9" x2="17" y2="15"></line>
+    <line x1="17" y1="9" x2="23" y2="15"></line>
+  </svg>
+</button>
+
+<!-- Demo Controls (appears during auto-play) -->
+<div class="demo-controls" id="demoControls">
+  <button id="ctrlPrev" title="Previous">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <button id="ctrlPause" title="Pause/Resume">
+    <svg id="pauseIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+    <svg id="playIcon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+  </button>
+  <span class="ctrl-label" id="ctrlLabel">1 / 10</span>
+  <button id="ctrlNext" title="Next">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
+</div>
+
+<!-- Section Timer -->
+<div class="section-timer" id="sectionTimer">
+  <svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="20" id="timerCircle"/></svg>
+  <span class="timer-label" id="timerLabel"></span>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// PARTICLES
+// ═══════════════════════════════════════════════
+(function() {
+  const c = document.getElementById('particles');
+  for (let i = 0; i < 30; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.animationDuration = (8 + Math.random() * 12) + 's';
+    p.style.animationDelay = Math.random() * 10 + 's';
+    p.style.width = p.style.height = (1 + Math.random() * 2) + 'px';
+    if (Math.random() > 0.5) p.style.background = '#597CE9';
+    c.appendChild(p);
+  }
+})();
+
+// ═══════════════════════════════════════════════
+// CORE: Section list & audio map
+// ═══════════════════════════════════════════════
+const SECTIONS = ['hero','problem','architecture','trust-flywheel','swap','liquidation','chains','market','contracts','tests','roadmap','cta'];
+const AUDIO_MAP = {
+  hero: 'demo-audio/hero.mp3',
+  problem: 'demo-audio/problem.mp3',
+  architecture: 'demo-audio/architecture.mp3',
+  'trust-flywheel': 'demo-audio/trust-flywheel.mp3',
+  swap: 'demo-audio/swap.mp3',
+  liquidation: 'demo-audio/liquidation.mp3',
+  chains: 'demo-audio/chains.mp3',
+  market: 'demo-audio/market.mp3',
+  contracts: 'demo-audio/contracts.mp3',
+  tests: 'demo-audio/tests.mp3',
+  roadmap: 'demo-audio/roadmap.mp3',
+  cta: 'demo-audio/cta.mp3',
+};
+// Fallback durations (seconds) if audio doesn't load
+const FALLBACK_DURATION = { hero:10, problem:18, architecture:18, 'trust-flywheel':20, swap:20, liquidation:20, chains:16, market:16, contracts:20, tests:12, roadmap:18, cta:14 };
+
+// ═══════════════════════════════════════════════
+// PROGRESS BAR
+// ═══════════════════════════════════════════════
+const progressBar = document.getElementById('progress-bar');
+window.addEventListener('scroll', () => {
+  const p = document.documentElement.scrollHeight - window.innerHeight;
+  progressBar.style.width = (p > 0 ? (window.scrollY / p) * 100 : 0) + '%';
+  updateFloatNav();
+});
+
+// ═══════════════════════════════════════════════
+// FLOATING NAV
+// ═══════════════════════════════════════════════
+const navDots = document.querySelectorAll('.float-nav a');
+function updateFloatNav() {
+  let cur = '';
+  SECTIONS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (r.top <= window.innerHeight / 2 && r.bottom >= window.innerHeight / 2) cur = id;
+  });
+  navDots.forEach(d => d.classList.toggle('active', d.getAttribute('href') === '#' + cur));
+}
+
+// ═══════════════════════════════════════════════
+// REVEAL SECTION — show all anim-targets inside
+// ═══════════════════════════════════════════════
+const revealedSections = new Set();
+function revealSection(sectionId) {
+  if (revealedSections.has(sectionId)) return;
+  revealedSections.add(sectionId);
+  const el = document.getElementById(sectionId);
+  if (!el) return;
+  const targets = el.querySelectorAll('.anim-target');
+  targets.forEach((t, i) => {
+    // Use transition-delay from inline style, or stagger by index
+    const delay = t.style.transitionDelay || (i * 0.08) + 's';
+    t.style.animationDelay = delay;
+    t.classList.add('visible');
+  });
+  // Trigger section-specific animations
+  triggerSectionAnim(sectionId);
+}
+
+// ═══════════════════════════════════════════════
+// SECTION-SPECIFIC ANIMATIONS
+// ═══════════════════════════════════════════════
+const triggeredSections = new Set();
+function triggerSectionAnim(id) {
+  if (triggeredSections.has(id)) return;
+  triggeredSections.add(id);
+  if (id === 'swap') runSwapAnim();
+  if (id === 'liquidation') runLiqAnim();
+  if (id === 'tests') runTestAnim();
+  if (id === 'contracts') runLocCounter();
+}
+
+function runSwapAnim() {
+  const steps = document.querySelectorAll('#swapSteps .swap-step');
+  const sellEl = document.getElementById('sellAmount');
+  const receiveEl = document.getElementById('receiveAmount');
+  const resultEl = document.getElementById('swapResult');
+  if (!steps.length) return;
+  setTimeout(() => { steps[0] && steps[0].classList.add('active'); }, 400);
+  setTimeout(() => { steps[0] && (steps[0].classList.add('done'), steps[0].classList.remove('active')); steps[1] && steps[1].classList.add('active'); if(sellEl) animateNumber(sellEl,0,10,800,0); }, 1400);
+  setTimeout(() => { steps[1] && (steps[1].classList.add('done'), steps[1].classList.remove('active')); steps[2] && steps[2].classList.add('active'); }, 2600);
+  setTimeout(() => { steps[2] && (steps[2].classList.add('done'), steps[2].classList.remove('active')); steps[3] && steps[3].classList.add('active'); }, 3600);
+  setTimeout(() => { steps[3] && (steps[3].classList.add('done'), steps[3].classList.remove('active')); steps[4] && steps[4].classList.add('active'); if(receiveEl) animateNumber(receiveEl,0,1000,1200,0); }, 4600);
+  setTimeout(() => { steps[4] && steps[4].classList.add('done'); if(resultEl) resultEl.classList.add('show'); }, 6000);
+}
+
+function runLiqAnim() {
+  const events = document.querySelectorAll('#liqTimeline .liq-event');
+  [400,1400,2600,3800,5000].forEach((d,i) => {
+    setTimeout(() => { events[i] && events[i].classList.add('active'); }, d);
+  });
+}
+
+function runTestAnim() {
+  const countEl = document.getElementById('testCount');
+  if (countEl) animateNumber(countEl, 0, 77, 2000, 0);
+  document.querySelectorAll('.test-check').forEach((c,i) => {
+    setTimeout(() => c.classList.add('show'), 300 + i * 120);
+  });
+}
+
+function runLocCounter() {
+  const el = document.getElementById('locCount');
+  if (el) animateNumber(el, 0, 1900, 2000, 0, true);
+}
+
+function animateNumber(el, from, to, duration, decimals, comma) {
+  const start = performance.now();
+  (function update(now) {
+    const p = Math.min((now - start) / duration, 1);
+    const v = from + (to - from) * (1 - Math.pow(1 - p, 3));
+    el.textContent = comma ? Math.round(v).toLocaleString() : (decimals > 0 ? v.toFixed(decimals) : Math.round(v).toLocaleString());
+    if (p < 1) requestAnimationFrame(update);
+  })(performance.now());
+}
+
+// ═══════════════════════════════════════════════
+// AUDIO SYSTEM
+// ═══════════════════════════════════════════════
+let audioMuted = false;
+let currentAudio = null;
+const audioBtn = document.getElementById('audioBtn');
+const audioIconOn = document.getElementById('audioIconOn');
+const audioIconOff = document.getElementById('audioIconOff');
+const audioPulse = document.getElementById('audioPulse');
+
+audioBtn.addEventListener('click', () => {
+  audioMuted = !audioMuted;
+  audioBtn.classList.toggle('muted', audioMuted);
+  audioIconOn.style.display = audioMuted ? 'none' : 'block';
+  audioIconOff.style.display = audioMuted ? 'block' : 'none';
+  if (audioMuted && currentAudio) {
+    currentAudio.pause();
+    audioPulse.classList.remove('playing');
+  }
+});
+
+function playAudio(sectionId) {
+  return new Promise((resolve) => {
+    // Stop current
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      audioPulse.classList.remove('playing');
+    }
+    if (audioMuted || !AUDIO_MAP[sectionId]) {
+      // No audio — wait fallback duration then resolve
+      setTimeout(resolve, (FALLBACK_DURATION[sectionId] || 10) * 1000);
+      return;
+    }
+    currentAudio = new Audio(AUDIO_MAP[sectionId]);
+    currentAudio.volume = 0.85;
+    currentAudio.addEventListener('ended', () => {
+      audioPulse.classList.remove('playing');
+      resolve();
+    });
+    currentAudio.addEventListener('error', () => {
+      setTimeout(resolve, (FALLBACK_DURATION[sectionId] || 10) * 1000);
+    });
+    currentAudio.play().then(() => {
+      audioPulse.classList.add('playing');
+    }).catch(() => {
+      // Autoplay blocked
+      setTimeout(resolve, (FALLBACK_DURATION[sectionId] || 10) * 1000);
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════
+// AUTO-PLAY DEMO ENGINE
+// ═══════════════════════════════════════════════
+let demoRunning = false;
+let demoPaused = false;
+let demoIndex = 0;
+let demoResolve = null; // resolve fn for current pause promise
+
+const demoControls = document.getElementById('demoControls');
+const ctrlLabel = document.getElementById('ctrlLabel');
+const ctrlPause = document.getElementById('ctrlPause');
+const ctrlPrev = document.getElementById('ctrlPrev');
+const ctrlNext = document.getElementById('ctrlNext');
+const pauseIcon = document.getElementById('pauseIcon');
+const playIcon = document.getElementById('playIcon');
+
+ctrlPause.addEventListener('click', () => {
+  if (!demoRunning) return;
+  demoPaused = !demoPaused;
+  pauseIcon.style.display = demoPaused ? 'none' : 'block';
+  playIcon.style.display = demoPaused ? 'block' : 'none';
+  if (!demoPaused && demoResolve) {
+    demoResolve(); // resume
+    demoResolve = null;
+  }
+  if (demoPaused && currentAudio && !currentAudio.paused) {
+    currentAudio.pause();
+  } else if (!demoPaused && currentAudio && currentAudio.paused && currentAudio.currentTime > 0) {
+    currentAudio.play();
+  }
+});
+
+ctrlNext.addEventListener('click', () => {
+  if (!demoRunning) return;
+  if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
+  audioPulse.classList.remove('playing');
+  if (demoResolve) { demoResolve(); demoResolve = null; }
+  demoPaused = false;
+  pauseIcon.style.display = 'block';
+  playIcon.style.display = 'none';
+});
+
+ctrlPrev.addEventListener('click', () => {
+  if (!demoRunning) return;
+  demoIndex = Math.max(0, demoIndex - 2); // go back (will increment in loop)
+  if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
+  audioPulse.classList.remove('playing');
+  if (demoResolve) { demoResolve(); demoResolve = null; }
+  demoPaused = false;
+  pauseIcon.style.display = 'block';
+  playIcon.style.display = 'none';
+});
+
+async function startDemo() {
+  if (demoRunning) return;
+  demoRunning = true;
+  demoPaused = false;
+  demoIndex = 0;
+  demoControls.classList.add('active');
+
+  while (demoIndex < SECTIONS.length) {
+    const sectionId = SECTIONS[demoIndex];
+    ctrlLabel.textContent = (demoIndex + 1) + ' / ' + SECTIONS.length;
+
+    // Scroll to section
+    const el = document.getElementById(sectionId);
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+
+    // Wait for scroll to settle
+    await sleep(600);
+
+    // Reveal elements
+    revealSection(sectionId);
+
+    // Wait a beat, then play audio
+    await sleep(300);
+
+    // Play audio and wait for it to finish
+    await playAudio(sectionId);
+
+    // Small pause between sections
+    await sleep(800);
+
+    demoIndex++;
+  }
+
+  // Done
+  demoRunning = false;
+  demoControls.classList.remove('active');
+}
+
+function sleep(ms) {
+  return new Promise(resolve => {
+    if (demoPaused) {
+      // Store resolve so pause/resume can call it
+      demoResolve = resolve;
+      // Wait until unpaused
+      const check = setInterval(() => {
+        if (!demoPaused) { clearInterval(check); resolve(); }
+      }, 100);
+      return;
+    }
+    setTimeout(resolve, ms);
+  });
+}
+
+// ═══════════════════════════════════════════════
+// HERO AUTO-REVEAL + MANUAL SCROLL FALLBACK
+// ═══════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  revealSection('hero');
+  updateFloatNav();
+});
+
+// Also reveal sections on manual scroll (if user scrolls without using Start Demo)
+const scrollObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      revealSection(entry.target.id);
+    }
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.demo-section').forEach(s => scrollObserver.observe(s));
+</script>
+
+</body>
+</html>

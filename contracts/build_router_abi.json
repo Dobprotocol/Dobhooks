@@ -1,0 +1,5 @@
+warning: Found unknown config section in foundry.toml: [lint]
+This notation for profiles has been deprecated and may result in the profile not being registered in future versions.
+Please use [profile.lint] instead or run `forge config --fix`.
+Error: 
+"hookmate/interfaces/router/IUniswapV4Router04.sol": No such file or directory (os error 2)
