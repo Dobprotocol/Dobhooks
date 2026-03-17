@@ -1797,6 +1797,11 @@ function rAssetsFull(){
         <i></i>
         ${l.enabled?'Liquidation Active &middot; Penalty '+liqPct+' &middot; Cap '+liqCapPct+'% used':'Healthy &middot; No liquidation'}
       </div>
+      ${S.on?`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:var(--r-sm);background:var(--bg-2);margin-bottom:12px;">
+        <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.4px;font-weight:600;">Your Balance</div>
+        <div style="text-align:right;"><span style="font-size:14px;font-weight:700;color:var(--text-1);font-variant-numeric:tabular-nums;">${fmt(S.faucetBals?.[a.id]||0,2)} ${a.ticker}</span>
+        ${(S.faucetBals?.[a.id]||0)>0?`<div style="font-size:10px;color:var(--text-3);">${usd((S.faucetBals?.[a.id]||0)*a.price)}</div>`:''}</div>
+      </div>`:''}
       <div class="af-metrics">
         <div class="af-m"><small>Oracle Price</small><span style="color:var(--amber)">${a.pf}</span></div>
         <div class="af-m"><small>TVL</small><span>${usd(a.tvl)}</span></div>
