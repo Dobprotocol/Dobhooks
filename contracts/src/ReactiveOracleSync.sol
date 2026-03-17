@@ -155,7 +155,7 @@ contract ReactiveOracleSync is IReactive {
         uint256 _originChainId,
         address _registryAddress,
         address _callbackTarget
-    ) {
+    ) payable {
         originChainId = _originChainId;
         registryAddress = _registryAddress;
         callbackTarget = _callbackTarget;

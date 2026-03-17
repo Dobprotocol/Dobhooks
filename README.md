@@ -81,19 +81,23 @@ Unichain Sepolia (1301)                    Reactive Network (5318007)
 | Contract | Address |
 |----------|---------|
 | PoolManager (Uniswap V4) | `0x00B036B58a818B1BC34d502D3fE730Db729e62AC` |
-| DobPegHook | _deploying_ |
-| DobSwapRouter | _deploying_ |
-| DobValidatorRegistry | _deploying_ |
-| DobRwaVault (dUSDC) | _deploying_ |
-| DobLPRegistry | _deploying_ |
-| OracleAlertReceiver | _deploying_ |
-| USDC (Mock) | _deploying_ |
+| DobPegHook | `0x7A930578fd9e286Eb2B1484257ABD5681d216888` |
+| DobSwapRouter | `0xF19Da1af27cCC8B52D774E48cAe046761d9840d6` |
+| DobValidatorRegistry | `0x686C24BD17Ff53Ed76b693CA69135e161C55af99` |
+| DobRwaVault (dUSDC) | `0xacA7f5f523B2028FC350557B989c57161c1C366E` |
+| DobLPRegistry | `0xcfDf62D41222c832332209B03Ffe9eAD427f74F1` |
+| OracleAlertReceiver | `0x3225c532A760D9482f88354C7B783E7c4a96cb2f` |
+| USDC (Mock) | `0x7Edc4da416CB70C879693CB931fcdA50706b732E` |
+| DCT | `0xADD824a93d5fA9A12c73cecA4eba30595C453AE8` |
+| SFT | `0x948B342850FB5F540e8Af50D4164945cADD658eb` |
+| RET | `0x00c491Efa4C129e3dC18823D28e2516EDBce3c7d` |
+| PWG | `0xA30fdEf45588c0BBB5b508f50b739071ddd9aC58` |
 
 ### Reactive Network Lasna Testnet (5318007)
 
 | Contract | Address |
 |----------|---------|
-| ReactiveOracleSync | _deploying_ |
+| ReactiveOracleSync | `0x7Edc4da416CB70C879693CB931fcdA50706b732E` |
 
 ## Smart Contracts
 

@@ -42,7 +42,7 @@ contract DeployReactive is Script {
 
         vm.startBroadcast(pk);
 
-        ReactiveOracleSync sync = new ReactiveOracleSync(
+        ReactiveOracleSync sync = new ReactiveOracleSync{value: 0.1 ether}(
             UNICHAIN_SEPOLIA,
             registry,
             alertReceiver

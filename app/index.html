@@ -1379,18 +1379,18 @@ const S={on:false,addr:'',short:'',prov:null,sig:null,dob:0,usdc:0,hook:0,minted
 // ── Multi-chain config ──
 const CHAINS={
   1301:{name:'Unichain Sepolia',explorer:'https://sepolia.uniscan.xyz',
-    USDC:"0x__USDC__",Registry:"0x__REGISTRY__",
-    Vault:"0x__VAULT__",LPRegistry:"0x__LP_REGISTRY__",
-    Hook:"0x__HOOK__",PoolManager:"0x00B036B58a818B1BC34d502D3fE730Db729e62AC",Router:"0x__ROUTER__",
-    AlertReceiver:"0x__ALERT_RECEIVER__",
-    tokens:{dct:"0x__DCT__",sft:"0x__SFT__",
-      ret:"0x__RET__",pwg:"0x__PWG__"}}
+    USDC:"0x7Edc4da416CB70C879693CB931fcdA50706b732E",Registry:"0x686C24BD17Ff53Ed76b693CA69135e161C55af99",
+    Vault:"0xacA7f5f523B2028FC350557B989c57161c1C366E",LPRegistry:"0xcfDf62D41222c832332209B03Ffe9eAD427f74F1",
+    Hook:"0x7A930578fd9e286Eb2B1484257ABD5681d216888",PoolManager:"0x00B036B58a818B1BC34d502D3fE730Db729e62AC",Router:"0xF19Da1af27cCC8B52D774E48cAe046761d9840d6",
+    AlertReceiver:"0x3225c532A760D9482f88354C7B783E7c4a96cb2f",
+    tokens:{dct:"0xADD824a93d5fA9A12c73cecA4eba30595C453AE8",sft:"0x948B342850FB5F540e8Af50D4164945cADD658eb",
+      ret:"0x00c491Efa4C129e3dC18823D28e2516EDBce3c7d",pwg:"0xA30fdEf45588c0BBB5b508f50b739071ddd9aC58"}}
 };
 // Reactive Network integration (Lasna Testnet, chain 5318007)
 const REACTIVE_CONFIG={
   chainId:5318007,name:'Reactive Lasna',explorer:'https://lasna.reactscan.net',
   rpc:'https://lasna-rpc.rnk.dev/',
-  OracleSync:"0x__REACTIVE_SYNC__"
+  OracleSync:"0x7Edc4da416CB70C879693CB931fcdA50706b732E"
 };
 let chainId=1301,ethListenersSet=false;
 const RPC_URLS={1301:'/rpc/unichain-sepolia'};
