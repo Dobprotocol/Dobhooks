@@ -1334,7 +1334,7 @@ function updateNetOpts(){
 async function switchNetwork(cid){
   document.getElementById('netMenu').classList.remove('open');
   if(cid===chainId)return;
-  if(!window.ethereum){toast('Connect wallet first');return;}
+  if(!getMetaMask()){toast('Connect wallet first');return;}
   const ok=await switchChain(cid);
   if(!ok){toast('Failed to switch network');return;}
 }
@@ -1993,11 +1993,13 @@ function renderAll(){rSwap();uSwap();rLP();rBk();rFl();rLog();uDep();uBuy();uBtn
 
 // ── Wallet ──
 const SUPPORTED_CHAINS={1301:{hex:'0x515',name:'Unichain Sepolia',rpc:'https://sepolia.unichain.org',currency:{name:'Ether',symbol:'ETH',decimals:18},explorer:'https://sepolia.uniscan.xyz'}};
+function getMetaMask(){return window.ethereum?.providers?.find(p=>p.isMetaMask)||window.ethereum;}
 async function switchChain(cid){
   const c=SUPPORTED_CHAINS[cid];if(!c)return false;
-  try{await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:c.hex}]});return true;}
+  const eth=getMetaMask();if(!eth)return false;
+  try{await eth.request({method:'wallet_switchEthereumChain',params:[{chainId:c.hex}]});return true;}
   catch(e){if(e.code===4001){toast('Chain switch cancelled');return false;}
-  if(e.code===4902){try{await window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:c.hex,chainName:c.name,nativeCurrency:c.currency,rpcUrls:[c.rpc],blockExplorerUrls:[c.explorer]}]});return true;}catch(e2){if(e2.code===4001){toast('Chain add cancelled');return false;}
+  if(e.code===4902){try{await eth.request({method:'wallet_addEthereumChain',params:[{chainId:c.hex,chainName:c.name,nativeCurrency:c.currency,rpcUrls:[c.rpc],blockExplorerUrls:[c.explorer]}]});return true;}catch(e2){if(e2.code===4001){toast('Chain add cancelled');return false;}
   if(e2.code===-32603&&/same RPC/i.test(e2.message)){toast('Please remove the old "'+c.name+'" network from MetaMask Settings → Networks, then try again.');return false;}return false;}}return false;}
 }
 async function readBalances(){
@@ -2023,13 +2025,14 @@ async function readBalances(){
 async function connectWallet(){
   const btn=document.getElementById('walletBtn');
   if(S.on){if(oracleInterval)clearInterval(oracleInterval);S.on=false;S.prov=null;S.sig=null;S.addr='';S.short='';S.dob=0;S.usdc=0;S.hook=0;S.minted=0;S.logs=[];S.lpActive=false;S.lpDeposited=0;S.lpAvailable=0;S.lpEarned=0;S.lpFillCount=0;S.backings=[];S.fills=[];S.reserveHolds=[];S.gLP=0;S.faucetBals={};A.forEach(a=>{a.price=0;a.pf='—';a.apy='—';a.units='—';a.tvl=0;a.oracle.history=[];a.oracle.updatedAgo='—';a.oracle.stale=true;a.oracle.confidence='—';a.liq={enabled:false,penaltyBps:0,cap:0,liquidated:0};});btn.textContent='Connect Wallet';btn.className='wbtn';renderAll();return;}
-  if(!window.ethereum){toast('MetaMask not detected');return;}
+  const ethereum=getMetaMask();
+  if(!ethereum||!ethereum.isMetaMask){toast('MetaMask not detected');return;}
   try{
     btn.textContent='Connecting...';btn.disabled=true;
-    const accs=await window.ethereum.request({method:'eth_requestAccounts'});
+    const accs=await ethereum.request({method:'eth_requestAccounts'});
     if(!accs?.length){btn.textContent='Connect Wallet';btn.disabled=false;return;}
     // Detect current chain
-    const rawCid=await window.ethereum.request({method:'eth_chainId'});
+    const rawCid=await ethereum.request({method:'eth_chainId'});
     let cid=parseInt(rawCid,16);
     if(CHAINS[cid]){chainId=cid;}
     else{
@@ -2039,7 +2042,7 @@ async function connectWallet(){
       chainId=1301;
     }
     document.getElementById('netName').textContent=getChain().name;updateNetOpts();
-    S.prov=new ethers.BrowserProvider(window.ethereum);S.sig=await S.prov.getSigner();
+    S.prov=new ethers.BrowserProvider(ethereum);S.sig=await S.prov.getSigner();
     S.addr=accs[0];S.short=accs[0].slice(0,6)+'...'+accs[0].slice(-4);S.on=true;
     btn.textContent=S.short;btn.className='wbtn on';btn.disabled=false;
     const bal=await S.prov.getBalance(accs[0]);
@@ -2052,8 +2055,8 @@ async function connectWallet(){
     startOraclePolling();
     log('oracle',`Oracle synced &mdash; all prices live from <strong>DobValidatorRegistry</strong>`);
     if(!ethListenersSet){ethListenersSet=true;
-    window.ethereum.on('accountsChanged',a=>{if(!a.length)connectWallet();else{S.addr=a[0];S.short=a[0].slice(0,6)+'...'+a[0].slice(-4);document.getElementById('walletBtn').textContent=S.short;readBalances().then(()=>syncOnChainData());}});
-    window.ethereum.on('chainChanged',async cHex=>{let nc=parseInt(cHex,16);if(CHAINS[nc]){chainId=nc;S.prov=new ethers.BrowserProvider(window.ethereum);S.sig=await S.prov.getSigner();document.getElementById('netName').textContent=getChain().name;updateNetOpts();A.forEach(a=>{a.oracle.history=[];});readBalances().then(()=>syncOnChainData());}else{toast('Unsupported chain. Switch to Unichain Sepolia.');}});
+    ethereum.on('accountsChanged',a=>{if(!a.length)connectWallet();else{S.addr=a[0];S.short=a[0].slice(0,6)+'...'+a[0].slice(-4);document.getElementById('walletBtn').textContent=S.short;readBalances().then(()=>syncOnChainData());}});
+    ethereum.on('chainChanged',async cHex=>{let nc=parseInt(cHex,16);if(CHAINS[nc]){chainId=nc;S.prov=new ethers.BrowserProvider(ethereum);S.sig=await S.prov.getSigner();document.getElementById('netName').textContent=getChain().name;updateNetOpts();A.forEach(a=>{a.oracle.history=[];});readBalances().then(()=>syncOnChainData());}else{toast('Unsupported chain. Switch to Unichain Sepolia.');}});
     }
   }catch(e){console.error(e);toast('Connection failed');btn.textContent='Connect Wallet';btn.disabled=false;}
   renderAll();
@@ -2447,9 +2450,9 @@ document.querySelectorAll('#mobMenu button[data-p]').forEach(b=>b.addEventListen
 renderAll();
 // Auto-reconnect if wallet was previously connected
 (async()=>{
-  if(!window.ethereum)return;
+  const _mm=getMetaMask();if(!_mm)return;
   try{
-    const accs=await window.ethereum.request({method:'eth_accounts'});
+    const accs=await _mm.request({method:'eth_accounts'});
     if(accs&&accs.length)connectWallet();
   }catch(e){}
 })();
