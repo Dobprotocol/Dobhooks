@@ -2025,7 +2025,7 @@ async function doSwap(){
     toast('Approving...');await(await token.approve(c.Router,w,gas)).wait();
     toast('Swapping...');const swTx=await(await router.swap(zeroForOne,w,'0x',gas)).wait();
     trackEvent('swaps',{txHash:swTx.hash,tokenId:'dUSDC',direction:isDobToUsdc?'sell':'buy',amountIn:amt,amountOut:amt,oraclePrice:1,blockNumber:swTx.blockNumber});
-    await readBalances();
+    await readBalances();await syncOnChainData();
     log('swap',`<strong>NoOp</strong>: ${fmt(amt,2)} ${isDobToUsdc?'dUSDC &rarr; USDC':'USDC &rarr; dUSDC'}`);
     toast('Swapped '+fmt(amt,2));document.getElementById('swapInput').value='';renderAll();
   }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');} else{console.error(e);toast('Swap failed: '+(e.reason||e.shortMessage||e.message));}}
@@ -2072,7 +2072,7 @@ async function doBuyRwa(){
     toast('Approving USDC...');await(await usdc.approve(addr,usdcCost,gas)).wait();
     toast('Buying '+a.ticker+'...');const buyTx=await(await rwa.buyTokens(tokenWei,gas)).wait();
     trackEvent('swaps',{txHash:buyTx.hash,tokenId:aid,direction:'buy',amountIn:amt,amountOut:out,oraclePrice:a.price,blockNumber:buyTx.blockNumber});
-    await readBalances();
+    await readBalances();await syncOnChainData();
     log('swap',`<strong>Buy RWA</strong>: ${fmt(amt,2)} USDC &rarr; ${fmt(out,4)} ${a.ticker}`);
     toast('Bought '+fmt(out,4)+' '+a.ticker);document.getElementById('buyAmt').value='';renderAll();
   }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');} else{console.error(e);toast('Buy failed: '+(e.reason||e.message));}}
@@ -2096,6 +2096,7 @@ async function doDeposit(){
     const out=amt*a.price;S.minted+=out;
     trackEvent('swaps',{txHash:depTx.hash,tokenId:aid,direction:'sell',amountIn:amt,amountOut:out,oraclePrice:a.price,blockNumber:depTx.blockNumber});
     await readBalances();
+    await syncOnChainData();
     log('deposit',`Deposited <strong>${fmt(amt,2)} ${a.ticker}</strong>`);log('mint',`Minted <strong>${fmt(out,2)} dUSDC</strong>`);
     toast('Minted '+fmt(out,2)+' dUSDC');document.getElementById('depositAmt').value='';renderAll();
   }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');} else{console.error(e);toast('Deposit failed: '+(e.reason||e.message));}}
