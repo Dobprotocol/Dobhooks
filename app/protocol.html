@@ -555,6 +555,7 @@
         </div>
         <div class="cc-funcs">
           <span class="cc-func">deposit()</span>
+          <span class="cc-func">withdraw()</span>
           <span class="cc-func">addApprovedAsset()</span>
           <span class="cc-func">burn()</span>
           <span class="cc-func">setHook()</span>
@@ -594,8 +595,10 @@
         <div class="cc-funcs">
           <span class="cc-func">_beforeSwap()</span>
           <span class="cc-func">seedUsdc()</span>
-          <span class="cc-func">releaseDobRwa()</span>
+          <span class="cc-func">releaseRwaTokens()</span>
           <span class="cc-func">unlockCallback()</span>
+          <span class="cc-func">depositUsdc()</span>
+          <span class="cc-func">withdrawUsdc()</span>
         </div>
       </div>
 
@@ -608,13 +611,13 @@
           </div>
         </div>
         <div class="cc-body">
-          LPs deposit USDC and set per-asset <strong>conditions</strong>: minimum oracle price, minimum penalty, max exposure, and USDC allocation. During liquidations, the hook calls <code>queryAndFill</code> which iterates backers in FIFO order, checks conditions, and fills willing LPs. LPs receive discounted dobRWA (buy at penalty price), claimable via the hook's ERC6909 burn mechanism.
+          LPs deposit USDC and set per-asset <strong>conditions</strong>: minimum oracle price, minimum penalty, max exposure, and USDC allocation. During liquidations, the hook calls <code>queryAndFill</code> which iterates backers in FIFO order, checks conditions, and fills willing LPs. LPs receive the underlying <strong>RWA tokens</strong> at a discount (buy at penalty price), claimable via the vault's withdraw mechanism.
         </div>
         <div class="cc-funcs">
           <span class="cc-func">register()</span>
           <span class="cc-func">backAsset()</span>
           <span class="cc-func">queryAndFill()</span>
-          <span class="cc-func">claimDobRwa()</span>
+          <span class="cc-func">claimRwaTokens()</span>
         </div>
       </div>
     </div>

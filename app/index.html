@@ -1042,7 +1042,7 @@
         <div class="kpi-box"><div class="kpi-lbl">Total Balance</div><div class="kpi-val" id="sBalance">$0</div><div class="kpi-sub">USDC deposited</div></div>
         <div class="kpi-box"><div class="kpi-lbl">Available</div><div class="kpi-val" id="sAvail" style="color:var(--green)">$0</div><div class="kpi-sub">Unallocated</div></div>
         <div class="kpi-box"><div class="kpi-lbl">Allocated</div><div class="kpi-val" id="sAlloc" style="color:var(--blue)">$0</div><div class="kpi-sub">Backing assets</div></div>
-        <div class="kpi-box"><div class="kpi-lbl">dUSDC Earned</div><div class="kpi-val" id="sEarned" style="color:var(--accent)">0</div><div class="kpi-sub">From fills</div></div>
+        <div class="kpi-box"><div class="kpi-lbl">RWA Earned</div><div class="kpi-val" id="sEarned" style="color:var(--accent)">0</div><div class="kpi-sub">From fills (dobRWA units)</div></div>
         <div class="kpi-box"><div class="kpi-lbl">Total Fills</div><div class="kpi-val" id="sFills">0</div><div class="kpi-sub">Your liquidation events</div></div>
         <div class="kpi-box" id="reserveKpi" style="display:none;"><div class="kpi-lbl">Reserve Locked</div><div class="kpi-val" id="sReserve" style="color:var(--amber)">$0</div><div class="kpi-sub">33% distress hold</div></div>
       </div>
@@ -1058,9 +1058,9 @@
         </div>
         <div class="card">
           <div class="card-t">Claims & Withdrawals</div>
-          <div class="card-d">Claim earned dUSDC from fills, or withdraw unallocated USDC (24h timelock via DobLPRegistry).</div>
-          <div class="hi" style="margin-bottom:8px;"><div class="hi-l">Claimable dUSDC</div><div class="hi-v" id="claimVal" style="color:var(--accent)">0.00</div></div>
-          <button class="btn btn-a btn-s" id="claimBtn" disabled style="width:100%;margin-bottom:12px;">Claim dUSDC</button>
+          <div class="card-d">Claim earned RWA tokens from liquidation fills, or withdraw unallocated USDC (24h timelock via DobLPRegistry).</div>
+          <div class="hi" style="margin-bottom:8px;"><div class="hi-l">Claimable RWA (dobRWA units)</div><div class="hi-v" id="claimVal" style="color:var(--accent)">0.00</div></div>
+          <button class="btn btn-a btn-s" id="claimBtn" disabled style="width:100%;margin-bottom:12px;">Claim RWA Tokens</button>
           <div style="border-top:1px solid var(--border-subtle);padding-top:12px;">
             <div class="f"><label class="f-l">Withdraw USDC</label><input type="number" class="f-i" id="wdAmt" placeholder="0" min="0"/><div class="f-h">Only unallocated USDC. 24h timelock enforced by contract.</div></div>
             <div class="btn-g"><button class="btn btn-o btn-s" id="wdReqBtn" disabled style="flex:1">Request Withdrawal</button><button class="btn btn-r btn-s" id="wdExecBtn" disabled style="flex:1">Execute</button></div>
@@ -1119,7 +1119,7 @@
       <div style="margin-top:24px;">
         <div class="sec"><h3>Fill History</h3><small>Your liquidation fill records</small></div>
         <div class="card" style="padding:0;overflow-x:auto;"><table class="ftbl">
-          <thead><tr><th>Time</th><th>Asset</th><th>USDC Spent</th><th>dUSDC Earned</th><th>Discount</th><th>Fee</th></tr></thead>
+          <thead><tr><th>Time</th><th>Asset</th><th>USDC Spent</th><th>RWA Earned</th><th>Discount</th><th>Fee</th></tr></thead>
           <tbody id="fillsBody"><tr><td colspan="6" class="empty">No fills yet. Back a distressed asset to start earning from liquidations.</td></tr></tbody>
         </table></div>
       </div>
@@ -1231,6 +1231,7 @@
           <div class="sw-row"><span>Rate</span><span class="v">1 dUSDC = 1 USDC</span></div>
           <div class="sw-row"><span>Route</span><span class="v">DobPegHook (NoOp)</span></div>
           <div class="sw-row"><span>Price Impact</span><span class="v" style="color:var(--green)">0%</span></div>
+          <div class="sw-row" id="swapFeeRow" style="display:none;"><span>Swap Fee</span><span class="v" id="swapFeeVal" style="color:var(--amber)">0%</span></div>
         </div>
         <button class="sw-btn" id="swapBtn" disabled>Enter an amount</button>
       </div></div>
@@ -1265,10 +1266,12 @@
         <div class="hi"><div class="hi-l">Peg Rate</div><div style="font-size:12px;font-weight:600;margin-top:3px">1 dUSDC = 1 USDC</div></div>
         <div class="hi"><div class="hi-l">Oracle</div><div style="font-size:12px;font-weight:600;margin-top:3px;color:var(--green)">DobValidatorRegistry</div></div>
         <div class="hi"><div class="hi-l">Max Oracle Delay</div><div style="font-size:12px;font-weight:600;margin-top:3px">24 hours</div></div>
-        <div class="hi"><div class="hi-l">Fee Tier</div><div style="font-size:12px;font-weight:600;margin-top:3px">0 (fee-less pool)</div></div>
+        <div class="hi"><div class="hi-l">Swap Fee (Sell)</div><div style="font-size:12px;font-weight:600;margin-top:3px" id="hookSwapFee">0%</div></div>
         <div class="hi"><div class="hi-l">Tick Spacing</div><div style="font-size:12px;font-weight:600;margin-top:3px">1</div></div>
         <div class="hi"><div class="hi-l">Withdrawal Delay</div><div style="font-size:12px;font-weight:600;margin-top:3px">24 hours</div></div>
         <div class="hi"><div class="hi-l">LP Protocol Fee</div><div style="font-size:12px;font-weight:600;margin-top:3px">1.5%</div></div>
+        <div class="hi"><div class="hi-l">LP Pool USDC</div><div style="font-size:12px;font-weight:600;margin-top:3px;color:var(--green)" id="hookLpUsdc">$0</div></div>
+        <div class="hi"><div class="hi-l">Share Price</div><div style="font-size:12px;font-weight:600;margin-top:3px" id="hookSharePrice">$1.00</div></div>
       </div>
     </div>
     <div class="card"><div class="card-t" style="margin-bottom:14px">Contract Addresses</div><div id="addrList" style="font-family:'SF Mono',SFMono-Regular,Consolas,monospace;font-size:11px;color:var(--text-2);line-height:2;"></div></div>
@@ -1375,7 +1378,8 @@ const A=[
 ];
 const S={on:false,addr:'',short:'',prov:null,sig:null,dob:0,usdc:0,hook:0,minted:0,dir:'d2u',logs:[],
   lpActive:false,lpDeposited:0,lpAvailable:0,lpEarned:0,lpFillCount:0,
-  backings:[],fills:[],reserveHolds:[],faucetBals:{},wdPending:false,wdAmount:0,wdTime:null,gLP:0};
+  backings:[],fills:[],reserveHolds:[],faucetBals:{},wdPending:false,wdAmount:0,wdTime:null,gLP:0,
+  swapFeeBps:0,hookLpUsdc:0,hookLpShares:0,hookSharePrice:0,hookMyShares:0};
 // ── Multi-chain config ──
 const CHAINS={
   1301:{name:'Unichain Sepolia',explorer:'https://sepolia.uniscan.xyz',
@@ -1411,7 +1415,8 @@ const USDC_ABI=["function approve(address,uint256) returns (bool)","function bal
 const RWA_ABI=["function approve(address,uint256) returns (bool)","function balanceOf(address) view returns (uint256)","function totalSupply() view returns (uint256)","function faucet()","function buyTokens(uint256)","function salePrice() view returns (uint256)","function saleActive() view returns (bool)"];
 const ROUTER_ABI=["function swap(bool,uint256,bytes) returns (uint256)"];
 const REG_ABI=["function getPrice(address) view returns (uint256 priceUsd, uint48 updatedAt)","function liquidations(address) view returns (bool enabled, uint16 penaltyBps, uint256 cap, uint256 liquidatedAmount)","function MAX_ORACLE_DELAY() view returns (uint48)"];
-const LP_ABI=["function getAssetBackerCount(address) view returns (uint256)","function getAssetLiquidity(address) view returns (uint256)","function register(uint256)","function depositMore(uint256)","function positions(address) view returns (uint256 usdcDeposited,uint256 usdcAvailable,uint48 registeredAt,bool active)","function backAsset(address,uint256,uint16,uint256,uint256)","function getBacking(address,address) view returns (uint256 minOraclePrice,uint16 minPenaltyBps,uint256 maxExposure,uint256 currentExposure,uint256 usdcAllocated,uint256 usdcUsed,uint48 backedAt,bool active)","function updateConditions(address,uint256,uint16,uint256)","function increaseAllocation(address,uint256)","function stopBacking(address)","function releaseReserve(uint256)","function requestWithdrawal(uint256)","function cancelWithdrawal()","function executeWithdrawal()","function withdrawalRequests(address) view returns (uint256 amount, uint48 requestedAt)"];
+const LP_ABI=["function getAssetBackerCount(address) view returns (uint256)","function getAssetLiquidity(address) view returns (uint256)","function register(uint256)","function depositMore(uint256)","function positions(address) view returns (uint256 usdcDeposited,uint256 usdcAvailable,uint48 registeredAt,bool active)","function backAsset(address,uint256,uint16,uint256,uint256)","function getBacking(address,address) view returns (uint256 minOraclePrice,uint16 minPenaltyBps,uint256 maxExposure,uint256 currentExposure,uint256 usdcAllocated,uint256 usdcUsed,uint48 backedAt,bool active)","function updateConditions(address,uint256,uint16,uint256)","function increaseAllocation(address,uint256)","function stopBacking(address)","function releaseReserve(uint256)","function requestWithdrawal(uint256)","function cancelWithdrawal()","function executeWithdrawal()","function withdrawalRequests(address) view returns (uint256 amount, uint48 requestedAt)","function rwaOwed(address,address) view returns (uint256)","function claimRwaTokens(address,uint256)"];
+const HOOK_ABI=["function swapFeeBps() view returns (uint16)","function totalLpUsdc() view returns (uint256)","function totalShares() view returns (uint256)","function lpShares(address) view returns (uint256)","function sharePrice() view returns (uint256)","function depositUsdc(uint256) returns (uint256)","function withdrawUsdc(uint256) returns (uint256)","function protocolReserveUsdc() view returns (uint256)"];
 
 // ── Load validated pools from API ──
 async function loadValidatedPools(){
@@ -1514,11 +1519,27 @@ async function syncOnChainData(){
         allBackings=allBackings.concat(results.filter(b=>b!==null));
       }
       S.backings=allBackings;
+      // Read per-asset rwaOwed for claimable amounts
+      for(const b of allBackings){
+        const addr=tokenAddr(b.aid);if(!addr)continue;
+        try{const owed=await lp.rwaOwed(S.addr,addr);b.earned=parseFloat(ethers.formatUnits(owed,18));}catch(e){b.earned=0;}
+      }
       // Read pending withdrawal
       try{const wr=await lp.withdrawalRequests(S.addr);S.wdAmount=parseFloat(ethers.formatUnits(wr.amount,18));S.wdPending=S.wdAmount>0;S.wdTime=S.wdPending?Number(wr.requestedAt)*1000:null;}catch(e){}
     }
   }catch(e){}
-  if(c.Hook){try{const usdc=new ethers.Contract(c.USDC,USDC_ABI,rp);S.hook=parseFloat(ethers.formatUnits(await usdc.balanceOf(c.Hook),18));}catch(e){}}
+  if(c.Hook){
+    try{const usdc=new ethers.Contract(c.USDC,USDC_ABI,rp);S.hook=parseFloat(ethers.formatUnits(await usdc.balanceOf(c.Hook),18));}catch(e){}
+    // Read hook LP pool data and swap fee
+    try{
+      const hk=new ethers.Contract(c.Hook,HOOK_ABI,rp);
+      S.swapFeeBps=Number(await hk.swapFeeBps());
+      S.hookLpUsdc=parseFloat(ethers.formatUnits(await hk.totalLpUsdc(),18));
+      S.hookLpShares=parseFloat(ethers.formatUnits(await hk.totalShares(),18));
+      S.hookSharePrice=parseFloat(ethers.formatUnits(await hk.sharePrice(),18));
+      if(S.on&&S.addr){S.hookMyShares=parseFloat(ethers.formatUnits(await hk.lpShares(S.addr),18));}
+    }catch(e){}
+  }
   renderAll();
 }
 function startOraclePolling(){
@@ -1659,12 +1680,20 @@ function rSwap(){
   const fi=document.getElementById('fromIco'),fn=document.getElementById('fromName'),ti=document.getElementById('toIco'),tn=document.getElementById('toName');
   if(d){fi.style.background='var(--accent-dim)';fi.style.color='var(--accent)';fi.textContent='D';fn.textContent='dUSDC';ti.style.background='var(--blue-dim)';ti.style.color='var(--blue)';ti.textContent='$';tn.textContent='USDC';}
   else{fi.style.background='var(--blue-dim)';fi.style.color='var(--blue)';fi.textContent='$';fn.textContent='USDC';ti.style.background='var(--accent-dim)';ti.style.color='var(--accent)';ti.textContent='D';tn.textContent='dUSDC';}
+  // Show fee row on sell direction if fee > 0
+  const feeRow=document.getElementById('swapFeeRow');
+  if(d&&S.swapFeeBps>0){feeRow.style.display='';document.getElementById('swapFeeVal').textContent=(S.swapFeeBps/100).toFixed(1)+'%';}
+  else{feeRow.style.display='none';}
+  uSwap();
 }
 function uSwap(){
   const v=parseFloat(document.getElementById('swapInput').value)||0;
-  document.getElementById('swapOutput').value=v>0?fmt(v,2):'';
+  const isSell=(S.dir==='d2u'); // dUSDC -> USDC = sell
+  const fee=isSell&&S.swapFeeBps>0?(v*S.swapFeeBps/10000):0;
+  const out=v-fee;
+  document.getElementById('swapOutput').value=v>0?fmt(out,2):'';
   const b=document.getElementById('swapBtn'),d=document.getElementById('swapDetail');
-  if(v>0){b.disabled=!S.on;b.textContent=S.on?'Swap':'Connect Wallet';b.className='sw-btn'+(S.on?' go':'');d.style.display='block';document.getElementById('fromUsd').textContent='~$'+fmt(v,2);document.getElementById('toUsd').textContent='~$'+fmt(v,2);}
+  if(v>0){b.disabled=!S.on;b.textContent=S.on?'Swap':'Connect Wallet';b.className='sw-btn'+(S.on?' go':'');d.style.display='block';document.getElementById('fromUsd').textContent='~$'+fmt(v,2);document.getElementById('toUsd').textContent='~$'+fmt(out,2);}
   else{b.disabled=true;b.textContent='Enter an amount';b.className='sw-btn';d.style.display='none';document.getElementById('fromUsd').textContent='';document.getElementById('toUsd').textContent='';}
 }
 function rLP(){
@@ -1748,6 +1777,9 @@ function uBtns(){
 function rPool(){
   document.getElementById('hookUsdc').textContent=usd(S.hook);document.getElementById('totalMinted').textContent=fmt(S.minted,0);
   document.getElementById('lpCount').textContent=S.gLP;
+  document.getElementById('hookSwapFee').textContent=S.swapFeeBps>0?(S.swapFeeBps/100).toFixed(1)+'% (sell only)':'0%';
+  document.getElementById('hookLpUsdc').textContent=usd(S.hookLpUsdc);
+  document.getElementById('hookSharePrice').textContent='$'+fmt(S.hookSharePrice,4);
   const fb=document.getElementById('faucetUsdcBal');if(fb)fb.textContent=fmt(S.usdc,0);
   const cb=document.getElementById('claimUsdcBtn');if(cb)cb.disabled=!S.on;
   const ch=ADDR(),ex=ch.explorer;
@@ -2247,7 +2279,25 @@ function rReserves(){
     </div>`;
   }).join('');
 }
-function lpClaim(){const er=S.backings.reduce((s,b)=>s+b.earned,0);if(er<=0)return;S.dob+=er;S.lpEarned+=er;S.backings.forEach(b=>{b.earned=0;});log('lp',`Claimed <strong>${fmt(er,2)} dUSDC</strong>`);toast('Claimed '+fmt(er,2));renderAll();}
+async function lpClaim(){
+  const claimable=S.backings.filter(b=>b.earned>0);
+  if(!claimable.length){toast('Nothing to claim');return;}
+  if(!S.on){toast('Connect wallet first');return;}
+  const c=ADDR();const gas=await gasOverrides();
+  try{
+    const lp=new ethers.Contract(c.LPRegistry,LP_ABI,S.sig);
+    for(const b of claimable){
+      const addr=tokenAddr(b.aid);if(!addr)continue;
+      const w=ethers.parseUnits(b.earned.toString(),18);
+      toast('Claiming '+b.aid.toUpperCase()+' RWA tokens...');
+      await(await lp.claimRwaTokens(addr,w,gas)).wait();
+      log('lp',`Claimed <strong>${fmt(b.earned,2)}</strong> ${b.aid.toUpperCase()} RWA tokens`);
+      b.earned=0;
+    }
+    await readBalances();await syncOnChainData();
+    toast('Claimed RWA tokens');renderAll();
+  }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');} else{console.error(e);toast('Claim failed: '+(e.reason||e.shortMessage||e.message));}}
+}
 async function wdReq(){
   const amt=parseFloat(document.getElementById('wdAmt').value)||0;
   if(!S.on){toast('Connect wallet first');return;}if(amt<=0)return;if(amt>S.lpAvailable){toast('Max: '+usd(S.lpAvailable));return;}
