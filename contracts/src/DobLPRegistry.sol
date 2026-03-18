@@ -99,8 +99,9 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
     /// @dev LP -> array of reserve holds from distressed asset exits
     mapping(address => ReserveHold[]) public reserveHolds;
 
-    /// @dev dobRWA owed to each LP (accumulated from fills, claimable via hook)
-    mapping(address => uint256) public dobRwaOwed;
+    /// @dev RWA tokens owed to each LP per asset (accumulated from fills, claimable via hook)
+    /// lp => rwaToken => dobRwaAmount
+    mapping(address => mapping(address => uint256)) public rwaOwed;
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -456,56 +457,17 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
         uint256 remaining = usdcNeeded;
 
         for (uint256 i = 0; i < backers.length && remaining > 0; i++) {
-            address lp = backers[i];
-            AssetBacking storage backing = backings[lp][rwaToken];
+            (uint256 filled, uint256 dobRwa) = _tryFillLP(
+                backers[i], rwaToken, currentOraclePrice, currentPenaltyBps, remaining
+            );
+            if (filled == 0) continue;
 
-            if (!backing.active) continue;
-
-            // Anti-frontrun: must have been backing for MIN_BACKING_AGE
-            if (block.timestamp - backing.backedAt < MIN_BACKING_AGE) continue;
-
-            // Check LP's conditions against current state
-            if (currentOraclePrice < backing.minOraclePrice) continue;
-            if (currentPenaltyBps < backing.minPenaltyBps) continue;
-
-            // Check available USDC for this asset
-            uint256 availableUsdc = backing.usdcAllocated - backing.usdcUsed;
-            if (availableUsdc == 0) continue;
-
-            // Check exposure headroom
-            uint256 remainingExposure = backing.maxExposure - backing.currentExposure;
-            if (remainingExposure == 0) continue;
-
-            // Calculate fill amount
-            uint256 fillUsdc = remaining;
-            if (fillUsdc > availableUsdc) fillUsdc = availableUsdc;
-
-            // dobRWA the LP receives at discount: usdc / (1 - penalty%)
-            uint256 dobRwaAmount = (fillUsdc * 10000) / (10000 - currentPenaltyBps);
-
-            // Clamp to exposure limit
-            if (dobRwaAmount > remainingExposure) {
-                dobRwaAmount = remainingExposure;
-                fillUsdc = (dobRwaAmount * (10000 - currentPenaltyBps)) / 10000;
-            }
-
-            if (fillUsdc == 0) continue;
-
-            // Execute fill — update state
-            backing.usdcUsed += fillUsdc;
-            backing.currentExposure += dobRwaAmount;
-            dobRwaOwed[lp] += dobRwaAmount;
-            totalDobRwaForLPs += dobRwaAmount;
-
-            // Protocol fee: 1.5% deducted from what goes to the hook
-            {
-                uint256 fee = (fillUsdc * PROTOCOL_FEE_BPS) / 10000;
-                accumulatedFees += fee;
-                remaining -= (fillUsdc - fee);
-                totalUsdcFilled += (fillUsdc - fee);
-            }
-
-            emit FillExecuted(lp, rwaToken, fillUsdc, dobRwaAmount);
+            totalDobRwaForLPs += dobRwa;
+            uint256 fee = (filled * PROTOCOL_FEE_BPS) / 10000;
+            accumulatedFees += fee;
+            uint256 net = filled - fee;
+            remaining -= net;
+            totalUsdcFilled += net;
         }
 
         // Transfer filled USDC (minus fees) to the hook
@@ -522,17 +484,19 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
                         DOBRWA CLAIMS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Claim accumulated dobRWA from liquidation fills.
-    ///         Calls the hook to release dobRWA (burn ERC6909 → transfer ERC20).
-    function claimDobRwa(uint256 amount) external nonReentrant {
-        if (amount == 0) revert ZeroAmount();
-        if (dobRwaOwed[msg.sender] < amount) revert InsufficientClaimable();
+    /// @notice Claim accumulated RWA tokens from liquidation fills.
+    ///         Calls the hook to convert dobRWA → RWA tokens via the vault.
+    /// @param rwaToken    The RWA token address to claim.
+    /// @param dobRwaAmount The amount of dobRWA to convert to RWA tokens.
+    function claimRwaTokens(address rwaToken, uint256 dobRwaAmount) external nonReentrant {
+        if (dobRwaAmount == 0) revert ZeroAmount();
+        if (rwaOwed[msg.sender][rwaToken] < dobRwaAmount) revert InsufficientClaimable();
 
-        dobRwaOwed[msg.sender] -= amount;
+        rwaOwed[msg.sender][rwaToken] -= dobRwaAmount;
 
-        IDobPegHookLP(hook).releaseDobRwa(msg.sender, amount);
+        IDobPegHookLP(hook).releaseRwaTokens(msg.sender, rwaToken, dobRwaAmount);
 
-        emit DobRwaClaimed(msg.sender, amount);
+        emit DobRwaClaimed(msg.sender, dobRwaAmount);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -622,6 +586,46 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
         return enabled && penaltyBps > 0;
     }
 
+    /// @dev Attempt to fill a single LP for a liquidation. Returns (usdcFilled, dobRwaAmount).
+    function _tryFillLP(
+        address lp,
+        address rwaToken,
+        uint256 currentOraclePrice,
+        uint16 currentPenaltyBps,
+        uint256 remaining
+    ) internal returns (uint256 fillUsdc, uint256 dobRwaAmount) {
+        AssetBacking storage backing = backings[lp][rwaToken];
+
+        if (!backing.active) return (0, 0);
+        if (block.timestamp - backing.backedAt < MIN_BACKING_AGE) return (0, 0);
+        if (currentOraclePrice < backing.minOraclePrice) return (0, 0);
+        if (currentPenaltyBps < backing.minPenaltyBps) return (0, 0);
+
+        uint256 availableUsdc = backing.usdcAllocated - backing.usdcUsed;
+        if (availableUsdc == 0) return (0, 0);
+
+        uint256 remainingExposure = backing.maxExposure - backing.currentExposure;
+        if (remainingExposure == 0) return (0, 0);
+
+        fillUsdc = remaining;
+        if (fillUsdc > availableUsdc) fillUsdc = availableUsdc;
+
+        dobRwaAmount = (fillUsdc * 10000) / (10000 - currentPenaltyBps);
+
+        if (dobRwaAmount > remainingExposure) {
+            dobRwaAmount = remainingExposure;
+            fillUsdc = (dobRwaAmount * (10000 - currentPenaltyBps)) / 10000;
+        }
+
+        if (fillUsdc == 0) return (0, 0);
+
+        backing.usdcUsed += fillUsdc;
+        backing.currentExposure += dobRwaAmount;
+        rwaOwed[lp][rwaToken] += dobRwaAmount;
+
+        emit FillExecuted(lp, rwaToken, fillUsdc, dobRwaAmount);
+    }
+
     /// @dev Remove an LP from the assetBackers array using swap-and-pop.
     function _removeBacker(address rwaToken, address lp) internal {
         uint256 index = _backerIndex[rwaToken][lp];
@@ -640,7 +644,7 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
 
 /// @notice Minimal interface for the hook's LP release function.
 interface IDobPegHookLP {
-    function releaseDobRwa(address to, uint256 amount) external;
+    function releaseRwaTokens(address to, address rwaToken, uint256 dobRwaAmount) external;
 }
 
 /// @notice Minimal interface for querying the validator registry's liquidation state.

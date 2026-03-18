@@ -19,17 +19,9 @@ import {DobLPRegistry} from "./DobLPRegistry.sol";
 
 /// @title DobPegHook
 /// @notice Uniswap V4 Hook that uses Custom Accounting (NoOp swap) to execute
-///         dobRWA ↔ USDC swaps at an exact 1:1 oracle-pegged price, with
-///         support for liquidation mode — distressed assets swap at a penalty
-///         discount, subject to per-asset and global caps.
-///
-///         When a user swaps dobRWA → USDC:
-///           • Normal mode:      user receives exactly `amountIn` USDC (1:1 peg)
-///           • Liquidation mode:  user receives `amountIn * (1 - penalty)` USDC;
-///                                the penalty portion of dobRWA is burned.
-///
-///         The hook holds USDC reserves (seeded by the protocol / LPs) which back
-///         the instant redemption guarantee.
+///         dobRWA <> USDC swaps at an exact 1:1 oracle-pegged price, with
+///         support for liquidation mode, permissionless USDC LP pool with fees,
+///         and RWA token rewards for liquidation LPs.
 contract DobPegHook is BaseHook {
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
@@ -60,6 +52,32 @@ contract DobPegHook is BaseHook {
     /// @notice Total dobRWA owed to LPs (safety invariant for claims).
     uint256 public totalLpDobRwaOwed;
 
+    // ── Permissionless USDC LP Pool ──
+
+    /// @notice Total USDC value in the LP pool (grows with fees).
+    uint256 public totalLpUsdc;
+
+    /// @notice Total outstanding LP shares.
+    uint256 public totalShares;
+
+    /// @notice LP address => share balance.
+    mapping(address => uint256) public lpShares;
+
+    /// @notice LP address => deposit timestamp (for MIN_LP_DURATION).
+    mapping(address => uint48) public lpDepositedAt;
+
+    /// @notice Swap fee in basis points (e.g. 30 = 0.3%). Applied on sell (dUSDC->USDC).
+    uint16 public swapFeeBps;
+
+    /// @notice Protocol-seeded USDC reserves (separate from LP pool).
+    uint256 public protocolReserveUsdc;
+
+    /// @notice Minimum time an LP must wait before withdrawing.
+    uint48 public constant MIN_LP_DURATION = 1 hours;
+
+    /// @notice Dead shares minted on first deposit to prevent first-depositor attack.
+    uint256 private constant DEAD_SHARES = 1000;
+
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -80,8 +98,12 @@ contract DobPegHook is BaseHook {
     );
 
     event LPRegistrySet(address indexed lpRegistry);
-    event DobRwaReleased(address indexed to, uint256 amount);
+    event RwaTokensReleased(address indexed to, address indexed rwaToken, uint256 dobRwaAmount);
     event LPFill(uint256 lpUsdcFilled, uint256 lpDobRwaOwed, uint256 protocolUsdcUsed);
+    event UsdcDeposited(address indexed lp, uint256 amount, uint256 shares);
+    event UsdcWithdrawn(address indexed lp, uint256 shares, uint256 amount);
+    event SwapFeeSet(uint16 feeBps);
+    event ProtocolReserveWithdrawn(address indexed to, uint256 amount);
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -93,16 +115,15 @@ contract DobPegHook is BaseHook {
     error GlobalLiquidationCapExceeded();
     error OnlyLPRegistry();
     error ExceedsLPAllocation();
+    error ZeroAmount();
+    error FeeTooHigh();
+    error LPDurationNotMet();
+    error InsufficientShares();
 
     /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    /// @param _poolManager The Uniswap V4 PoolManager singleton.
-    /// @param _vault       The DobRwaVault (also the dobRWA token).
-    /// @param _usdc        The USDC token address.
-    /// @param _registry    The DobValidatorRegistry address.
-    /// @param _admin       The protocol admin.
     constructor(
         IPoolManager _poolManager,
         DobRwaVault _vault,
@@ -123,17 +144,17 @@ contract DobPegHook is BaseHook {
 
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
         return Hooks.Permissions({
-            beforeInitialize: true,       // Admin-only pool creation
+            beforeInitialize: true,
             afterInitialize: false,
-            beforeAddLiquidity: true,      // Restrict LP access
+            beforeAddLiquidity: true,
             afterAddLiquidity: false,
             beforeRemoveLiquidity: false,
             afterRemoveLiquidity: false,
-            beforeSwap: true,              // Intercept swap for oracle peg
+            beforeSwap: true,
             afterSwap: false,
             beforeDonate: false,
             afterDonate: false,
-            beforeSwapReturnDelta: true,   // Custom accounting (NoOp swap)
+            beforeSwapReturnDelta: true,
             afterSwapReturnDelta: false,
             afterAddLiquidityReturnDelta: false,
             afterRemoveLiquidityReturnDelta: false
@@ -144,7 +165,6 @@ contract DobPegHook is BaseHook {
                            HOOK CALLBACKS
     //////////////////////////////////////////////////////////////*/
 
-    /// @dev Only the admin can initialize a pool with this hook.
     function _beforeInitialize(address sender, PoolKey calldata, uint160)
         internal
         view
@@ -155,7 +175,6 @@ contract DobPegHook is BaseHook {
         return BaseHook.beforeInitialize.selector;
     }
 
-    /// @dev Only the admin can add liquidity (simplified LP whitelist).
     function _beforeAddLiquidity(
         address sender,
         PoolKey calldata,
@@ -166,41 +185,17 @@ contract DobPegHook is BaseHook {
         return BaseHook.beforeAddLiquidity.selector;
     }
 
-    /// @dev Core NoOp swap logic — intercepts any swap and executes at the 1:1 peg,
-    ///      or at a penalized rate if the underlying RWA is in liquidation mode.
-    ///
-    /// V4 Custom Accounting Flow
-    /// ─────────────────────────
-    /// The `BeforeSwapDelta(+amountIn, -amountOut)` creates hook-level deltas
-    /// AFTER `_beforeSwap` returns:
-    ///   • input currency:  +amountIn   (PoolManager owes hook)
-    ///   • output currency: -amountOut  (hook owes PoolManager)
-    ///
-    /// To zero these out before `unlock` ends, we proactively create
-    /// opposite deltas INSIDE this callback:
-    ///   1. SETTLE output tokens (sync→transfer→settle)  → hook delta = +amountOut
-    ///      Net after BeforeSwapDelta: +amountOut + (-amountOut) = 0 ✓
-    ///   2. MINT ERC6909 claims for input                → hook delta = -amountIn
-    ///      Net after BeforeSwapDelta: -amountIn + (+amountIn) = 0 ✓
-    ///
-    /// The caller's (router's) swapDelta is adjusted by `swapDelta - hookDelta`,
-    /// so the swapper still pays the input and receives the output.
-    ///
-    /// @param hookData If the swap is on a liquidation-mode asset, encode the
-    ///                 RWA token address as `abi.encode(rwaTokenAddress)`.
-    ///                 Pass empty bytes for normal 1:1 peg swaps.
+    /// @dev Core NoOp swap logic with fee on sell direction (dobRWA->USDC).
     function _beforeSwap(
         address,
         PoolKey calldata key,
         SwapParams calldata params,
         bytes calldata hookData
     ) internal override returns (bytes4, BeforeSwapDelta, uint24) {
-        // We only support exact-input swaps for simplicity
         require(params.amountSpecified < 0, "Only exact-input swaps supported");
 
         uint256 amountIn = uint256(-params.amountSpecified);
 
-        // Determine the input/output currencies based on swap direction
         Currency inputCurrency;
         Currency outputCurrency;
 
@@ -212,41 +207,31 @@ contract DobPegHook is BaseHook {
             outputCurrency = key.currency0;
         }
 
-        // Determine if this is a dobRWA → USDC swap (sell direction)
         bool isDobRwaToUsdc = Currency.unwrap(inputCurrency) == address(dobRwa);
 
-        // ── Check for liquidation mode ──
         uint256 amountOut;
         uint256 penaltyAmount;
 
         if (isDobRwaToUsdc && hookData.length > 0) {
-            // Decode the RWA token address from hookData
             address rwaToken = abi.decode(hookData, (address));
 
             (bool enabled, uint16 penaltyBps, uint256 cap, uint256 liquidatedAmount) =
                 registry.getLiquidationParams(rwaToken);
 
             if (enabled) {
-                // ── Liquidation swap ──
-
-                // Check per-asset cap
                 if (liquidatedAmount + amountIn > cap) revert LiquidationCapExceeded();
 
-                // Check global cap
                 uint256 globalCap = registry.globalLiquidationCap();
                 if (globalCap > 0) {
                     uint256 globalLiquidated = registry.globalLiquidatedAmount();
                     if (globalLiquidated + amountIn > globalCap) revert GlobalLiquidationCapExceeded();
                 }
 
-                // Apply penalty: amountOut = amountIn * (10000 - penaltyBps) / 10000
                 amountOut = (amountIn * (10000 - penaltyBps)) / 10000;
                 penaltyAmount = amountIn - amountOut;
 
-                // Record the liquidation in the registry
                 registry.recordLiquidation(rwaToken, amountIn);
 
-                // ── Query LP Registry for fills ──
                 if (address(lpRegistry) != address(0)) {
                     (uint256 oraclePrice, ) = registry.getPrice(rwaToken);
                     (uint256 lpFilled, uint256 lpDobRwa) = lpRegistry.queryAndFill(
@@ -260,30 +245,25 @@ contract DobPegHook is BaseHook {
 
                 emit LiquidationSwap(tx.origin, rwaToken, amountIn, amountOut, penaltyAmount);
             } else {
-                // Not in liquidation mode — fall through to 1:1 peg
                 amountOut = amountIn;
             }
+        } else if (isDobRwaToUsdc && swapFeeBps > 0 && hookData.length == 0) {
+            // Normal sell with fee: dobRWA -> USDC
+            uint256 fee = (amountIn * swapFeeBps) / 10000;
+            amountOut = amountIn - fee;
+            totalLpUsdc += fee; // fee accrues to LP pool
         } else {
-            // Normal 1:1 peg swap (or USDC → dobRWA direction)
+            // Normal 1:1 peg swap (buy direction or no fee)
             amountOut = amountIn;
         }
 
-        // ── 1. SETTLE output tokens (hook → PoolManager) ──
-        // Creates hook delta = +amountOut for the output currency.
-        // This offsets the -amountOut that BeforeSwapDelta will apply.
+        // ── 1. SETTLE output tokens (hook -> PoolManager) ──
         ERC20 outputToken = ERC20(Currency.unwrap(outputCurrency));
         poolManager.sync(outputCurrency);
         outputToken.safeTransfer(address(poolManager), amountOut);
         poolManager.settle();
 
         // ── 2. MINT ERC6909 claims for the input currency ──
-        // Creates hook delta = -amountIn for the input currency.
-        // This offsets the +amountIn that BeforeSwapDelta will apply.
-        // The hook receives ERC6909 claims redeemable for the actual tokens later.
-        //
-        // In liquidation mode, the full amountIn is still claimed as ERC6909.
-        // The penalty portion (amountIn - amountOut) stays permanently locked
-        // as ERC6909 claims in the hook — effectively burned from circulation.
         poolManager.mint(address(this), inputCurrency.toId(), amountIn);
 
         if (penaltyAmount == 0) {
@@ -295,12 +275,9 @@ contract DobPegHook is BaseHook {
             );
         }
 
-        // Return the NoOp delta:
-        // specifiedDelta > 0 means hook consumed all the specified (input) tokens
-        // unspecifiedDelta < 0 means hook is providing the unspecified (output) tokens
         BeforeSwapDelta delta = toBeforeSwapDelta(
-            int128(int256(amountIn)),   // hook takes all specified input
-            -int128(int256(amountOut))  // hook gives all unspecified output
+            int128(int256(amountIn)),
+            -int128(int256(amountOut))
         );
 
         return (BaseHook.beforeSwap.selector, delta, 0);
@@ -310,15 +287,89 @@ contract DobPegHook is BaseHook {
                          RESERVE MANAGEMENT
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Seed the hook with USDC reserves for redemptions.
-    /// @param amount The amount of USDC to deposit.
+    /// @notice Seed the hook with protocol USDC reserves (no LP shares issued).
     function seedUsdc(uint256 amount) external {
         usdc.safeTransferFrom(msg.sender, address(this), amount);
+        protocolReserveUsdc += amount;
     }
 
-    /// @notice Check the hook's USDC reserve balance.
+    /// @notice Withdraw protocol reserve USDC. Only callable by admin.
+    function withdrawProtocolReserve(uint256 amount) external {
+        if (msg.sender != admin) revert OnlyAdmin();
+        if (amount == 0) revert ZeroAmount();
+        if (amount > protocolReserveUsdc) revert InsufficientUsdcReserves();
+
+        protocolReserveUsdc -= amount;
+        usdc.safeTransfer(admin, amount);
+
+        emit ProtocolReserveWithdrawn(admin, amount);
+    }
+
+    /// @notice Check the hook's total USDC balance.
     function usdcReserves() external view returns (uint256) {
         return usdc.balanceOf(address(this));
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                    PERMISSIONLESS USDC LP POOL
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Set the swap fee. Only callable by admin. Max 10%.
+    function setSwapFee(uint16 feeBps) external {
+        if (msg.sender != admin) revert OnlyAdmin();
+        if (feeBps > 1000) revert FeeTooHigh();
+        swapFeeBps = feeBps;
+        emit SwapFeeSet(feeBps);
+    }
+
+    /// @notice Deposit USDC into the LP pool and receive shares.
+    function depositUsdc(uint256 amount) external returns (uint256 shares) {
+        if (amount == 0) revert ZeroAmount();
+
+        usdc.safeTransferFrom(msg.sender, address(this), amount);
+
+        if (totalShares == 0) {
+            // First deposit: mint dead shares to prevent first-depositor attack
+            shares = amount - DEAD_SHARES;
+            totalShares = amount;
+            lpShares[address(1)] += DEAD_SHARES; // dead shares
+        } else {
+            shares = (amount * totalShares) / totalLpUsdc;
+            totalShares += shares;
+        }
+
+        totalLpUsdc += amount;
+        lpShares[msg.sender] += shares;
+        lpDepositedAt[msg.sender] = uint48(block.timestamp);
+
+        emit UsdcDeposited(msg.sender, amount, shares);
+    }
+
+    /// @notice Withdraw USDC from the LP pool by burning shares.
+    function withdrawUsdc(uint256 shares) external returns (uint256 amount) {
+        if (shares == 0) revert ZeroAmount();
+        if (lpShares[msg.sender] < shares) revert InsufficientShares();
+        if (block.timestamp < lpDepositedAt[msg.sender] + MIN_LP_DURATION) revert LPDurationNotMet();
+
+        amount = (shares * totalLpUsdc) / totalShares;
+
+        // Check actual USDC availability
+        uint256 available = usdc.balanceOf(address(this));
+        if (amount > available) revert InsufficientUsdcReserves();
+
+        lpShares[msg.sender] -= shares;
+        totalShares -= shares;
+        totalLpUsdc -= amount;
+
+        usdc.safeTransfer(msg.sender, amount);
+
+        emit UsdcWithdrawn(msg.sender, shares, amount);
+    }
+
+    /// @notice Get the current price per share (18-decimal).
+    function sharePrice() external view returns (uint256) {
+        if (totalShares == 0) return 1e18;
+        return (totalLpUsdc * 1e18) / totalShares;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -332,34 +383,40 @@ contract DobPegHook is BaseHook {
         emit LPRegistrySet(_lpRegistry);
     }
 
-    /// @notice Release dobRWA to an LP by burning ERC6909 claims and
-    ///         transferring the underlying tokens. Only callable by the LP Registry.
-    /// @param to     The LP address to receive dobRWA.
-    /// @param amount The amount of dobRWA to release.
-    function releaseDobRwa(address to, uint256 amount) external {
+    /// @notice Release RWA tokens to an LP by burning ERC6909 claims,
+    ///         converting dobRWA to RWA tokens via the vault.
+    ///         Only callable by the LP Registry.
+    function releaseRwaTokens(address to, address rwaToken, uint256 dobRwaAmount) external {
         if (msg.sender != address(lpRegistry)) revert OnlyLPRegistry();
-        if (amount > totalLpDobRwaOwed) revert ExceedsLPAllocation();
+        if (dobRwaAmount > totalLpDobRwaOwed) revert ExceedsLPAllocation();
 
-        totalLpDobRwaOwed -= amount;
+        totalLpDobRwaOwed -= dobRwaAmount;
 
-        // Initiate PoolManager unlock to burn ERC6909 claims and take tokens
-        poolManager.unlock(abi.encode(to, amount));
+        // Initiate PoolManager unlock to burn ERC6909 claims, take dobRWA,
+        // then route through vault.withdraw() to give LP the underlying RWA tokens
+        poolManager.unlock(abi.encode(to, rwaToken, dobRwaAmount));
 
-        emit DobRwaReleased(to, amount);
+        emit RwaTokensReleased(to, rwaToken, dobRwaAmount);
     }
 
     /// @notice Callback from PoolManager during LP claim unlock session.
-    ///         Burns the hook's ERC6909 claims and sends underlying dobRWA to the LP.
+    ///         Burns ERC6909 claims, takes dobRWA to this hook, transfers to vault,
+    ///         and calls vault.withdraw() to send RWA tokens to the LP.
     function unlockCallback(bytes calldata data) external onlyPoolManager returns (bytes memory) {
-        (address to, uint256 amount) = abi.decode(data, (address, uint256));
+        (address to, address rwaToken, uint256 dobRwaAmount) =
+            abi.decode(data, (address, address, uint256));
 
         Currency dobRwaCurrency = Currency.wrap(address(vault));
 
-        // Burn ERC6909 claims (creates positive delta — hook "pays")
-        poolManager.burn(address(this), dobRwaCurrency.toId(), amount);
+        // Burn ERC6909 claims (creates positive delta -- hook "pays")
+        poolManager.burn(address(this), dobRwaCurrency.toId(), dobRwaAmount);
 
-        // Take underlying tokens to LP (creates negative delta — cancels out)
-        poolManager.take(dobRwaCurrency, to, amount);
+        // Take underlying dobRWA tokens to this hook (creates negative delta -- cancels out)
+        poolManager.take(dobRwaCurrency, address(this), dobRwaAmount);
+
+        // Transfer dobRWA to vault, then call withdraw to convert to RWA tokens for LP
+        dobRwa.safeTransfer(address(vault), dobRwaAmount);
+        vault.withdraw(rwaToken, dobRwaAmount, to);
 
         return "";
     }

@@ -510,7 +510,7 @@ contract DobLPRegistryTest is BaseTest {
         // LP's raw fill = 8,000 USDC (before fee)
         // dobRWA = 8000 * 10000 / 8000 = 10,000
         uint256 expectedDobRwa = (expectedUsdc * 10000) / (10000 - 2000);
-        assertEq(lpRegistry.dobRwaOwed(LP1), expectedDobRwa, "LP dobRWA owed incorrect");
+        assertEq(lpRegistry.rwaOwed(LP1, address(rwaToken)), expectedDobRwa, "LP dobRWA owed incorrect");
 
         // LP's backing state: usdcUsed = 8,000 (full amount including fee)
         DobLPRegistry.AssetBacking memory backing = lpRegistry.getBacking(LP1, address(rwaToken));
@@ -573,7 +573,7 @@ contract DobLPRegistryTest is BaseTest {
         assertEq(usdcAfter - usdcBefore, expectedUsdc, "Seller should still get USDC");
 
         // No LP fill — LP owed nothing
-        assertEq(lpRegistry.dobRwaOwed(LP1), 0, "LP should have no fill");
+        assertEq(lpRegistry.rwaOwed(LP1, address(rwaToken)), 0, "LP should have no fill");
 
         // Protocol covers 100%
         assertEq(hookUsdcBefore - hookUsdcAfter, expectedUsdc, "Protocol should cover 100%");
@@ -589,7 +589,7 @@ contract DobLPRegistryTest is BaseTest {
         _swapDobRwaToUsdc(swapAmount, abi.encode(address(rwaToken)));
 
         // LP should not be filled (penalty 20% < required 25%)
-        assertEq(lpRegistry.dobRwaOwed(LP1), 0, "LP should not be filled");
+        assertEq(lpRegistry.rwaOwed(LP1, address(rwaToken)), 0, "LP should not be filled");
     }
 
     function testLiquidationMultipleLPs() public {
@@ -663,7 +663,7 @@ contract DobLPRegistryTest is BaseTest {
         _swapDobRwaToUsdc(swapAmount, abi.encode(address(rwaToken)));
 
         // LP should NOT be filled (too new)
-        assertEq(lpRegistry.dobRwaOwed(LP1), 0, "New LP should not be filled");
+        assertEq(lpRegistry.rwaOwed(LP1, address(rwaToken)), 0, "New LP should not be filled");
     }
 
     function testNormalSwapUnaffectedByLPSystem() public {
@@ -683,14 +683,14 @@ contract DobLPRegistryTest is BaseTest {
         assertEq(usdcAfter - usdcBefore, swapAmount, "Normal swap should be 1:1");
 
         // LP should have no fills
-        assertEq(lpRegistry.dobRwaOwed(LP1), 0, "LP should have no fills on normal swap");
+        assertEq(lpRegistry.rwaOwed(LP1, address(rwaToken)), 0, "LP should have no fills on normal swap");
     }
 
     /*//////////////////////////////////////////////////////////////
                      LP DOBRWA CLAIM TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testLPClaimDobRwa() public {
+    function testLPClaimRwaTokens() public {
         _setupLP(LP1, 100_000e18, 0, 0, 200_000e18, 50_000e18);
 
         _depositRwa(1e18);
@@ -698,18 +698,20 @@ contract DobLPRegistryTest is BaseTest {
         uint256 swapAmount = 10_000e18;
         _swapDobRwaToUsdc(swapAmount, abi.encode(address(rwaToken)));
 
-        uint256 owed = lpRegistry.dobRwaOwed(LP1);
+        uint256 owed = lpRegistry.rwaOwed(LP1, address(rwaToken));
         assertTrue(owed > 0, "LP should have dobRWA owed");
 
-        uint256 dobRwaBefore = ERC20(address(vault)).balanceOf(LP1);
+        uint256 rwaBefore = rwaToken.balanceOf(LP1);
 
-        // LP claims their dobRWA
+        // LP claims RWA tokens (vault converts dobRWA -> RWA at oracle price)
         vm.prank(LP1);
-        lpRegistry.claimDobRwa(owed);
+        lpRegistry.claimRwaTokens(address(rwaToken), owed);
 
-        uint256 dobRwaAfter = ERC20(address(vault)).balanceOf(LP1);
-        assertEq(dobRwaAfter - dobRwaBefore, owed, "LP should receive dobRWA");
-        assertEq(lpRegistry.dobRwaOwed(LP1), 0, "Owed should be zero after claim");
+        uint256 rwaAfter = rwaToken.balanceOf(LP1);
+        // owed is in dobRWA units; rwaAmount = (owed * 1e18) / RWA_PRICE
+        uint256 expectedRwa = (owed * 1e18) / RWA_PRICE;
+        assertEq(rwaAfter - rwaBefore, expectedRwa, "LP should receive RWA tokens");
+        assertEq(lpRegistry.rwaOwed(LP1, address(rwaToken)), 0, "Owed should be zero after claim");
         assertEq(hook.totalLpDobRwaOwed(), 0, "Hook LP owed should be zero");
     }
 
@@ -721,11 +723,11 @@ contract DobLPRegistryTest is BaseTest {
         uint256 swapAmount = 10_000e18;
         _swapDobRwaToUsdc(swapAmount, abi.encode(address(rwaToken)));
 
-        uint256 owed = lpRegistry.dobRwaOwed(LP1);
+        uint256 owed = lpRegistry.rwaOwed(LP1, address(rwaToken));
 
         vm.prank(LP1);
         vm.expectRevert(DobLPRegistry.InsufficientClaimable.selector);
-        lpRegistry.claimDobRwa(owed + 1);
+        lpRegistry.claimRwaTokens(address(rwaToken), owed + 1);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -764,10 +766,10 @@ contract DobLPRegistryTest is BaseTest {
         hook.setLPRegistry(address(0x1234));
     }
 
-    function testOnlyLPRegistryCanReleaseDobRwa() public {
+    function testOnlyLPRegistryCanReleaseRwaTokens() public {
         vm.prank(address(0xdead));
         vm.expectRevert(DobPegHook.OnlyLPRegistry.selector);
-        hook.releaseDobRwa(address(0xdead), 1000e18);
+        hook.releaseRwaTokens(address(0xdead), address(rwaToken), 1000e18);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -803,5 +805,240 @@ contract DobLPRegistryTest is BaseTest {
         uint256 expectedFee = (8_000e18 * 150) / 10000; // 120 USDC
         assertEq(fillable, 8_000e18 - expectedFee, "Should account for 1.5% fee");
         assertEq(dobRwa, 10_000e18, "LP should get 10k dobRWA at 20% discount");
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                  VAULT WITHDRAW TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testVaultWithdrawConvertsToRwa() public {
+        // Deposit 1 RWA (worth 100k) to get 100k dobRWA
+        _depositRwa(1e18);
+
+        // LP gets filled in a liquidation
+        _setupLP(LP1, 100_000e18, 0, 0, 200_000e18, 50_000e18);
+        registry.setPrice(address(rwaToken), RWA_PRICE); // refresh oracle
+
+        uint256 swapAmount = 10_000e18;
+        _swapDobRwaToUsdc(swapAmount, abi.encode(address(rwaToken)));
+
+        uint256 owed = lpRegistry.rwaOwed(LP1, address(rwaToken));
+        assertTrue(owed > 0, "LP should have owed");
+
+        // Claim: LP gets RWA tokens
+        uint256 rwaBefore = rwaToken.balanceOf(LP1);
+        vm.prank(LP1);
+        lpRegistry.claimRwaTokens(address(rwaToken), owed);
+        uint256 rwaAfter = rwaToken.balanceOf(LP1);
+
+        uint256 expectedRwa = (owed * 1e18) / RWA_PRICE;
+        assertEq(rwaAfter - rwaBefore, expectedRwa, "LP should get RWA tokens at oracle price");
+    }
+
+    /*//////////////////////////////////////////////////////////////
+              PERMISSIONLESS USDC LP POOL TESTS (HOOK)
+    //////////////////////////////////////////////////////////////*/
+
+    function testHookDepositUsdcAndGetShares() public {
+        uint256 depositAmount = 10_000e18;
+        usdcToken.mint(LP1, depositAmount);
+
+        vm.prank(LP1);
+        usdcToken.approve(address(hook), type(uint256).max);
+
+        vm.prank(LP1);
+        uint256 shares = hook.depositUsdc(depositAmount);
+
+        // First deposit: shares = amount - DEAD_SHARES(1000)
+        assertEq(shares, depositAmount - 1000, "First depositor shares incorrect");
+        assertEq(hook.lpShares(LP1), shares, "LP shares not recorded");
+        assertEq(hook.totalLpUsdc(), depositAmount, "Total LP USDC incorrect");
+        assertEq(hook.totalShares(), depositAmount, "Total shares incorrect (includes dead shares)");
+    }
+
+    function testHookWithdrawUsdc() public {
+        uint256 depositAmount = 10_000e18;
+        usdcToken.mint(LP1, depositAmount);
+
+        vm.prank(LP1);
+        usdcToken.approve(address(hook), type(uint256).max);
+
+        vm.prank(LP1);
+        uint256 shares = hook.depositUsdc(depositAmount);
+
+        // Warp past MIN_LP_DURATION
+        vm.warp(block.timestamp + 1 hours + 1);
+        registry.setPrice(address(rwaToken), RWA_PRICE);
+
+        uint256 balBefore = usdcToken.balanceOf(LP1);
+
+        vm.prank(LP1);
+        uint256 amount = hook.withdrawUsdc(shares);
+
+        uint256 balAfter = usdcToken.balanceOf(LP1);
+        assertEq(balAfter - balBefore, amount, "LP should receive USDC");
+        assertEq(hook.lpShares(LP1), 0, "LP shares should be zero");
+    }
+
+    function testHookWithdrawRevertBeforeMinDuration() public {
+        uint256 depositAmount = 10_000e18;
+        usdcToken.mint(LP1, depositAmount);
+
+        vm.prank(LP1);
+        usdcToken.approve(address(hook), type(uint256).max);
+
+        vm.prank(LP1);
+        uint256 shares = hook.depositUsdc(depositAmount);
+
+        // Try to withdraw immediately
+        vm.prank(LP1);
+        vm.expectRevert(DobPegHook.LPDurationNotMet.selector);
+        hook.withdrawUsdc(shares);
+    }
+
+    function testHookSwapFeeAccruesToLPPool() public {
+        // Set 0.3% fee
+        hook.setSwapFee(30);
+
+        // LP deposits USDC
+        uint256 lpDeposit = 100_000e18;
+        usdcToken.mint(LP1, lpDeposit);
+        vm.prank(LP1);
+        usdcToken.approve(address(hook), type(uint256).max);
+        vm.prank(LP1);
+        hook.depositUsdc(lpDeposit);
+
+        uint256 totalLpBefore = hook.totalLpUsdc();
+
+        // Perform a normal sell swap (dobRWA -> USDC) to generate fees
+        _depositRwa(1e18); // 100k dobRWA
+        uint256 swapAmount = 10_000e18;
+        _swapDobRwaToUsdc(swapAmount, Constants.ZERO_BYTES);
+
+        uint256 totalLpAfter = hook.totalLpUsdc();
+        uint256 expectedFee = (swapAmount * 30) / 10000; // 0.3% = 30 USDC
+        assertEq(totalLpAfter - totalLpBefore, expectedFee, "Fee should accrue to LP pool");
+    }
+
+    function testHookSharePriceIncreasesWithFees() public {
+        hook.setSwapFee(30);
+
+        uint256 lpDeposit = 100_000e18;
+        usdcToken.mint(LP1, lpDeposit);
+        vm.prank(LP1);
+        usdcToken.approve(address(hook), type(uint256).max);
+        vm.prank(LP1);
+        hook.depositUsdc(lpDeposit);
+
+        uint256 priceBefore = hook.sharePrice();
+
+        // Generate fees via swaps
+        _depositRwa(1e18);
+        _swapDobRwaToUsdc(50_000e18, Constants.ZERO_BYTES);
+
+        uint256 priceAfter = hook.sharePrice();
+        assertTrue(priceAfter > priceBefore, "Share price should increase after fees");
+    }
+
+    function testHookNoFeeOnBuyDirection() public {
+        hook.setSwapFee(30);
+
+        // Seed hook with some dobRWA for reverse swap
+        _depositRwa(1e18);
+        ERC20(address(vault)).approve(address(hook), type(uint256).max);
+        ERC20(address(vault)).transfer(address(hook), 50_000e18);
+
+        // LP deposits USDC
+        uint256 lpDeposit = 100_000e18;
+        usdcToken.mint(LP1, lpDeposit);
+        vm.prank(LP1);
+        usdcToken.approve(address(hook), type(uint256).max);
+        vm.prank(LP1);
+        hook.depositUsdc(lpDeposit);
+
+        uint256 totalLpBefore = hook.totalLpUsdc();
+
+        // Buy direction: USDC -> dobRWA (should have no fee)
+        uint256 swapAmount = 1_000e18;
+        usdcToken.mint(address(this), swapAmount);
+        bool zeroForOne = Currency.unwrap(poolKey.currency0) == address(usdcToken);
+        swapRouter.swapExactTokensForTokens({
+            amountIn: swapAmount,
+            amountOutMin: 0,
+            zeroForOne: zeroForOne,
+            poolKey: poolKey,
+            hookData: Constants.ZERO_BYTES,
+            receiver: address(this),
+            deadline: block.timestamp + 1
+        });
+
+        uint256 totalLpAfter = hook.totalLpUsdc();
+        assertEq(totalLpAfter, totalLpBefore, "No fee should be charged on buy direction");
+    }
+
+    function testHookNoFeeOnLiquidationSwap() public {
+        hook.setSwapFee(30);
+
+        // LP deposits USDC
+        uint256 lpDeposit = 100_000e18;
+        usdcToken.mint(LP1, lpDeposit);
+        vm.prank(LP1);
+        usdcToken.approve(address(hook), type(uint256).max);
+        vm.prank(LP1);
+        hook.depositUsdc(lpDeposit);
+
+        uint256 totalLpBefore = hook.totalLpUsdc();
+
+        // Liquidation swap (has hookData) should NOT charge swap fee
+        _depositRwa(1e18);
+        _swapDobRwaToUsdc(10_000e18, abi.encode(address(rwaToken)));
+
+        uint256 totalLpAfter = hook.totalLpUsdc();
+        assertEq(totalLpAfter, totalLpBefore, "No swap fee on liquidation swaps");
+    }
+
+    function testHookDeadSharesProtection() public {
+        uint256 deposit = 10_000e18;
+        usdcToken.mint(LP1, deposit);
+        vm.prank(LP1);
+        usdcToken.approve(address(hook), type(uint256).max);
+
+        vm.prank(LP1);
+        hook.depositUsdc(deposit);
+
+        // Dead shares should be minted to address(1)
+        assertEq(hook.lpShares(address(1)), 1000, "Dead shares should be 1000");
+        assertEq(hook.totalShares(), deposit, "Total shares = deposit (includes dead shares)");
+    }
+
+    function testHookSetSwapFeeRevertNotAdmin() public {
+        vm.prank(address(0xdead));
+        vm.expectRevert(DobPegHook.OnlyAdmin.selector);
+        hook.setSwapFee(30);
+    }
+
+    function testHookSetSwapFeeRevertTooHigh() public {
+        vm.expectRevert(DobPegHook.FeeTooHigh.selector);
+        hook.setSwapFee(1001); // > 10%
+    }
+
+    function testHookSeedUsdcTracksProtocolReserve() public {
+        uint256 seedAmount = 100_000e18;
+        usdcToken.mint(address(this), seedAmount);
+        usdcToken.approve(address(hook), seedAmount);
+        hook.seedUsdc(seedAmount);
+
+        // seedUsdc in setUp already seeded 500k
+        assertEq(hook.protocolReserveUsdc(), 500_000e18 + seedAmount, "Protocol reserve should be tracked");
+    }
+
+    function testHookWithdrawProtocolReserve() public {
+        uint256 reserveBefore = hook.protocolReserveUsdc();
+        uint256 adminBefore = usdcToken.balanceOf(address(this));
+
+        hook.withdrawProtocolReserve(10_000e18);
+
+        assertEq(hook.protocolReserveUsdc(), reserveBefore - 10_000e18, "Reserve should decrease");
+        assertEq(usdcToken.balanceOf(address(this)) - adminBefore, 10_000e18, "Admin should receive USDC");
     }
 }

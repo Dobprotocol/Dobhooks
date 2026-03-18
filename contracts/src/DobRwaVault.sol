@@ -37,6 +37,7 @@ contract DobRwaVault is ERC20, Owned {
     event AssetApproved(address indexed token);
     event AssetRemoved(address indexed token);
     event Deposited(address indexed user, address indexed rwaToken, uint256 rwaAmount, uint256 dobRwaMinted);
+    event Withdrawn(address indexed to, address indexed rwaToken, uint256 dobRwaAmount, uint256 rwaAmount);
     event DobRwaBurned(address indexed from, uint256 amount);
     event HookSet(address indexed hook);
 
@@ -48,6 +49,7 @@ contract DobRwaVault is ERC20, Owned {
     error OracleStale();
     error ZeroAmount();
     error OnlyHook();
+    error InsufficientRwaBalance();
 
     /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR
@@ -125,5 +127,41 @@ contract DobRwaVault is ERC20, Owned {
         _mint(msg.sender, mintAmount);
 
         emit Deposited(msg.sender, rwaToken, amount, mintAmount);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                         WITHDRAW LOGIC
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Burn dobRWA and withdraw underlying RWA tokens at oracle price.
+    ///         Only callable by the authorized hook during LP RWA claims.
+    /// @param rwaToken    The ERC-20 address of the RWA token to withdraw.
+    /// @param dobRwaAmount The amount of dobRWA to burn.
+    /// @param to          The address to receive the RWA tokens.
+    /// @return rwaAmount  The amount of RWA tokens sent to `to`.
+    function withdraw(address rwaToken, uint256 dobRwaAmount, address to) external returns (uint256 rwaAmount) {
+        if (msg.sender != hook) revert OnlyHook();
+        if (dobRwaAmount == 0) revert ZeroAmount();
+        if (!approvedAssets[rwaToken]) revert AssetNotApproved();
+
+        // --- Oracle Query & Staleness Check ---
+        (uint256 priceUsd, uint48 updatedAt) = oracle.getPrice(rwaToken);
+        if (block.timestamp - updatedAt > maxOracleDelay) revert OracleStale();
+
+        // --- Calculate RWA amount (inverse of deposit) ---
+        // deposit: mintAmount = (rwaAmount * priceUsd) / 1e18
+        // withdraw: rwaAmount = (dobRwaAmount * 1e18) / priceUsd
+        rwaAmount = (dobRwaAmount * 1e18) / priceUsd;
+
+        // --- Safety check: vault has enough RWA tokens ---
+        if (ERC20(rwaToken).balanceOf(address(this)) < rwaAmount) revert InsufficientRwaBalance();
+
+        // --- Burn dobRWA from vault's balance (hook transfers to vault before calling) ---
+        _burn(address(this), dobRwaAmount);
+
+        // --- Transfer RWA tokens to the recipient ---
+        ERC20(rwaToken).safeTransfer(to, rwaAmount);
+
+        emit Withdrawn(to, rwaToken, dobRwaAmount, rwaAmount);
     }
 }
