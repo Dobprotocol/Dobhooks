@@ -139,6 +139,7 @@ contract DeployUnichain is Script {
         vault.setHook(address(hook));
         lpRegistry.setHook(address(hook));
         lpRegistry.setRegistry(address(registry));
+        hook.setLPRegistry(address(lpRegistry));
 
         // Seed USDC reserves
         usdc.mint(deployer, 5_000_000e18);
