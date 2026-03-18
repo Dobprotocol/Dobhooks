@@ -1461,31 +1461,32 @@ async function syncOnChainData(){
   let vaultSupply=0n;
   try{vaultSupply=await vault.totalSupply();}catch(e){}
   S.minted=parseFloat(ethers.formatUnits(vaultSupply,18));
-  // Batch all token reads in parallel
-  const tokenReads=A.map(async a=>{
-    const addr=tokenAddr(a.id);if(!addr)return;
-    try{
-      const [priceRaw,updatedAt]=await reg.getPrice(addr);
-      const price=parseFloat(ethers.formatUnits(priceRaw,18));
-      a.price=price;a.pf='$'+fmt(price,price<1000?2:0);
-      const ageSec=nowTs-Number(updatedAt);const ageMin=Math.floor(ageSec/60);
-      a.oracle.updatedAgo=ageMin<60?ageMin+'m':Math.floor(ageMin/60)+'h';
-      a.oracle.stale=ageSec>86400;
-      a.oracle.confidence=ageSec<600?'high':ageSec<3600?'medium':'low';
-      a.oracle.history.push(price);if(a.oracle.history.length>30)a.oracle.history.shift();
-    }catch(e){}
-    try{
-      const [enabled,penaltyBps,cap,liquidatedAmount]=await reg.liquidations(addr);
-      a.liq={enabled,penaltyBps:Number(penaltyBps),cap:parseFloat(ethers.formatUnits(cap,18)),liquidated:parseFloat(ethers.formatUnits(liquidatedAmount,18))};
-    }catch(e){}
-    try{
-      const rwa=new ethers.Contract(addr,RWA_ABI,rp);
-      const supply=await rwa.totalSupply();const supplyNum=parseFloat(ethers.formatUnits(supply,18));
-      a.units=fmt(supplyNum,0);a.tvl=supplyNum*a.price;
-    }catch(e){}
-  });
-  const CHUNK=3;
-  for(let i=0;i<tokenReads.length;i+=CHUNK){await Promise.all(tokenReads.slice(i,i+CHUNK));}
+  // Read token data in small chunks to stay under RPC batch limit
+  const CHUNK=2;
+  for(let i=0;i<A.length;i+=CHUNK){
+    await Promise.all(A.slice(i,i+CHUNK).map(async a=>{
+      const addr=tokenAddr(a.id);if(!addr)return;
+      try{
+        const [priceRaw,updatedAt]=await reg.getPrice(addr);
+        const price=parseFloat(ethers.formatUnits(priceRaw,18));
+        a.price=price;a.pf='$'+fmt(price,price<1000?2:0);
+        const ageSec=nowTs-Number(updatedAt);const ageMin=Math.floor(ageSec/60);
+        a.oracle.updatedAgo=ageMin<60?ageMin+'m':Math.floor(ageMin/60)+'h';
+        a.oracle.stale=ageSec>86400;
+        a.oracle.confidence=ageSec<600?'high':ageSec<3600?'medium':'low';
+        a.oracle.history.push(price);if(a.oracle.history.length>30)a.oracle.history.shift();
+      }catch(e){}
+      try{
+        const [enabled,penaltyBps,cap,liquidatedAmount]=await reg.liquidations(addr);
+        a.liq={enabled,penaltyBps:Number(penaltyBps),cap:parseFloat(ethers.formatUnits(cap,18)),liquidated:parseFloat(ethers.formatUnits(liquidatedAmount,18))};
+      }catch(e){}
+      try{
+        const rwa=new ethers.Contract(addr,RWA_ABI,rp);
+        const supply=await rwa.totalSupply();const supplyNum=parseFloat(ethers.formatUnits(supply,18));
+        a.units=fmt(supplyNum,0);a.tvl=supplyNum*a.price;
+      }catch(e){}
+    }));
+  }
   // LP data in chunked batches
   try{
     const lp=new ethers.Contract(c.LPRegistry,LP_ABI,rp);
