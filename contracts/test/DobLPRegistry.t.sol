@@ -1041,4 +1041,101 @@ contract DobLPRegistryTest is BaseTest {
         assertEq(hook.protocolReserveUsdc(), reserveBefore - 10_000e18, "Reserve should decrease");
         assertEq(usdcToken.balanceOf(address(this)) - adminBefore, 10_000e18, "Admin should receive USDC");
     }
+
+    /*//////////////////////////////////////////////////////////////
+              BUG FIX VERIFICATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testRevertFirstDepositTooSmall() public {
+        usdcToken.mint(LP1, 1000); // exactly DEAD_SHARES (1000 wei)
+        vm.prank(LP1);
+        usdcToken.approve(address(hook), type(uint256).max);
+
+        // Should revert — first deposit must be > DEAD_SHARES
+        vm.prank(LP1);
+        vm.expectRevert("First deposit too small");
+        hook.depositUsdc(1000);
+    }
+
+    function testMultiDepositorShareMath() public {
+        // LP1: first depositor
+        uint256 dep1 = 10_000e18;
+        usdcToken.mint(LP1, dep1);
+        vm.prank(LP1);
+        usdcToken.approve(address(hook), type(uint256).max);
+        vm.prank(LP1);
+        uint256 shares1 = hook.depositUsdc(dep1);
+        assertEq(shares1, dep1 - 1000, "LP1 shares");
+
+        // LP2: second depositor (same amount, no fees yet — should get proportional shares)
+        uint256 dep2 = 10_000e18;
+        usdcToken.mint(LP2, dep2);
+        vm.prank(LP2);
+        usdcToken.approve(address(hook), type(uint256).max);
+        vm.prank(LP2);
+        uint256 shares2 = hook.depositUsdc(dep2);
+        // shares2 = dep2 * totalShares / totalLpUsdc = 10k * 10k / 10k = 10k
+        assertEq(shares2, dep2, "LP2 should get proportional shares");
+
+        // Warp past MIN_LP_DURATION
+        vm.warp(block.timestamp + 1 hours + 1);
+        registry.setPrice(address(rwaToken), RWA_PRICE);
+
+        // Both withdraw — LP2 should get back ~10k, LP1 ~10k minus dust from dead shares
+        vm.prank(LP2);
+        uint256 out2 = hook.withdrawUsdc(shares2);
+        assertEq(out2, dep2, "LP2 should get back full deposit");
+
+        vm.prank(LP1);
+        uint256 out1 = hook.withdrawUsdc(shares1);
+        // LP1 gets shares1 * totalLpUsdc / totalShares = 9999...000 * 10000e18 / 10000e18
+        // Slightly less than dep1 due to dead shares
+        assertTrue(out1 > dep1 - 1e18, "LP1 should get back ~deposit minus dead share dust");
+        assertTrue(out1 <= dep1, "LP1 should not get more than deposited");
+    }
+
+    function testFeeAccrualIncreasesShareValue() public {
+        hook.setSwapFee(30); // 0.3%
+
+        // LP deposits USDC
+        uint256 lpDeposit = 50_000e18;
+        usdcToken.mint(LP1, lpDeposit);
+        vm.prank(LP1);
+        usdcToken.approve(address(hook), type(uint256).max);
+        vm.prank(LP1);
+        uint256 shares = hook.depositUsdc(lpDeposit);
+
+        // Generate fees: sell 20,000 dUSDC -> USDC
+        _depositRwa(1e18);
+        _swapDobRwaToUsdc(20_000e18, Constants.ZERO_BYTES);
+
+        // Warp and withdraw
+        vm.warp(block.timestamp + 1 hours + 1);
+        registry.setPrice(address(rwaToken), RWA_PRICE);
+
+        vm.prank(LP1);
+        uint256 out = hook.withdrawUsdc(shares);
+
+        // LP should get back deposit + fee earnings
+        uint256 expectedFee = (20_000e18 * 30) / 10000; // 60 USDC
+        assertTrue(out > lpDeposit, "LP should profit from fees");
+        // The dead shares take a tiny portion of the fee, so LP gets slightly less than full fee
+        assertTrue(out >= lpDeposit + expectedFee - 1e18, "LP should get most of the fee");
+    }
+
+    function testRevertWithdrawProtocolReserveExceedsBalance() public {
+        // Drain most USDC via sell swaps
+        _depositRwa(5e18); // 500k dUSDC
+        _swapDobRwaToUsdc(450_000e18, Constants.ZERO_BYTES); // drain 450k USDC
+
+        uint256 reserve = hook.protocolReserveUsdc();
+        uint256 actual = usdcToken.balanceOf(address(hook));
+
+        // protocolReserveUsdc = 500k but actual balance is ~50k
+        assertTrue(reserve > actual, "Accounting should exceed actual balance");
+
+        // Try to withdraw more than actual balance — should revert
+        vm.expectRevert(DobPegHook.InsufficientUsdcReserves.selector);
+        hook.withdrawProtocolReserve(reserve);
+    }
 }

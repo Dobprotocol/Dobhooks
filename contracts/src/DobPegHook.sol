@@ -298,6 +298,7 @@ contract DobPegHook is BaseHook {
         if (msg.sender != admin) revert OnlyAdmin();
         if (amount == 0) revert ZeroAmount();
         if (amount > protocolReserveUsdc) revert InsufficientUsdcReserves();
+        if (amount > usdc.balanceOf(address(this))) revert InsufficientUsdcReserves();
 
         protocolReserveUsdc -= amount;
         usdc.safeTransfer(admin, amount);
@@ -330,6 +331,7 @@ contract DobPegHook is BaseHook {
 
         if (totalShares == 0) {
             // First deposit: mint dead shares to prevent first-depositor attack
+            require(amount > DEAD_SHARES, "First deposit too small");
             shares = amount - DEAD_SHARES;
             totalShares = amount;
             lpShares[address(1)] += DEAD_SHARES; // dead shares

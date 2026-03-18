@@ -148,6 +148,7 @@ contract DobDirectSwap is Owned, ReentrancyGuard {
         usdc.safeTransferFrom(msg.sender, address(this), amount);
 
         if (totalShares == 0) {
+            require(amount > DEAD_SHARES, "First deposit too small");
             shares = amount - DEAD_SHARES;
             totalShares = amount;
             lpShares[address(1)] += DEAD_SHARES;
@@ -204,6 +205,7 @@ contract DobDirectSwap is Owned, ReentrancyGuard {
     function withdrawProtocolReserve(uint256 amount) external onlyOwner {
         if (amount == 0) revert ZeroAmount();
         if (amount > protocolReserveUsdc) revert InsufficientReserves();
+        if (amount > usdc.balanceOf(address(this))) revert InsufficientReserves();
 
         protocolReserveUsdc -= amount;
         usdc.safeTransfer(msg.sender, amount);
@@ -217,8 +219,10 @@ contract DobDirectSwap is Owned, ReentrancyGuard {
         emit Seeded(msg.sender, amount);
     }
 
-    /// @notice Admin: withdraw reserves
+    /// @notice Admin: withdraw non-USDC token reserves (e.g. dUSDC).
+    ///         For USDC, use withdrawProtocolReserve() to protect LP pool accounting.
     function withdraw(address token, uint256 amount) external onlyOwner {
+        require(token != address(usdc), "Use withdrawProtocolReserve for USDC");
         ERC20(token).safeTransfer(msg.sender, amount);
         emit Withdrawn(msg.sender, token, amount);
     }
