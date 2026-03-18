@@ -488,7 +488,7 @@
           <div class="arch-box">
             <span class="box-label" style="background:var(--green-dim);color:var(--green);">Entry Point</span>
             <h4>USDC Liquidity Providers</h4>
-            <p>LPs depositing USDC to back assets and earn discounted dobRWA</p>
+            <p>LPs depositing USDC to back assets and earn discounted RWA tokens</p>
           </div>
         </div>
 
@@ -508,7 +508,7 @@
           <div class="arch-box" style="border-color: rgba(151,90,255,0.3);">
             <span class="box-label" style="background:var(--accent-dim);color:var(--accent);">DobPegHook</span>
             <h4>Uniswap V4 Hook</h4>
-            <p>NoOp custom accounting: executes dobRWA/USDC swaps at exact 1:1 peg</p>
+            <p>NoOp custom accounting: 1:1 peg swaps with optional LP fee on sell. Permissionless USDC pool.</p>
           </div>
           <div class="arch-box" style="border-color: rgba(64,192,87,0.3);">
             <span class="box-label" style="background:var(--green-dim);color:var(--green);">DobLPRegistry</span>
@@ -717,13 +717,13 @@
       <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:20px;">
         <div style="font-size:11px; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Normal Mode</div>
         <h4 style="font-size:14px; font-weight:800; margin-bottom:6px;">1:1 Peg Swap</h4>
-        <p style="font-size:12px; color:var(--text-2); line-height:1.55; margin-bottom:10px;">Asset is healthy. User sells dobRWA and receives USDC at exact 1:1 rate. USDC comes from the <strong style="color:var(--text-1);">hook's own reserves</strong> (seeded by the protocol).</p>
+        <p style="font-size:12px; color:var(--text-2); line-height:1.55; margin-bottom:10px;">Asset is healthy. User sells dobRWA and receives USDC at 1:1 rate (minus optional swap fee on sell direction). USDC comes from the <strong style="color:var(--text-1);">hook's USDC pool</strong> (protocol reserves + permissionless LP deposits).</p>
         <div style="font-family:var(--mono); font-size:10px; background:var(--bg-elevated); border-radius:4px; padding:6px 10px; color:var(--green);">Liquidity Nodes: NOT involved</div>
       </div>
       <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:20px;">
         <div style="font-size:11px; font-weight:700; color:var(--red); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Liquidation Mode</div>
         <h4 style="font-size:14px; font-weight:800; margin-bottom:6px;">Penalty Swap</h4>
-        <p style="font-size:12px; color:var(--text-2); line-height:1.55; margin-bottom:10px;">Asset is distressed. User sells dobRWA at a discount (e.g., -20%). USDC comes from <strong style="color:var(--text-1);">Liquidity Node LPs</strong> who earn discounted dobRWA in return.</p>
+        <p style="font-size:12px; color:var(--text-2); line-height:1.55; margin-bottom:10px;">Asset is distressed. User sells dobRWA at a discount (e.g., -20%). USDC comes from <strong style="color:var(--text-1);">Liquidity Node LPs</strong> who earn the underlying <strong style="color:var(--green);">RWA tokens</strong> at a discount — yield-bearing assets they can hold for dividends.</p>
         <div style="font-family:var(--mono); font-size:10px; background:var(--bg-elevated); border-radius:4px; padding:6px 10px; color:var(--red);">Liquidity Nodes: ACTIVE (queryAndFill)</div>
       </div>
     </div>
@@ -758,7 +758,7 @@
         <div class="flow-content">
           <div class="flow-sub" style="color:var(--green);">NoOp Custom Accounting</div>
           <h3>Hook settles the swap at 1:1 peg</h3>
-          <p>The hook bypasses the AMM entirely. It <strong>settles</strong> USDC from its own reserves to the PoolManager (creating a +amountOut delta that cancels the hook's -amountOut obligation) and <strong>mints ERC6909 claims</strong> for the incoming dobRWA (creating a -amountIn delta that cancels the +amountIn obligation). Net deltas = zero. The swap completes at exactly 1:1.</p>
+          <p>The hook bypasses the AMM entirely. It <strong>settles</strong> USDC from its reserves to the PoolManager (creating a +amountOut delta that cancels the hook's -amountOut obligation) and <strong>mints ERC6909 claims</strong> for the incoming dobRWA (creating a -amountIn delta that cancels the +amountIn obligation). Net deltas = zero. On sell swaps, an optional fee (set by admin) is deducted and accrues to the permissionless LP pool.</p>
           <div class="code-line">delta = toBeforeSwapDelta(+amountIn, -amountOut)</div>
         </div>
       </div>
@@ -768,7 +768,7 @@
         <div class="flow-content">
           <div class="flow-sub" style="color:var(--text-2);">Settlement</div>
           <h3>User receives USDC from hook reserves</h3>
-          <p>The PoolManager adjusts the swapper's deltas (<code>swapDelta - hookDelta</code>), so the user pays dobRWA and receives exactly the same amount in USDC. The hook retains the dobRWA as ERC6909 claims in the PoolManager. No Liquidity Nodes are involved &mdash; the USDC comes entirely from the protocol's seeded reserves.</p>
+          <p>The PoolManager adjusts the swapper's deltas (<code>swapDelta - hookDelta</code>), so the user pays dobRWA and receives USDC (minus any swap fee). The hook retains the dobRWA as ERC6909 claims in the PoolManager. No Liquidity Nodes are involved &mdash; the USDC comes from the protocol's seeded reserves and the permissionless LP pool.</p>
         </div>
       </div>
     </div>
@@ -780,7 +780,7 @@
   <section class="section" id="liquidation">
     <div class="section-tag" style="background:var(--red-dim);color:var(--red);">Liquidation Engine</div>
     <h2>Liquidation Mode</h2>
-    <p class="sub">When Dobprotocol flags an asset as distressed, liquidation mode activates. This is the only scenario where Liquidity Node LPs are involved &mdash; they provide the USDC and earn discounted dobRWA.</p>
+    <p class="sub">When Dobprotocol flags an asset as distressed, liquidation mode activates. Liquidity Node LPs provide the USDC and receive the underlying RWA tokens at a discount &mdash; yield-bearing assets that pay dividends from the real-world collateral.</p>
 
     <div class="liq-visual">
       <!-- Who sets what -->
@@ -860,7 +860,7 @@
           </div>
           <div>
             <div style="font-size:11px; color:var(--text-3); margin-bottom:4px;">LP receives</div>
-            <div style="font-size:20px; font-weight:900; color:var(--green);">1,000 dobRWA</div>
+            <div style="font-size:20px; font-weight:900; color:var(--green);">1,000 RWA tokens</div>
           </div>
           <div>
             <div style="font-size:11px; color:var(--text-3); margin-bottom:4px;">LP profit</div>
@@ -868,7 +868,7 @@
           </div>
         </div>
         <div style="text-align:center; margin-top:12px; font-size:11px; color:var(--text-3);">
-          dobRWA = usdc / (1 - penalty%) &mdash; LP buys at discount, earns the spread when peg recovers
+          RWA amount = dobRWA / oraclePrice &mdash; LP buys yield-bearing RWA tokens at a discount, earns dividends from the underlying asset
         </div>
       </div>
     </div>
@@ -904,7 +904,7 @@
       <div class="lp-phase">
         <div class="phase-num">Phase 4</div>
         <h4>Claim Rewards</h4>
-        <p>Claim discounted dobRWA earned from fills. The hook burns ERC6909 claims and transfers the tokens to you.</p>
+        <p>Claim the underlying RWA tokens at a discount. The hook converts your dobRWA allocation to actual yield-bearing RWA tokens via the vault.</p>
         <div class="phase-detail">1.5% protocol fee</div>
       </div>
     </div>
@@ -922,7 +922,7 @@
         </div>
         <div style="background:var(--bg-elevated); border-radius:8px; padding:14px;">
           <div style="font-family:var(--mono); font-size:11px; color:var(--green); margin-bottom:4px;">maxExposure</div>
-          <div style="font-size:12px; color:var(--text-2);">Maximum dobRWA you're willing to accumulate for this asset. Caps your risk to a single RWA type.</div>
+          <div style="font-size:12px; color:var(--text-2);">Maximum RWA token value (in dobRWA units) you're willing to accumulate for this asset. Caps your risk to a single RWA type.</div>
         </div>
         <div style="background:var(--bg-elevated); border-radius:8px; padding:14px;">
           <div style="font-family:var(--mono); font-size:11px; color:var(--green); margin-bottom:4px;">usdcAllocation</div>

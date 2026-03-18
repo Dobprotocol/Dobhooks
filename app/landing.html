@@ -544,7 +544,7 @@
       <div class="pipeline-step"><span class="pipeline-num">03</span><div class="pipeline-line"></div></div>
       <h3>Trade</h3>
       <div class="pipeline-product">DobDex</div>
-      <p>Oracle-priced swaps with zero slippage. Permissionless LP system for liquidations. Deposit RWA tokens, receive dUSDC at exact oracle price. Redeem dUSDC for USDC 1:1.</p>
+      <p>Oracle-priced swaps with zero slippage and optional low fee. Permissionless USDC LP pool and liquidation LPs. Deposit RWA tokens, receive dUSDC at exact oracle price. Redeem dUSDC for USDC.</p>
     </div>
   </div>
 </section>
@@ -581,7 +581,7 @@
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#40C057" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
       </div>
       <h3>Liquidity Nodes</h3>
-      <p>Permissionless LP system. Deposit USDC, back specific assets with custom conditions. Earn the penalty spread during liquidations. FIFO matching.</p>
+      <p>Permissionless LP system. Deposit USDC to provide exit liquidity (earn swap fees) or back specific assets for liquidations (earn discounted RWA tokens). FIFO matching.</p>
       <span class="feat-tag" style="background:var(--green-dim);color:var(--green);">DobLPRegistry.sol</span>
     </div>
     <div class="feat-card fade-in" style="transition-delay:0.3s">
@@ -635,12 +635,12 @@
     <div class="how-step">
       <div class="how-num">3</div>
       <h4>Swap at Peg</h4>
-      <p>Swap through Uniswap V4 Hook at exact 1:1 oracle price. Zero slippage, guaranteed.</p>
+      <p>Swap through Uniswap V4 Hook at 1:1 oracle price. Zero slippage, low fee on sell direction.</p>
     </div>
     <div class="how-step">
       <div class="how-num">4</div>
       <h4>Redeem or LP</h4>
-      <p>Redeem dUSDC for USDC 1:1, or become an LP and earn liquidation spreads.</p>
+      <p>Redeem dUSDC for USDC, provide USDC liquidity to earn swap fees, or back assets to earn discounted RWA tokens from liquidations.</p>
     </div>
   </div>
 </section>
