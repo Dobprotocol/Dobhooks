@@ -1993,7 +1993,15 @@ function renderAll(){rSwap();uSwap();rLP();rBk();rFl();rLog();uDep();uBuy();uBtn
 
 // ── Wallet ──
 const SUPPORTED_CHAINS={1301:{hex:'0x515',name:'Unichain Sepolia',rpc:'https://sepolia.unichain.org',currency:{name:'Ether',symbol:'ETH',decimals:18},explorer:'https://sepolia.uniscan.xyz'}};
-function getMetaMask(){return window.ethereum?.providers?.find(p=>p.isMetaMask)||window.ethereum;}
+function getMetaMask(){
+  if(window.ethereum?.providers){
+    const mm=window.ethereum.providers.find(p=>p.isMetaMask&&!p.isBraveWallet&&!p.isRabby&&!p.isCoinbaseWallet);
+    if(mm)return mm;
+  }
+  if(window.ethereum?.isMetaMask)return window.ethereum;
+  return null;
+}
+function withTimeout(promise,ms){return Promise.race([promise,new Promise((_,rej)=>setTimeout(()=>rej(new Error('Wallet request timed out')),ms))]);}
 async function switchChain(cid){
   const c=SUPPORTED_CHAINS[cid];if(!c)return false;
   const eth=getMetaMask();if(!eth)return false;
@@ -2029,7 +2037,7 @@ async function connectWallet(){
   if(!ethereum||!ethereum.isMetaMask){toast('MetaMask not detected');return;}
   try{
     btn.textContent='Connecting...';btn.disabled=true;
-    const accs=await ethereum.request({method:'eth_requestAccounts'});
+    const accs=await withTimeout(ethereum.request({method:'eth_requestAccounts'}),15000);
     if(!accs?.length){btn.textContent='Connect Wallet';btn.disabled=false;return;}
     // Detect current chain
     const rawCid=await ethereum.request({method:'eth_chainId'});
