@@ -1274,6 +1274,25 @@
         <div class="hi"><div class="hi-l">Share Price</div><div style="font-size:12px;font-weight:600;margin-top:3px" id="hookSharePrice">$1.00</div></div>
       </div>
     </div>
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-t" style="margin-bottom:14px">USDC Liquidity Pool</div>
+      <div class="card-d">Deposit USDC into the Hook's LP pool to earn swap fees. Anyone can participate. Minimum 1-hour lock period.</div>
+      <div class="kpi" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px;">
+        <div class="kpi-box"><div class="kpi-lbl">Your Shares</div><div class="kpi-val" id="hookMySharesVal">0</div></div>
+        <div class="kpi-box"><div class="kpi-lbl">Share Price</div><div class="kpi-val" id="hookSharePriceVal">$1.00</div></div>
+        <div class="kpi-box"><div class="kpi-lbl">Your Value</div><div class="kpi-val" id="hookMyValueVal" style="color:var(--green)">$0</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <div class="f"><label class="f-l">Deposit USDC</label><input type="number" class="f-i" id="hookDepAmt" placeholder="0" min="0"/></div>
+          <button class="btn btn-a btn-s" id="hookDepBtn" disabled style="width:100%">Deposit</button>
+        </div>
+        <div>
+          <div class="f"><label class="f-l">Withdraw (shares)</label><input type="number" class="f-i" id="hookWdAmt" placeholder="0" min="0"/></div>
+          <button class="btn btn-o btn-s" id="hookWdBtn" disabled style="width:100%">Withdraw</button>
+        </div>
+      </div>
+    </div>
     <div class="card"><div class="card-t" style="margin-bottom:14px">Contract Addresses</div><div id="addrList" style="font-family:'SF Mono',SFMono-Regular,Consolas,monospace;font-size:11px;color:var(--text-2);line-height:2;"></div></div>
   </div>
 </div>
@@ -1522,7 +1541,7 @@ async function syncOnChainData(){
       // Read per-asset rwaOwed for claimable amounts
       for(const b of allBackings){
         const addr=tokenAddr(b.aid);if(!addr)continue;
-        try{const owed=await lp.rwaOwed(S.addr,addr);b.earned=parseFloat(ethers.formatUnits(owed,18));}catch(e){b.earned=0;}
+        try{const owed=await lp.rwaOwed(S.addr,addr);b.earnedRaw=owed;b.earned=parseFloat(ethers.formatUnits(owed,18));}catch(e){b.earnedRaw=0n;b.earned=0;}
       }
       // Read pending withdrawal
       try{const wr=await lp.withdrawalRequests(S.addr);S.wdAmount=parseFloat(ethers.formatUnits(wr.amount,18));S.wdPending=S.wdAmount>0;S.wdTime=S.wdPending?Number(wr.requestedAt)*1000:null;}catch(e){}
@@ -1780,6 +1799,11 @@ function rPool(){
   document.getElementById('hookSwapFee').textContent=S.swapFeeBps>0?(S.swapFeeBps/100).toFixed(1)+'% (sell only)':'0%';
   document.getElementById('hookLpUsdc').textContent=usd(S.hookLpUsdc);
   document.getElementById('hookSharePrice').textContent='$'+fmt(S.hookSharePrice,4);
+  document.getElementById('hookMySharesVal').textContent=fmt(S.hookMyShares,2);
+  document.getElementById('hookSharePriceVal').textContent='$'+fmt(S.hookSharePrice,4);
+  document.getElementById('hookMyValueVal').textContent=usd(S.hookMyShares*S.hookSharePrice);
+  const hDepBtn=document.getElementById('hookDepBtn'),hWdBtn=document.getElementById('hookWdBtn');
+  if(hDepBtn)hDepBtn.disabled=!S.on;if(hWdBtn)hWdBtn.disabled=!S.on;
   const fb=document.getElementById('faucetUsdcBal');if(fb)fb.textContent=fmt(S.usdc,0);
   const cb=document.getElementById('claimUsdcBtn');if(cb)cb.disabled=!S.on;
   const ch=ADDR(),ex=ch.explorer;
@@ -2056,7 +2080,8 @@ async function doSwap(){
     const router=new ethers.Contract(c.Router,ROUTER_ABI,S.sig);
     toast('Approving...');await(await token.approve(c.Router,w,gas)).wait();
     toast('Swapping...');const swTx=await(await router.swap(zeroForOne,w,'0x',gas)).wait();
-    trackEvent('swaps',{txHash:swTx.hash,tokenId:'dUSDC',direction:isDobToUsdc?'sell':'buy',amountIn:amt,amountOut:amt,oraclePrice:1,blockNumber:swTx.blockNumber});
+    const actualOut=isDobToUsdc&&S.swapFeeBps>0?amt*(10000-S.swapFeeBps)/10000:amt;
+    trackEvent('swaps',{txHash:swTx.hash,tokenId:'dUSDC',direction:isDobToUsdc?'sell':'buy',amountIn:amt,amountOut:actualOut,oraclePrice:1,blockNumber:swTx.blockNumber});
     await readBalances();await syncOnChainData();
     log('swap',`<strong>NoOp</strong>: ${fmt(amt,2)} ${isDobToUsdc?'dUSDC &rarr; USDC':'USDC &rarr; dUSDC'}`);
     toast('Swapped '+fmt(amt,2));document.getElementById('swapInput').value='';renderAll();
@@ -2280,7 +2305,7 @@ function rReserves(){
   }).join('');
 }
 async function lpClaim(){
-  const claimable=S.backings.filter(b=>b.earned>0);
+  const claimable=S.backings.filter(b=>b.earned>0&&b.earnedRaw>0n);
   if(!claimable.length){toast('Nothing to claim');return;}
   if(!S.on){toast('Connect wallet first');return;}
   const c=ADDR();const gas=await gasOverrides();
@@ -2288,11 +2313,10 @@ async function lpClaim(){
     const lp=new ethers.Contract(c.LPRegistry,LP_ABI,S.sig);
     for(const b of claimable){
       const addr=tokenAddr(b.aid);if(!addr)continue;
-      const w=ethers.parseUnits(b.earned.toString(),18);
       toast('Claiming '+b.aid.toUpperCase()+' RWA tokens...');
-      await(await lp.claimRwaTokens(addr,w,gas)).wait();
+      await(await lp.claimRwaTokens(addr,b.earnedRaw,gas)).wait();
       log('lp',`Claimed <strong>${fmt(b.earned,2)}</strong> ${b.aid.toUpperCase()} RWA tokens`);
-      b.earned=0;
+      b.earned=0;b.earnedRaw=0n;
     }
     await readBalances();await syncOnChainData();
     toast('Claimed RWA tokens');renderAll();
@@ -2323,6 +2347,32 @@ async function wdExec(){
   }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');} else{console.error(e);toast('Withdrawal failed: '+(e.reason||e.shortMessage||e.message));}}
 }
 
+async function hookDeposit(){
+  const amt=parseFloat(document.getElementById('hookDepAmt').value)||0;
+  if(!S.on){toast('Connect wallet first');return;}if(amt<=0)return;if(amt>S.usdc){toast('Insufficient USDC');return;}
+  const c=ADDR();const gas=await gasOverrides();
+  try{
+    const token=new ethers.Contract(c.USDC,E20,S.sig);
+    const hk=new ethers.Contract(c.Hook,HOOK_ABI,S.sig);
+    const w=ethers.parseUnits(amt.toString(),18);
+    toast('Approving...');await(await token.approve(c.Hook,w,gas)).wait();
+    toast('Depositing...');await(await hk.depositUsdc(w,gas)).wait();
+    await readBalances();await syncOnChainData();
+    log('lp',`Deposited <strong>${usd(amt)}</strong> to Hook LP pool`);toast('Deposited');document.getElementById('hookDepAmt').value='';renderAll();
+  }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');}else{console.error(e);toast('Deposit failed: '+(e.reason||e.shortMessage||e.message));}}
+}
+async function hookWithdraw(){
+  const shares=parseFloat(document.getElementById('hookWdAmt').value)||0;
+  if(!S.on){toast('Connect wallet first');return;}if(shares<=0)return;if(shares>S.hookMyShares){toast('Max: '+fmt(S.hookMyShares,2));return;}
+  const c=ADDR();const gas=await gasOverrides();
+  try{
+    const hk=new ethers.Contract(c.Hook,HOOK_ABI,S.sig);
+    const w=ethers.parseUnits(shares.toString(),18);
+    toast('Withdrawing...');await(await hk.withdrawUsdc(w,gas)).wait();
+    await readBalances();await syncOnChainData();
+    log('lp',`Withdrew <strong>${fmt(shares,2)}</strong> shares from Hook LP pool`);toast('Withdrawn');document.getElementById('hookWdAmt').value='';renderAll();
+  }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');}else{console.error(e);toast('Withdraw failed: '+(e.reason||e.shortMessage||e.message));}}
+}
 function openBackingModal(){
   const m=document.getElementById('backingModal');m.style.display='grid';
   const bk=S.backings.filter(b=>b.active).map(b=>b.aid);
@@ -2377,6 +2427,8 @@ document.getElementById('newBackBtn').addEventListener('click',backNew);
 document.getElementById('claimBtn').addEventListener('click',lpClaim);
 document.getElementById('wdReqBtn').addEventListener('click',wdReq);
 document.getElementById('wdExecBtn').addEventListener('click',wdExec);
+document.getElementById('hookDepBtn').addEventListener('click',hookDeposit);
+document.getElementById('hookWdBtn').addEventListener('click',hookWithdraw);
 document.getElementById('newDiscSlider').addEventListener('input',function(){document.getElementById('newDiscVal').textContent=this.value+'%';});
 document.querySelectorAll('.act-f').forEach(f=>f.addEventListener('click',function(){document.querySelectorAll('.act-f').forEach(x=>x.classList.remove('on'));this.classList.add('on');actFilter=this.dataset.f;rActivity();}));
 

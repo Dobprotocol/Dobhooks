@@ -152,6 +152,7 @@ contract DobRwaVault is ERC20, Owned {
         // deposit: mintAmount = (rwaAmount * priceUsd) / 1e18
         // withdraw: rwaAmount = (dobRwaAmount * 1e18) / priceUsd
         rwaAmount = (dobRwaAmount * 1e18) / priceUsd;
+        if (rwaAmount == 0) revert ZeroAmount();
 
         // --- Safety check: vault has enough RWA tokens ---
         if (ERC20(rwaToken).balanceOf(address(this)) < rwaAmount) revert InsufficientRwaBalance();
