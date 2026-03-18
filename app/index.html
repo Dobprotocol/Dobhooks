@@ -1042,7 +1042,7 @@
         <div class="kpi-box"><div class="kpi-lbl">Total Balance</div><div class="kpi-val" id="sBalance">$0</div><div class="kpi-sub">USDC deposited</div></div>
         <div class="kpi-box"><div class="kpi-lbl">Available</div><div class="kpi-val" id="sAvail" style="color:var(--green)">$0</div><div class="kpi-sub">Unallocated</div></div>
         <div class="kpi-box"><div class="kpi-lbl">Allocated</div><div class="kpi-val" id="sAlloc" style="color:var(--blue)">$0</div><div class="kpi-sub">Backing assets</div></div>
-        <div class="kpi-box"><div class="kpi-lbl">RWA Earned</div><div class="kpi-val" id="sEarned" style="color:var(--accent)">0</div><div class="kpi-sub">From fills (dobRWA units)</div></div>
+        <div class="kpi-box"><div class="kpi-lbl">RWA Earned</div><div class="kpi-val" id="sEarned" style="color:var(--accent)">0</div><div class="kpi-sub">From fills</div></div>
         <div class="kpi-box"><div class="kpi-lbl">Total Fills</div><div class="kpi-val" id="sFills">0</div><div class="kpi-sub">Your liquidation events</div></div>
         <div class="kpi-box" id="reserveKpi" style="display:none;"><div class="kpi-lbl">Reserve Locked</div><div class="kpi-val" id="sReserve" style="color:var(--amber)">$0</div><div class="kpi-sub">33% distress hold</div></div>
       </div>
@@ -1059,7 +1059,7 @@
         <div class="card">
           <div class="card-t">Claims & Withdrawals</div>
           <div class="card-d">Claim earned RWA tokens from liquidation fills, or withdraw unallocated USDC (24h timelock via DobLPRegistry).</div>
-          <div class="hi" style="margin-bottom:8px;"><div class="hi-l">Claimable RWA (dobRWA units)</div><div class="hi-v" id="claimVal" style="color:var(--accent)">0.00</div></div>
+          <div class="hi" style="margin-bottom:8px;"><div class="hi-l">Claimable RWA Tokens</div><div class="hi-v" id="claimVal" style="color:var(--accent)">0.00</div></div>
           <button class="btn btn-a btn-s" id="claimBtn" disabled style="width:100%;margin-bottom:12px;">Claim RWA Tokens</button>
           <div style="border-top:1px solid var(--border-subtle);padding-top:12px;">
             <div class="f"><label class="f-l">Withdraw USDC</label><input type="number" class="f-i" id="wdAmt" placeholder="0" min="0"/><div class="f-h">Only unallocated USDC. 24h timelock enforced by contract.</div></div>
