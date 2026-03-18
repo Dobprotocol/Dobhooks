@@ -2342,6 +2342,14 @@ document.querySelectorAll('#mobMenu button[data-p]').forEach(b=>b.addEventListen
 
 // Initialize UI in disconnected state
 renderAll();
+// Auto-reconnect if wallet was previously connected
+(async()=>{
+  if(!window.ethereum)return;
+  try{
+    const accs=await window.ethereum.request({method:'eth_accounts'});
+    if(accs&&accs.length)connectWallet();
+  }catch(e){}
+})();
 </script>
 </body>
 </html>
