@@ -1484,25 +1484,35 @@ async function syncOnChainData(){
       a.units=fmt(supplyNum,0);a.tvl=supplyNum*a.price;
     }catch(e){}
   });
-  await Promise.all(tokenReads);
-  // LP data in parallel
+  const CHUNK=3;
+  for(let i=0;i<tokenReads.length;i+=CHUNK){await Promise.all(tokenReads.slice(i,i+CHUNK));}
+  // LP data in chunked batches
   try{
     const lp=new ethers.Contract(c.LPRegistry,LP_ABI,rp);
-    const lpReads=A.map(async a=>{const addr=tokenAddr(a.id);if(!addr)return 0;try{return Number(await lp.getAssetBackerCount(addr));}catch(e){return 0;}});
-    S.gLP=(await Promise.all(lpReads)).reduce((s,v)=>s+v,0);
+    let lpTotal=0;
+    for(let i=0;i<A.length;i+=CHUNK){
+      const chunk=A.slice(i,i+CHUNK);
+      const vals=await Promise.all(chunk.map(async a=>{const addr=tokenAddr(a.id);if(!addr)return 0;try{return Number(await lp.getAssetBackerCount(addr));}catch(e){return 0;}}));
+      lpTotal+=vals.reduce((s,v)=>s+v,0);
+    }
+    S.gLP=lpTotal;
     if(S.on&&S.addr){
       try{const pos=await lp.positions(S.addr);S.lpActive=pos.active;S.lpDeposited=parseFloat(ethers.formatUnits(pos.usdcDeposited,18));S.lpAvailable=parseFloat(ethers.formatUnits(pos.usdcAvailable,18));}catch(e){}
       // Read on-chain backings for connected user
-      const backingReads=A.map(async a=>{
-        const addr=tokenAddr(a.id);if(!addr)return null;
-        try{
-          const b=await lp.getBacking(S.addr,addr);
-          if(!b.active)return null;
-          return{aid:a.id,alloc:parseFloat(ethers.formatUnits(b.usdcAllocated,18)),used:parseFloat(ethers.formatUnits(b.usdcUsed,18)),minPrice:parseFloat(ethers.formatUnits(b.minOraclePrice,18)),minDisc:Number(b.minPenaltyBps),maxExp:parseFloat(ethers.formatUnits(b.maxExposure,18)),curExp:parseFloat(ethers.formatUnits(b.currentExposure,18)),earned:0,backedAt:Number(b.backedAt)*1000,active:true};
-        }catch(e){return null;}
-      });
-      const results=await Promise.all(backingReads);
-      S.backings=results.filter(b=>b!==null);
+      let allBackings=[];
+      for(let i=0;i<A.length;i+=CHUNK){
+        const chunk=A.slice(i,i+CHUNK);
+        const results=await Promise.all(chunk.map(async a=>{
+          const addr=tokenAddr(a.id);if(!addr)return null;
+          try{
+            const b=await lp.getBacking(S.addr,addr);
+            if(!b.active)return null;
+            return{aid:a.id,alloc:parseFloat(ethers.formatUnits(b.usdcAllocated,18)),used:parseFloat(ethers.formatUnits(b.usdcUsed,18)),minPrice:parseFloat(ethers.formatUnits(b.minOraclePrice,18)),minDisc:Number(b.minPenaltyBps),maxExp:parseFloat(ethers.formatUnits(b.maxExposure,18)),curExp:parseFloat(ethers.formatUnits(b.currentExposure,18)),earned:0,backedAt:Number(b.backedAt)*1000,active:true};
+          }catch(e){return null;}
+        }));
+        allBackings=allBackings.concat(results.filter(b=>b!==null));
+      }
+      S.backings=allBackings;
       // Read pending withdrawal
       try{const wr=await lp.withdrawalRequests(S.addr);S.wdAmount=parseFloat(ethers.formatUnits(wr.amount,18));S.wdPending=S.wdAmount>0;S.wdTime=S.wdPending?Number(wr.requestedAt)*1000:null;}catch(e){}
     }
@@ -1945,8 +1955,12 @@ async function readBalances(){
     S.dob=parseFloat(ethers.formatUnits(vaultBal,18));
     S.faucetBals={};
     const ids=Object.keys(c.tokens);
-    const bals=await Promise.all(ids.map(id=>{const t=new ethers.Contract(c.tokens[id],E20,rp);return t.balanceOf(S.addr);}));
-    ids.forEach((id,i)=>{S.faucetBals[id]=parseFloat(ethers.formatUnits(bals[i],18));});
+    const BATCH=5;
+    for(let i=0;i<ids.length;i+=BATCH){
+      const chunk=ids.slice(i,i+BATCH);
+      const bals=await Promise.all(chunk.map(id=>{const t=new ethers.Contract(c.tokens[id],E20,rp);return t.balanceOf(S.addr);}));
+      chunk.forEach((id,j)=>{S.faucetBals[id]=parseFloat(ethers.formatUnits(bals[j],18));});
+    }
   }catch(e){console.error('readBalances:',e);}
 }
 async function connectWallet(){
