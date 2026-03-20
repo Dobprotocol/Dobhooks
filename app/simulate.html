@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DobDex — Protocol Simulator</title>
+  <meta name="description" content="Interactive protocol simulation for DobDex. Step through every mechanism: sell, buy, liquidation, LP lifecycle, LP-only mode, resale market, and LP fallback." />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 89 89'><circle cx='44.9' cy='44' r='44' fill='%23597CE9'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0e1117;
+      --bg-card: #161b26;
+      --bg-elevated: #1c2333;
+      --bg-3: #242d3d;
+      --bg-4: #2e3a4e;
+      --border: rgba(255,255,255,0.08);
+      --border-subtle: rgba(255,255,255,0.04);
+      --border-hover: rgba(255,255,255,0.15);
+      --text-0: #ffffff;
+      --text-1: #e4e8f1;
+      --text-2: #9ca3b8;
+      --text-3: #636d83;
+      --accent: #975AFF;
+      --accent-hover: #a66fff;
+      --accent-light: #C89CFF;
+      --accent-dim: rgba(151,90,255,0.12);
+      --accent-glow: rgba(151,90,255,0.25);
+      --blue: #597CE9;
+      --blue-light: #7B9BF5;
+      --blue-dim: rgba(89,124,233,0.12);
+      --green: #40C057;
+      --green-dim: rgba(64,192,87,0.12);
+      --red: #F55252;
+      --red-dim: rgba(245,82,82,0.12);
+      --amber: #F7A617;
+      --amber-dim: rgba(247,166,23,0.12);
+      --cyan: #00E5CC;
+      --font: 'Inter', system-ui, -apple-system, sans-serif;
+      --ease: cubic-bezier(.4,0,.2,1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text-1);
+      line-height: 1.5;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+    ::selection { background: rgba(151,90,255,0.3); }
+    a { text-decoration: none; }
+
+    /* ═══ ANIMATIONS ═══ */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 16px rgba(151,90,255,0.15); }
+      50% { box-shadow: 0 0 32px rgba(151,90,255,0.35); }
+    }
+    @keyframes flowDot {
+      0% { offset-distance: 0%; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { offset-distance: 100%; opacity: 0; }
+    }
+    @keyframes tokenPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+    @keyframes glowBorder {
+      0%, 100% { border-color: var(--accent); box-shadow: 0 0 12px var(--accent-glow); }
+      50% { border-color: var(--accent-light); box-shadow: 0 0 24px var(--accent-glow); }
+    }
+    @keyframes slideInLeft {
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .fade-up {
+      opacity: 0; transform: translateY(24px);
+      transition: opacity 0.6s var(--ease), transform 0.6s var(--ease);
+    }
+    .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+    /* ═══ TOP NAV ═══ */
+    .topnav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px; height: 56px;
+      background: rgba(14,17,23,0.9); backdrop-filter: blur(24px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .topnav-logo {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; user-select: none;
+    }
+    .topnav-logo svg { width: 28px; height: 28px; }
+    .topnav-logo span { font-size: 16px; font-weight: 800; color: var(--text-0); }
+    .topnav-logo span b { color: var(--accent); }
+    .topnav-links { display: flex; gap: 24px; }
+    .topnav-links a {
+      color: var(--text-3); text-decoration: none; font-size: 12px;
+      font-weight: 600; transition: color 0.15s; letter-spacing: 0.3px;
+    }
+    .topnav-links a:hover { color: var(--text-0); }
+    .topnav-badge {
+      padding: 5px 14px; border-radius: 999px; font-size: 11px; font-weight: 700;
+      background: var(--accent); color: #fff; text-decoration: none;
+      letter-spacing: 0.3px;
+    }
+    .topnav-badge:hover { background: var(--accent-hover); }
+
+    /* ═══ GLOW BG ═══ */
+    .glow {
+      position: absolute; border-radius: 50%; pointer-events: none;
+      filter: blur(140px);
+    }
+    .glow-purple { background: var(--accent); opacity: 0.06; }
+    .glow-blue { background: var(--blue); opacity: 0.05; }
+    .glow-green { background: var(--green); opacity: 0.03; }
+
+    /* ═══ HERO ═══ */
+    .hero {
+      padding: 140px 32px 60px;
+      text-align: center; position: relative; overflow: hidden;
+    }
+    .hero-content { max-width: 700px; margin: 0 auto; position: relative; z-index: 1; }
+    .hero h1 {
+      font-size: 56px; font-weight: 900; letter-spacing: -2.5px;
+      line-height: 1.05; margin-bottom: 20px;
+    }
+    .hero h1 .grad {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--blue-light) 40%, var(--blue) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: 17px; color: var(--text-2); max-width: 540px;
+      line-height: 1.7; margin: 0 auto;
+    }
+
+    /* ═══ SECTION LABELS ═══ */
+    .section-label {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.2px; margin-bottom: 16px;
+      padding: 4px 14px; border-radius: 999px;
+    }
+    .section-label.purple { color: var(--accent); background: var(--accent-dim); }
+    .section-label.blue { color: var(--blue); background: var(--blue-dim); }
+    .section-label.green { color: var(--green); background: var(--green-dim); }
+    .section-label.red { color: var(--red); background: var(--red-dim); }
+    .section-label.amber { color: var(--amber); background: var(--amber-dim); }
+
+    /* ═══ SECTION DIVIDER ═══ */
+    .section-divider {
+      width: 100%; height: 1px; max-width: 1200px; margin: 0 auto;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+    }
+
+    /* ═══ SCENARIO GRID ═══ */
+    .scenarios-section {
+      padding: 60px 32px 80px;
+      max-width: 1100px; margin: 0 auto;
+    }
+    .scenarios-section h2 {
+      font-size: 28px; font-weight: 900; letter-spacing: -1px;
+      margin-bottom: 8px; text-align: center;
+    }
+    .scenarios-section .sub {
+      font-size: 14px; color: var(--text-2); text-align: center;
+      margin-bottom: 40px;
+    }
+    .scenario-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    }
+    .scenario-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 24px;
+      cursor: pointer; transition: all 0.3s var(--ease);
+      position: relative; overflow: hidden;
+    }
+    .scenario-card:hover {
+      border-color: var(--border-hover); transform: translateY(-4px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    }
+    .scenario-card.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 24px var(--accent-glow);
+    }
+    .scenario-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .scenario-card:hover::before, .scenario-card.active::before { opacity: 1; }
+    .scenario-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; margin-bottom: 14px;
+    }
+    .scenario-card h3 { font-size: 15px; font-weight: 800; margin-bottom: 6px; }
+    .scenario-card p { font-size: 12px; color: var(--text-2); line-height: 1.5; margin-bottom: 12px; }
+    .scenario-tag {
+      display: inline-block; padding: 3px 10px; border-radius: 6px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
+    }
+
+    /* tag colors per scenario */
+    .tag-blue { background: var(--blue-dim); color: var(--blue); }
+    .tag-green { background: var(--green-dim); color: var(--green); }
+    .tag-red { background: var(--red-dim); color: var(--red); }
+    .tag-accent { background: var(--accent-dim); color: var(--accent); }
+    .tag-amber { background: var(--amber-dim); color: var(--amber); }
+
+    /* card top bar colors */
+    .scenario-card[data-id="A"]::before { background: linear-gradient(90deg, var(--blue), var(--blue-light)); }
+    .scenario-card[data-id="B"]::before { background: linear-gradient(90deg, var(--green), #6dd47e); }
+    .scenario-card[data-id="C"]::before { background: linear-gradient(90deg, var(--red), #ff8080); }
+    .scenario-card[data-id="D"]::before { background: linear-gradient(90deg, var(--accent), var(--accent-light)); }
+    .scenario-card[data-id="E"]::before { background: linear-gradient(90deg, var(--amber), #ffd366); }
+    .scenario-card[data-id="F"]::before { background: linear-gradient(90deg, var(--accent), var(--blue)); }
+    .scenario-card[data-id="G"]::before { background: linear-gradient(90deg, var(--blue), var(--accent)); }
+
+    /* ═══ SIMULATION AREA ═══ */
+    .sim-area {
+      max-width: 1200px; margin: 0 auto;
+      padding: 0 32px 100px;
+      display: none;
+    }
+    .sim-area.active { display: block; }
+
+    /* Controls */
+    .sim-controls {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 32px; flex-wrap: wrap;
+    }
+    .sim-btn {
+      padding: 10px 24px; border-radius: 10px; border: none;
+      font-family: var(--font); font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s var(--ease);
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .sim-btn-primary {
+      background: var(--accent); color: #fff;
+      box-shadow: 0 4px 16px rgba(151,90,255,0.25);
+    }
+    .sim-btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .sim-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .sim-btn-secondary {
+      background: var(--bg-elevated); color: var(--text-1);
+      border: 1px solid var(--border);
+    }
+    .sim-btn-secondary:hover { border-color: var(--accent); background: var(--accent-dim); }
+    .sim-btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .sim-btn-danger {
+      background: var(--red-dim); color: var(--red);
+      border: 1px solid rgba(245,82,82,0.15);
+    }
+    .sim-btn-danger:hover { background: rgba(245,82,82,0.2); border-color: var(--red); }
+    .step-indicator {
+      margin-left: auto;
+      font-size: 13px; font-weight: 700; color: var(--text-2);
+      font-variant-numeric: tabular-nums;
+    }
+    .step-indicator span { color: var(--accent); }
+
+    /* Layout: sidebar timeline + main diagram */
+    .sim-layout {
+      display: grid; grid-template-columns: 340px 1fr; gap: 24px;
+      align-items: start;
+    }
+
+    /* ═══ STEP TIMELINE ═══ */
+    .timeline {
+      position: relative;
+    }
+    .timeline::before {
+      content: ''; position: absolute; left: 15px; top: 0; bottom: 0;
+      width: 2px; background: var(--border);
+    }
+    .timeline-step {
+      position: relative; padding-left: 44px; margin-bottom: 16px;
+      opacity: 0.35; transition: opacity 0.4s var(--ease);
+    }
+    .timeline-step.active { opacity: 1; }
+    .timeline-step.done { opacity: 0.7; }
+    .timeline-dot {
+      position: absolute; left: 7px; top: 4px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--bg-3); border: 2px solid var(--text-3);
+      transition: all 0.4s var(--ease);
+      z-index: 1;
+    }
+    .timeline-step.active .timeline-dot {
+      background: var(--accent); border-color: var(--accent);
+      box-shadow: 0 0 12px var(--accent-glow);
+      animation: pulseGlow 2s ease-in-out infinite;
+    }
+    .timeline-step.done .timeline-dot {
+      background: var(--green); border-color: var(--green);
+      box-shadow: 0 0 8px var(--green-dim);
+    }
+    .timeline-step.done .timeline-dot::after {
+      content: '';
+      position: absolute; top: 3px; left: 3px;
+      width: 8px; height: 5px;
+      border-left: 2px solid #fff; border-bottom: 2px solid #fff;
+      transform: rotate(-45deg);
+    }
+    .timeline-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 16px;
+      transition: all 0.3s var(--ease);
+    }
+    .timeline-step.active .timeline-card {
+      border-color: rgba(151,90,255,0.3);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    .timeline-card h4 {
+      font-size: 13px; font-weight: 800; margin-bottom: 4px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .timeline-card h4 .step-num {
+      font-size: 10px; font-weight: 700; color: var(--accent);
+      font-family: monospace;
+    }
+    .timeline-card .desc {
+      font-size: 11px; color: var(--text-2); line-height: 1.5;
+      margin-bottom: 6px;
+    }
+    .timeline-card code {
+      display: block; font-size: 10px; font-family: 'SF Mono', Consolas, monospace;
+      color: var(--accent-light); background: rgba(151,90,255,0.06);
+      padding: 5px 8px; border-radius: 6px; line-height: 1.4;
+      word-break: break-all;
+    }
+
+    /* ═══ VISUAL DIAGRAM ═══ */
+    .diagram-wrapper {
+      position: sticky; top: 80px;
+    }
+    .diagram-panel {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px;
+      position: relative; min-height: 420px;
+      overflow: hidden;
+    }
+    .diagram-panel-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--text-3); margin-bottom: 24px;
+    }
+
+    /* Entity boxes */
+    .entity-grid {
+      display: grid; gap: 12px;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: auto auto;
+    }
+    .entity {
+      background: var(--bg-elevated); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px;
+      transition: all 0.4s var(--ease);
+      position: relative;
+    }
+    .entity.highlight {
+      border-color: var(--accent);
+      box-shadow: 0 0 16px var(--accent-glow);
+      animation: glowBorder 2s ease-in-out infinite;
+    }
+    .entity-name {
+      font-size: 11px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.5px; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .entity-name .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+    }
+    .entity-balances {
+      display: flex; flex-direction: column; gap: 3px;
+    }
+    .entity-bal {
+      font-size: 10px; font-family: 'SF Mono', Consolas, monospace;
+      color: var(--text-2); display: flex; justify-content: space-between;
+      transition: color 0.3s;
+    }
+    .entity-bal .token { color: var(--text-3); }
+    .entity-bal .val { font-weight: 600; }
+    .entity-bal.changed .val { color: var(--green); }
+    .entity-bal.decreased .val { color: var(--red); }
+
+    /* Entity color accents */
+    .entity[data-id="user"] .entity-name .dot { background: var(--blue); }
+    .entity[data-id="vault"] .entity-name .dot { background: var(--accent); }
+    .entity[data-id="hook"] .entity-name .dot { background: var(--green); }
+    .entity[data-id="pool"] .entity-name .dot { background: var(--amber); }
+    .entity[data-id="lp-registry"] .entity-name .dot { background: var(--red); }
+    .entity[data-id="lp-wallet"] .entity-name .dot { background: var(--cyan); }
+
+    /* Flow arrows */
+    .flow-container {
+      position: absolute; inset: 0; pointer-events: none; z-index: 10;
+    }
+    .flow-arrow {
+      position: absolute;
+      display: none;
+    }
+    .flow-arrow.active { display: block; }
+    .flow-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      position: absolute;
+      animation: flowMove 1s var(--ease) forwards;
+      box-shadow: 0 0 8px currentColor;
+    }
+    .flow-label {
+      position: absolute; font-size: 10px; font-weight: 700;
+      padding: 3px 8px; border-radius: 6px;
+      white-space: nowrap; z-index: 20;
+      animation: fadeIn 0.3s var(--ease) both;
+      animation-delay: 0.2s;
+    }
+
+    /* ═══ EXPLANATION PANEL ═══ */
+    .explanation {
+      margin-top: 16px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px 20px;
+      min-height: 60px;
+    }
+    .explanation-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--accent); margin-bottom: 8px;
+    }
+    .explanation-text {
+      font-size: 13px; color: var(--text-2); line-height: 1.6;
+    }
+
+    /* ═══ CTA FOOTER ═══ */
+    .cta-section {
+      padding: 80px 32px; text-align: center; position: relative;
+    }
+    .cta-built {
+      margin-top: 40px; font-size: 12px; color: var(--text-3); line-height: 2;
+    }
+    .cta-built a {
+      color: var(--text-2); text-decoration: underline;
+      text-decoration-color: rgba(255,255,255,0.1);
+      transition: color 0.2s;
+    }
+    .cta-built a:hover { color: var(--text-0); }
+    .cta-links {
+      display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+      margin-top: 24px;
+    }
+    .cta-links a {
+      padding: 8px 18px; border-radius: 8px;
+      background: var(--accent-dim); border: 1px solid rgba(151,90,255,0.1);
+      color: var(--accent); font-size: 12px; font-weight: 600;
+      transition: all 0.2s;
+    }
+    .cta-links a:hover { background: rgba(151,90,255,0.2); border-color: var(--accent); }
+
+    /* ═══ RESPONSIVE ═══ */
+    @media (max-width: 1024px) {
+      .sim-layout {
+        grid-template-columns: 1fr;
+      }
+      .diagram-wrapper { position: static; }
+      .scenario-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .topnav-links { display: none; }
+      .hero h1 { font-size: 38px; letter-spacing: -1.5px; }
+      .hero-sub { font-size: 15px; }
+      .scenario-grid { grid-template-columns: 1fr; }
+      .entity-grid { grid-template-columns: 1fr 1fr; }
+      .sim-controls { gap: 8px; }
+      .sim-btn { padding: 8px 16px; font-size: 12px; }
+    }
+    @media (max-width: 480px) {
+      .hero { padding: 120px 16px 40px; }
+      .hero h1 { font-size: 30px; }
+      .scenarios-section { padding: 40px 16px 60px; }
+      .sim-area { padding: 0 16px 60px; }
+      .entity-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Top Nav -->
+<header class="topnav">
+  <a class="topnav-logo" href="landing.html">
+    <svg viewBox="0 0 89 89" fill="none"><circle cx="44.9" cy="44" r="44" fill="#597CE9"/><path d="M35.5 54.1C33.1 51.5 31.9 48.2 31.9 44C31.9 39.8 33.1 36.5 35.5 33.9C36.9 32.4 38.6 31.3 40.6 30.7V22C38 22.4 35.6 23.2 33.4 24.5C30.1 26.4 27.5 29 25.7 32.3C23.9 35.7 23 39.6 23 44.1C23 48.6 23.9 52.5 25.7 55.8C27.5 59.2 30.1 61.7 33.4 63.6C35.6 64.8 38 65.6 40.6 66V57.3C38.6 56.7 36.9 55.6 35.5 54.1Z" fill="#F9FAFE"/><path d="M64.1 32.3C62.2 29 59.7 26.4 56.4 24.5C54.2 23.2 51.8 22.4 49.2 22V30.7C51.2 31.4 52.9 32.4 54.3 34C56.7 36.6 57.9 39.9 57.9 44.1C57.9 48.3 56.7 51.5 54.3 54.1C52.9 55.6 51.2 56.7 49.2 57.3V66C51.8 65.6 54.2 64.8 56.4 63.6C59.7 61.7 62.2 59.1 64.1 55.8C65.9 52.5 66.9 48.6 66.9 44.1C66.9 39.6 65.9 35.7 64.1 32.3Z" fill="#F9FAFE"/><circle cx="44.9" cy="44" r="5.5" fill="#F9FAFE"/></svg>
+    <span><b>Dob</b>Dex</span>
+  </a>
+  <div class="topnav-links">
+    <a href="landing.html">Home</a>
+    <a href="protocol.html">Protocol</a>
+    <a href="index.html">App</a>
+    <a href="demo.html">Demo</a>
+    <a href="deck.html">Deck</a>
+  </div>
+  <a class="topnav-badge" href="#scenarios">Simulator</a>
+</header>
+
+
+<!-- ════════════════════════════════════════════
+     HERO
+     ════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="glow glow-purple" style="width:600px;height:600px;top:-10%;left:5%;"></div>
+  <div class="glow glow-blue" style="width:500px;height:500px;top:10%;right:0%;"></div>
+  <div class="hero-content">
+    <div class="section-label purple fade-up" style="transition-delay:0.1s;">Interactive Simulation</div>
+    <h1 class="fade-up" style="transition-delay:0.15s;">Protocol <span class="grad">Simulator</span></h1>
+    <p class="hero-sub fade-up" style="transition-delay:0.25s;">Step through every DobDex mechanism interactively. See exactly how tokens flow between contracts.</p>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ════════════════════════════════════════════
+     SCENARIO SELECTOR
+     ════════════════════════════════════════════ -->
+<section class="scenarios-section" id="scenarios">
+  <h2 class="fade-up">Choose a Scenario</h2>
+  <p class="sub fade-up" style="transition-delay:0.05s;">Select a protocol flow to simulate. Each scenario walks through the exact contract calls and token movements.</p>
+
+  <div class="scenario-grid" id="scenarioGrid">
+    <div class="scenario-card fade-up" style="transition-delay:0.1s;" data-id="A" onclick="selectScenario('A')">
+      <div class="scenario-icon" style="background:var(--blue-dim);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <h3>Sell RWA</h3>
+      <p>Deposit RWA tokens into the vault, mint dUSDC, then swap for USDC at oracle peg price.</p>
+      <span class="scenario-tag tag-blue">SELL FLOW</span>
+    </div>
+
+    <div class="scenario-card fade-up" style="transition-delay:0.15s;" data-id="B" onclick="selectScenario('B')">
+      <div class="scenario-icon" style="background:var(--green-dim);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M16 8l-4 4-4-4"/></svg>
+      </div>
+      <h3>Buy RWA</h3>
+      <p>Pay USDC through the hook, receive dUSDC, then withdraw RWA tokens from the vault.</p>
+      <span class="scenario-tag tag-green">BUY FLOW</span>
+    </div>
+
+    <div class="scenario-card fade-up" style="transition-delay:0.2s;" data-id="C" onclick="selectScenario('C')">
+      <div class="scenario-icon" style="background:var(--red-dim);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      </div>
+      <h3>Liquidation</h3>
+      <p>Distressed asset sold at penalty rate. LPs fill the order via FIFO matching and earn discount.</p>
+      <span class="scenario-tag tag-red">LIQUIDATION</span>
+    </div>
+
+    <div class="scenario-card fade-up" style="transition-delay:0.25s;" data-id="D" onclick="selectScenario('D')">
+      <div class="scenario-icon" style="background:var(--accent-dim);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      </div>
+      <h3>LP Lifecycle</h3>
+      <p>Register as LP, deposit USDC, back a specific asset, get filled, then claim RWA tokens.</p>
+      <span class="scenario-tag tag-accent">LP JOURNEY</span>
+    </div>
+
+    <div class="scenario-card fade-up" style="transition-delay:0.3s;" data-id="E" onclick="selectScenario('E')">
+      <div class="scenario-icon" style="background:var(--amber-dim);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h3>LP-Only Mode</h3>
+      <p>Token flagged by admin. Sells only succeed when LPs fill them. No protocol reserves used.</p>
+      <span class="scenario-tag tag-amber">LP-ONLY</span>
+    </div>
+
+    <div class="scenario-card fade-up" style="transition-delay:0.35s;" data-id="F" onclick="selectScenario('F')">
+      <div class="scenario-icon" style="background:var(--accent-dim);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+      </div>
+      <h3>Resale Market</h3>
+      <p>LP lists claimed RWA tokens for sale. Buyer purchases at oracle price with FIFO fills.</p>
+      <span class="scenario-tag tag-accent">RESALE</span>
+    </div>
+
+    <div class="scenario-card fade-up" style="transition-delay:0.4s;" data-id="G" onclick="selectScenario('G')">
+      <div class="scenario-icon" style="background:var(--blue-dim);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
+      </div>
+      <h3>LP Fallback</h3>
+      <p>Hook is low on USDC. Normal sell triggers LP fallback to fill the shortfall amount.</p>
+      <span class="scenario-tag tag-blue">FALLBACK</span>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ════════════════════════════════════════════
+     SIMULATION AREA
+     ════════════════════════════════════════════ -->
+<div class="sim-area" id="simArea">
+
+  <!-- Controls -->
+  <div class="sim-controls">
+    <button class="sim-btn sim-btn-primary" id="btnPlay" onclick="playAll()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Play All
+    </button>
+    <button class="sim-btn sim-btn-secondary" id="btnNext" onclick="nextStep()">
+      Next Step
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+    <button class="sim-btn sim-btn-danger" id="btnReset" onclick="resetSim()">
+      Reset
+    </button>
+    <div class="step-indicator" id="stepIndicator">
+      Step <span id="stepCurrent">0</span> / <span id="stepTotal">0</span>
+    </div>
+  </div>
+
+  <!-- Layout -->
+  <div class="sim-layout">
+
+    <!-- LEFT: Step Timeline -->
+    <div class="timeline" id="timeline"></div>
+
+    <!-- RIGHT: Visual Diagram -->
+    <div class="diagram-wrapper">
+      <div class="diagram-panel">
+        <div class="diagram-panel-title">Contract State</div>
+        <div class="entity-grid" id="entityGrid">
+          <div class="entity" data-id="user">
+            <div class="entity-name"><span class="dot"></span>User Wallet</div>
+            <div class="entity-balances" id="bal-user"></div>
+          </div>
+          <div class="entity" data-id="vault">
+            <div class="entity-name"><span class="dot"></span>DobRwaVault</div>
+            <div class="entity-balances" id="bal-vault"></div>
+          </div>
+          <div class="entity" data-id="hook">
+            <div class="entity-name"><span class="dot"></span>DobPegHook</div>
+            <div class="entity-balances" id="bal-hook"></div>
+          </div>
+          <div class="entity" data-id="pool">
+            <div class="entity-name"><span class="dot"></span>PoolManager</div>
+            <div class="entity-balances" id="bal-pool"></div>
+          </div>
+          <div class="entity" data-id="lp-registry">
+            <div class="entity-name"><span class="dot"></span>DobLPRegistry</div>
+            <div class="entity-balances" id="bal-lp-registry"></div>
+          </div>
+          <div class="entity" data-id="lp-wallet">
+            <div class="entity-name"><span class="dot"></span>LP Wallet</div>
+            <div class="entity-balances" id="bal-lp-wallet"></div>
+          </div>
+        </div>
+
+        <!-- Flow animations are injected here -->
+        <div class="flow-container" id="flowContainer"></div>
+      </div>
+
+      <!-- Explanation -->
+      <div class="explanation" id="explanation">
+        <div class="explanation-title">How It Works</div>
+        <div class="explanation-text" id="explanationText">Select a scenario above and press <strong>Play All</strong> or <strong>Next Step</strong> to begin the simulation.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     CTA / FOOTER
+     ════════════════════════════════════════════ -->
+<div class="section-divider"></div>
+<section class="cta-section">
+  <div class="section-label green fade-up">Explore More</div>
+  <h2 class="fade-up" style="font-size:32px;font-weight:900;letter-spacing:-1.5px;margin-bottom:12px;transition-delay:0.1s;">Try DobDex Live</h2>
+  <p class="fade-up" style="font-size:15px;color:var(--text-2);max-width:420px;margin:0 auto;line-height:1.7;transition-delay:0.2s;">Connect your wallet and swap RWA tokens with zero slippage on testnet.</p>
+  <div class="cta-links fade-up" style="transition-delay:0.3s;">
+    <a href="index.html">Launch App</a>
+    <a href="demo.html">Product Demo</a>
+    <a href="protocol.html">Protocol Docs</a>
+    <a href="deck.html">Pitch Deck</a>
+    <a href="https://github.com/Dobprotocol/Dobhooks" target="_blank">GitHub</a>
+  </div>
+  <div class="cta-built fade-up" style="transition-delay:0.4s;">
+    Built by <a href="https://dobprotocol.com" target="_blank">Dobprotocol</a> &middot;
+    <a href="https://docs.dobprotocol.com/dex/overview" target="_blank">Docs</a> &middot;
+    Deployed on <a href="https://unichain.org" target="_blank">Unichain</a> &middot;
+    Powered by <a href="https://reactive.network" target="_blank">Reactive Network</a>
+  </div>
+  <div style="margin-top:48px;opacity:0.4;" class="fade-up" style="transition-delay:0.5s;">
+    <svg viewBox="0 0 89 89" fill="none" width="40" height="40"><circle cx="44.9" cy="44" r="44" fill="#597CE9"/><path d="M35.5 54.1C33.1 51.5 31.9 48.2 31.9 44C31.9 39.8 33.1 36.5 35.5 33.9C36.9 32.4 38.6 31.3 40.6 30.7V22C38 22.4 35.6 23.2 33.4 24.5C30.1 26.4 27.5 29 25.7 32.3C23.9 35.7 23 39.6 23 44.1C23 48.6 23.9 52.5 25.7 55.8C27.5 59.2 30.1 61.7 33.4 63.6C35.6 64.8 38 65.6 40.6 66V57.3C38.6 56.7 36.9 55.6 35.5 54.1Z" fill="#F9FAFE"/><path d="M64.1 32.3C62.2 29 59.7 26.4 56.4 24.5C54.2 23.2 51.8 22.4 49.2 22V30.7C51.2 31.4 52.9 32.4 54.3 34C56.7 36.6 57.9 39.9 57.9 44.1C57.9 48.3 56.7 51.5 54.3 54.1C52.9 55.6 51.2 56.7 49.2 57.3V66C51.8 65.6 54.2 64.8 56.4 63.6C59.7 61.7 62.2 59.1 64.1 55.8C65.9 52.5 66.9 48.6 66.9 44.1C66.9 39.6 65.9 35.7 64.1 32.3Z" fill="#F9FAFE"/><circle cx="44.9" cy="44" r="5.5" fill="#F9FAFE"/></svg>
+  </div>
+</section>
+
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// SCENARIO DATA
+// ═══════════════════════════════════════════════════════════════
+
+const SCENARIOS = {
+  A: {
+    name: 'Sell RWA',
+    initialBalances: {
+      user:          { DCT: 100, USDC: 0, dUSDC: 0 },
+      vault:         { DCT: 0, USDC: 0, dUSDC: 0 },
+      hook:          { DCT: 0, USDC: 500, dUSDC: 0 },
+      pool:          { DCT: 0, USDC: 0, dUSDC: 0 },
+      'lp-registry': { DCT: 0, USDC: 0, dUSDC: 0 },
+      'lp-wallet':   { DCT: 0, USDC: 0, dUSDC: 0 }
+    },
+    steps: [
+      {
+        title: 'Approve RWA',
+        description: 'User approves the DobRwaVault to spend 100 DCT tokens on their behalf.',
+        contractCall: 'DCT.approve(vault, 100e18)',
+        activeEntities: ['user', 'vault'],
+        flowFrom: 'user', flowTo: 'vault', flowToken: 'Approval', flowColor: 'var(--blue)',
+        balanceChanges: {},
+        explanation: 'Before depositing, the user must grant the vault an ERC-20 allowance. This is a standard approve() call that does not move tokens yet.'
+      },
+      {
+        title: 'Deposit RWA',
+        description: '100 DCT deposited into vault. 100 dUSDC minted 1:1 to user at oracle price.',
+        contractCall: 'vault.deposit(DCT, 100e18)',
+        activeEntities: ['user', 'vault'],
+        flowFrom: 'user', flowTo: 'vault', flowToken: '100 DCT', flowColor: 'var(--accent)',
+        balanceChanges: {
+          user:  { DCT: -100, dUSDC: +100 },
+          vault: { DCT: +100, dUSDC: 0 }
+        },
+        explanation: 'The vault receives 100 DCT and mints 100 dUSDC to the user. dUSDC is minted 1:1 at the oracle price ($1.00 per DCT). The DCT tokens are now held by the vault as backing.'
+      },
+      {
+        title: 'Approve dUSDC',
+        description: 'User approves the DobPegHook to spend 100 dUSDC for the swap.',
+        contractCall: 'dUSDC.approve(hook, 100e18)',
+        activeEntities: ['user', 'hook'],
+        flowFrom: 'user', flowTo: 'hook', flowToken: 'Approval', flowColor: 'var(--blue)',
+        balanceChanges: {},
+        explanation: 'The user grants the hook an allowance to pull dUSDC during the swap. This is required before initiating the Uniswap V4 swap.'
+      },
+      {
+        title: 'Swap at Peg',
+        description: 'Hook intercepts swap via beforeSwap, settles at 1:1 oracle price. 0.3% fee on sell.',
+        contractCall: 'hook._beforeSwap() → NoOp + returnDelta',
+        activeEntities: ['user', 'hook', 'pool'],
+        flowFrom: 'user', flowTo: 'hook', flowToken: '100 dUSDC', flowColor: 'var(--accent)',
+        balanceChanges: {
+          user: { dUSDC: -100, USDC: +99.7 },
+          hook: { USDC: -99.7, dUSDC: +100 }
+        },
+        explanation: 'The Uniswap V4 PoolManager calls beforeSwap on DobPegHook. The hook returns BeforeSwapDelta to skip the AMM curve entirely. It takes 100 dUSDC from the user and sends 99.7 USDC (after 0.3% fee). Zero slippage — settlement at exact oracle price.'
+      },
+      {
+        title: 'Fee Accrues',
+        description: '0.3 USDC fee retained by hook and added to the LP pool rewards.',
+        contractCall: 'totalLpUsdc += 0.3e18',
+        activeEntities: ['hook', 'lp-registry'],
+        flowFrom: 'hook', flowTo: 'lp-registry', flowToken: '0.3 USDC fee', flowColor: 'var(--green)',
+        balanceChanges: {
+          hook: { USDC: -0.3 },
+          'lp-registry': { USDC: +0.3 }
+        },
+        explanation: 'The 0.3% swap fee (0.3 USDC) is accrued to the LP pool. This fee rewards liquidity providers who deposit USDC into the hook. LPs can claim their pro-rata share of accumulated fees.'
+      }
+    ]
+  },
+
+  B: {
+    name: 'Buy RWA',
+    initialBalances: {
+      user:          { DCT: 0, USDC: 100, dUSDC: 0 },
+      vault:         { DCT: 200, USDC: 0, dUSDC: 0 },
+      hook:          { DCT: 0, USDC: 500, dUSDC: 100 },
+      pool:          { DCT: 0, USDC: 0, dUSDC: 0 },
+      'lp-registry': { DCT: 0, USDC: 0, dUSDC: 0 },
+      'lp-wallet':   { DCT: 0, USDC: 0, dUSDC: 0 }
+    },
+    steps: [
+      {
+        title: 'Approve USDC',
+        description: 'User approves the hook to spend 100 USDC for the buy swap.',
+        contractCall: 'USDC.approve(hook, 100e18)',
+        activeEntities: ['user', 'hook'],
+        flowFrom: 'user', flowTo: 'hook', flowToken: 'Approval', flowColor: 'var(--blue)',
+        balanceChanges: {},
+        explanation: 'Standard ERC-20 approve. The user grants the DobPegHook permission to pull USDC during the swap.'
+      },
+      {
+        title: 'Swap USDC for dUSDC',
+        description: '100 USDC sent to hook, 100 dUSDC returned at 1:1 peg. No fee on buys.',
+        contractCall: 'hook._beforeSwap() → 100 USDC in, 100 dUSDC out',
+        activeEntities: ['user', 'hook', 'pool'],
+        flowFrom: 'user', flowTo: 'hook', flowToken: '100 USDC', flowColor: 'var(--green)',
+        balanceChanges: {
+          user: { USDC: -100, dUSDC: +100 },
+          hook: { USDC: +100, dUSDC: -100 }
+        },
+        explanation: 'The hook intercepts the buy swap via beforeSwap. It takes 100 USDC from the user and returns 100 dUSDC at exact 1:1 oracle price. No fee is charged on buy direction — only sells pay the 0.3% fee.'
+      },
+      {
+        title: 'Approve dUSDC to Vault',
+        description: 'User approves the vault to burn 100 dUSDC for RWA withdrawal.',
+        contractCall: 'dUSDC.approve(vault, 100e18)',
+        activeEntities: ['user', 'vault'],
+        flowFrom: 'user', flowTo: 'vault', flowToken: 'Approval', flowColor: 'var(--blue)',
+        balanceChanges: {},
+        explanation: 'Before withdrawing RWA tokens, the user must approve the vault to burn their dUSDC. The vault will destroy the dUSDC and release the corresponding RWA tokens.'
+      },
+      {
+        title: 'Withdraw RWA',
+        description: '100 dUSDC burned, 100 DCT released from vault to user.',
+        contractCall: 'vault.withdraw(DCT, 100e18, user)',
+        activeEntities: ['user', 'vault'],
+        flowFrom: 'vault', flowTo: 'user', flowToken: '100 DCT', flowColor: 'var(--accent)',
+        balanceChanges: {
+          user:  { dUSDC: -100, DCT: +100 },
+          vault: { DCT: -100 }
+        },
+        explanation: 'The vault burns 100 dUSDC and transfers 100 DCT to the user. The buy flow is now complete: the user paid 100 USDC and received 100 DCT at the exact oracle price of $1.00.'
+      }
+    ]
+  },
+
+  C: {
+    name: 'Liquidation',
+    initialBalances: {
+      user:          { DCT: 0, USDC: 0, dUSDC: 100 },
+      vault:         { DCT: 100, USDC: 0, dUSDC: 0 },
+      hook:          { DCT: 0, USDC: 200, dUSDC: 0 },
+      pool:          { DCT: 0, USDC: 0, dUSDC: 0 },
+      'lp-registry': { DCT: 0, USDC: 5000, dUSDC: 0 },
+      'lp-wallet':   { DCT: 0, USDC: 5000, dUSDC: 0 }
+    },
+    steps: [
+      {
+        title: 'AI Detects Distress',
+        description: 'Dobprotocol validator flags DCT as distressed with 20% penalty rate.',
+        contractCall: 'registry.setLiquidationParams(DCT, 2000, 1000e18)',
+        activeEntities: ['pool'],
+        flowFrom: null, flowTo: null, flowToken: '', flowColor: 'var(--red)',
+        balanceChanges: {},
+        explanation: 'The AI validator agent detects that the real-world asset backing DCT is in distress. It calls setLiquidationParams with penaltyBps=2000 (20%) and maxLiquidatable=1000 DCT. This activates liquidation mode for this token.'
+      },
+      {
+        title: 'User Initiates Sell',
+        description: 'User submits sell swap with hookData identifying DCT as the RWA token.',
+        contractCall: 'swap(dUSDC→USDC, 100e18, hookData=DCT)',
+        activeEntities: ['user', 'hook'],
+        flowFrom: 'user', flowTo: 'hook', flowToken: '100 dUSDC', flowColor: 'var(--amber)',
+        balanceChanges: {
+          user: { dUSDC: -100 },
+          hook: { dUSDC: +100 }
+        },
+        explanation: 'The user initiates a sell swap for 100 dUSDC. The hookData field encodes the DCT token address, which the hook uses to look up the oracle price and check for liquidation status.'
+      },
+      {
+        title: 'Penalty Applied',
+        description: '20% penalty deducted. User receives 80 USDC instead of 100.',
+        contractCall: 'amountOut = 100 * (10000-2000) / 10000 = 80',
+        activeEntities: ['hook'],
+        flowFrom: null, flowTo: null, flowToken: '', flowColor: 'var(--red)',
+        balanceChanges: {},
+        explanation: 'The hook detects that DCT is in liquidation mode (penaltyBps=2000). It calculates: amountOut = 100 * (10000 - 2000) / 10000 = 80 USDC. The 20 dUSDC penalty is used to incentivize LP fills.'
+      },
+      {
+        title: 'LP Matched (FIFO)',
+        description: 'LPRegistry iterates backers in FIFO order. LP conditions checked against current state.',
+        contractCall: 'lpRegistry.queryAndFill(DCT, 1e18, 100e18)',
+        activeEntities: ['hook', 'lp-registry'],
+        flowFrom: 'hook', flowTo: 'lp-registry', flowToken: 'Fill request', flowColor: 'var(--amber)',
+        balanceChanges: {},
+        explanation: 'The hook calls queryAndFill on DobLPRegistry. The registry iterates through all LPs who backed DCT, checking each one\'s conditions: minOraclePrice, minPenaltyBps, maxExposure, and available usdcAllocation. First qualifying LP gets filled.'
+      },
+      {
+        title: 'LP Fills Order',
+        description: 'LP provides 80 USDC. Receives 100 dUSDC credit (rwaOwed). 20 dUSDC discount earned.',
+        contractCall: 'LP.usdcAllocation -= 80e18; rwaOwed[LP][DCT] += 100',
+        activeEntities: ['lp-registry', 'lp-wallet', 'hook'],
+        flowFrom: 'lp-registry', flowTo: 'hook', flowToken: '80 USDC', flowColor: 'var(--green)',
+        balanceChanges: {
+          'lp-registry': { USDC: -80 },
+          'lp-wallet':   { USDC: -80, dUSDC: +100 },
+          hook:          { USDC: +80 }
+        },
+        explanation: 'The matched LP\'s USDC allocation is reduced by 80. In return, the LP is credited 100 dUSDC worth of DCT (rwaOwed). The LP effectively bought 100 DCT worth $100 for only 80 USDC — a 20% discount.'
+      },
+      {
+        title: 'User Receives USDC',
+        description: '80 USDC transferred to user. Liquidation swap settlement complete.',
+        contractCall: 'hook.settle() → 80 USDC to user',
+        activeEntities: ['hook', 'user'],
+        flowFrom: 'hook', flowTo: 'user', flowToken: '80 USDC', flowColor: 'var(--green)',
+        balanceChanges: {
+          hook: { USDC: -80 },
+          user: { USDC: +80 }
+        },
+        explanation: 'The hook completes the swap by sending 80 USDC to the user. The user received a reduced amount due to the 20% liquidation penalty, but was able to exit a distressed position. The LP profits from the discounted acquisition.'
+      }
+    ]
+  },
+
+  D: {
+    name: 'LP Lifecycle',
+    initialBalances: {
+      user:          { DCT: 0, USDC: 0, dUSDC: 0 },
+      vault:         { DCT: 100, USDC: 0, dUSDC: 0 },
+      hook:          { DCT: 0, USDC: 200, dUSDC: 50 },
+      pool:          { DCT: 0, USDC: 0, dUSDC: 0 },
+      'lp-registry': { DCT: 0, USDC: 0, dUSDC: 0 },
+      'lp-wallet':   { DCT: 0, USDC: 10000, dUSDC: 0 }
+    },
+    steps: [
+      {
+        title: 'Register as LP',
+        description: 'LP deposits 10,000 USDC into the LP registry to start providing liquidity.',
+        contractCall: 'lpRegistry.register(10000e18)',
+        activeEntities: ['lp-wallet', 'lp-registry'],
+        flowFrom: 'lp-wallet', flowTo: 'lp-registry', flowToken: '10,000 USDC', flowColor: 'var(--accent)',
+        balanceChanges: {
+          'lp-wallet':   { USDC: -10000 },
+          'lp-registry': { USDC: +10000 }
+        },
+        explanation: 'The LP calls register() with 10,000 USDC. This USDC is held by the LPRegistry contract and can be allocated to back specific assets. The LP is now an active liquidity node in the protocol.'
+      },
+      {
+        title: 'Back Asset',
+        description: 'LP backs DCT with conditions: min oracle $0.90, min penalty 15%, max exposure 5000, allocation 5000.',
+        contractCall: 'lpRegistry.backAsset(DCT, 0.9e18, 1500, 5000e18, 5000e18)',
+        activeEntities: ['lp-registry'],
+        flowFrom: null, flowTo: null, flowToken: '', flowColor: 'var(--accent)',
+        balanceChanges: {},
+        explanation: 'The LP specifies conditions for DCT fills: only fill if oracle price >= $0.90, penalty >= 15% (1500 bps), max exposure 5000 DCT, and allocating 5000 USDC from their balance. These conditions protect the LP from unfavorable fills.'
+      },
+      {
+        title: 'Wait for Fill',
+        description: 'A liquidation triggers on DCT. The LP\'s conditions match the current parameters.',
+        contractCall: '// Liquidation event — penaltyBps=2000, price=1.0',
+        activeEntities: ['lp-registry', 'hook'],
+        flowFrom: null, flowTo: null, flowToken: '', flowColor: 'var(--amber)',
+        balanceChanges: {},
+        explanation: 'When a liquidation occurs on DCT, queryAndFill() checks this LP\'s backing conditions against the current state. Oracle price $1.00 >= $0.90 (pass), penalty 20% >= 15% (pass), exposure within limit (pass). The LP is eligible for this fill.'
+      },
+      {
+        title: 'LP Gets Filled',
+        description: 'queryAndFill() fills the LP. 80 USDC spent from allocation, 100 dUSDC credited.',
+        contractCall: 'queryAndFill() → LP.alloc -= 80, rwaOwed += 100',
+        activeEntities: ['lp-registry', 'hook'],
+        flowFrom: 'lp-registry', flowTo: 'hook', flowToken: '80 USDC', flowColor: 'var(--green)',
+        balanceChanges: {
+          'lp-registry': { USDC: -80 },
+          hook:          { USDC: +80 }
+        },
+        explanation: 'The LP\'s USDC allocation for DCT is reduced by 80. In return, the LP is credited rwaOwed[DCT] = 100 tokens. This is a 20% discount on the oracle price — the LP\'s compensation for providing exit liquidity during distress.'
+      },
+      {
+        title: 'Claim RWA Tokens',
+        description: 'LP claims 100 DCT by redeeming credited dUSDC through the vault.',
+        contractCall: 'lpRegistry.claimRwaTokens(DCT, 100e18)',
+        activeEntities: ['lp-registry', 'hook', 'vault', 'lp-wallet'],
+        flowFrom: 'vault', flowTo: 'lp-wallet', flowToken: '100 DCT', flowColor: 'var(--accent)',
+        balanceChanges: {
+          vault:       { DCT: -100 },
+          'lp-wallet': { DCT: +100 }
+        },
+        explanation: 'The LP calls claimRwaTokens() which redeems the credited dUSDC through the vault, releasing 100 DCT to the LP\'s wallet. The LP now holds the actual RWA tokens that were backing the dUSDC.'
+      },
+      {
+        title: 'LP Profit',
+        description: 'LP paid 80 USDC, received 100 DCT worth $100. Net profit: $20 (25% ROI).',
+        contractCall: '// Profit = 100 DCT ($100) - 80 USDC = $20',
+        activeEntities: ['lp-wallet'],
+        flowFrom: null, flowTo: null, flowToken: '', flowColor: 'var(--green)',
+        balanceChanges: {},
+        explanation: 'The LP lifecycle is complete. The LP invested 80 USDC and received 100 DCT tokens worth $100 at oracle price. That\'s a $20 profit (25% ROI). The LP can now hold the DCT, list it on the resale market, or wait for the asset to recover.'
+      }
+    ]
+  },
+
+  E: {
+    name: 'LP-Only Mode',
+    initialBalances: {
+      user:          { DCT: 0, USDC: 0, dUSDC: 100 },
+      vault:         { DCT: 100, USDC: 0, dUSDC: 0 },
+      hook:          { DCT: 0, USDC: 300, dUSDC: 0 },
+      pool:          { DCT: 0, USDC: 0, dUSDC: 0 },
+      'lp-registry': { DCT: 0, USDC: 5000, dUSDC: 0 },
+      'lp-wallet':   { DCT: 0, USDC: 5000, dUSDC: 0 }
+    },
+    steps: [
+      {
+        title: 'Admin Flags Token',
+        description: 'Hook owner activates LP-Only mode for DCT. Protocol reserves will be skipped.',
+        contractCall: 'hook.setLpOnlyMode(DCT, true)',
+        activeEntities: ['hook'],
+        flowFrom: null, flowTo: null, flowToken: '', flowColor: 'var(--amber)',
+        balanceChanges: {},
+        explanation: 'The hook owner calls setLpOnlyMode(DCT, true). This means any sell involving DCT will NOT use the hook\'s own USDC reserves. Sells can only succeed if LPs are willing to fill them. This protects the protocol\'s reserves from riskier assets.'
+      },
+      {
+        title: 'User Tries Sell',
+        description: 'User submits a sell swap of 100 dUSDC with hookData identifying DCT.',
+        contractCall: 'swap(dUSDC→USDC, 100e18, hookData=DCT)',
+        activeEntities: ['user', 'hook'],
+        flowFrom: 'user', flowTo: 'hook', flowToken: '100 dUSDC', flowColor: 'var(--amber)',
+        balanceChanges: {
+          user: { dUSDC: -100 },
+          hook: { dUSDC: +100 }
+        },
+        explanation: 'The user initiates a sell swap for 100 dUSDC backed by DCT. The hook receives the dUSDC and checks if lpOnlyMode is enabled for this token before deciding how to source the USDC.'
+      },
+      {
+        title: 'Hook Skips Reserves',
+        description: 'lpOnlyMode=true detected. Hook ignores its own USDC balance entirely.',
+        contractCall: 'if (lpOnlyMode[DCT]) → skip hook reserves',
+        activeEntities: ['hook'],
+        flowFrom: null, flowTo: null, flowToken: '', flowColor: 'var(--amber)',
+        balanceChanges: {},
+        explanation: 'The hook detects lpOnlyMode is true for DCT. Even though the hook holds 300 USDC, it will not use any of it. The entire sell amount must be filled by LPs via the DobLPRegistry, or the transaction reverts.'
+      },
+      {
+        title: 'LP Fill Required',
+        description: 'queryAndFillAtMarket() called. LP fills at their own minPenaltyBps discount (5%).',
+        contractCall: 'lpRegistry.queryAndFillAtMarket(DCT, 1e18, 100e18)',
+        activeEntities: ['hook', 'lp-registry', 'lp-wallet'],
+        flowFrom: 'lp-registry', flowTo: 'hook', flowToken: '95 USDC', flowColor: 'var(--green)',
+        balanceChanges: {
+          'lp-registry': { USDC: -95 },
+          'lp-wallet':   { USDC: -95, dUSDC: +100 },
+          hook:          { USDC: +95 }
+        },
+        explanation: 'queryAndFillAtMarket() is the LP fallback function. Unlike liquidation fills (which use protocol-set penalty), this uses each LP\'s own minPenaltyBps. The LP set 5% (500 bps), so they pay 95 USDC for 100 dUSDC worth of tokens.'
+      },
+      {
+        title: 'Sell Succeeds',
+        description: 'LP filled 95 USDC. User receives 95 USDC after LP discount.',
+        contractCall: 'hook.settle() → 95 USDC to user',
+        activeEntities: ['hook', 'user'],
+        flowFrom: 'hook', flowTo: 'user', flowToken: '95 USDC', flowColor: 'var(--green)',
+        balanceChanges: {
+          hook: { USDC: -95, dUSDC: -100 },
+          user: { USDC: +95 }
+        },
+        explanation: 'The user receives 95 USDC for their 100 dUSDC. The 5% discount went to the LP as compensation for providing liquidity. In LP-Only mode, the user accepts LP terms or the transaction fails.'
+      },
+      {
+        title: 'No LP = Revert',
+        description: 'If no LPs are backing DCT, the sell transaction reverts with InsufficientLiquidity().',
+        contractCall: 'revert InsufficientLiquidity()',
+        activeEntities: ['hook'],
+        flowFrom: null, flowTo: null, flowToken: '', flowColor: 'var(--red)',
+        balanceChanges: {},
+        explanation: 'If no LPs have backed DCT (or all LP conditions fail), the hook has no way to source USDC. The transaction reverts with InsufficientLiquidity(). This is the tradeoff of LP-Only mode: it protects the protocol but requires active LP participation.'
+      }
+    ]
+  },
+
+  F: {
+    name: 'Resale Market',
+    initialBalances: {
+      user:          { DCT: 0, USDC: 60, dUSDC: 0 },
+      vault:         { DCT: 0, USDC: 0, dUSDC: 0 },
+      hook:          { DCT: 0, USDC: 300, dUSDC: 0 },
+      pool:          { DCT: 0, USDC: 0, dUSDC: 0 },
+      'lp-registry': { DCT: 0, USDC: 0, dUSDC: 0 },
+      'lp-wallet':   { DCT: 100, USDC: 0, dUSDC: 0 }
+    },
+    steps: [
+      {
+        title: 'LP Has RWA',
+        description: 'LP Alice holds 100 DCT from a previous liquidation claim.',
+        contractCall: '// Alice.balanceOf(DCT) = 100e18',
+        activeEntities: ['lp-wallet'],
+        flowFrom: null, flowTo: null, flowToken: '', flowColor: 'var(--accent)',
+        balanceChanges: {},
+        explanation: 'After a previous liquidation fill and claimRwaTokens(), LP Alice now holds 100 DCT tokens in her wallet. She wants to sell them for USDC via the on-chain resale market.'
+      },
+      {
+        title: 'List for Sale',
+        description: 'Alice lists 100 DCT for sale. Tokens move to hook, priced at oracle rate.',
+        contractCall: 'hook.listRwaForSale(DCT, 100e18)',
+        activeEntities: ['lp-wallet', 'hook'],
+        flowFrom: 'lp-wallet', flowTo: 'hook', flowToken: '100 DCT', flowColor: 'var(--accent)',
+        balanceChanges: {
+          'lp-wallet': { DCT: -100 },
+          hook:        { DCT: +100 }
+        },
+        explanation: 'Alice calls listRwaForSale(). Her 100 DCT are transferred to the hook and listed at the current oracle price ($1.00 each). The listing appears in the resale market for other users to purchase.'
+      },
+      {
+        title: 'Buyer Selects',
+        description: 'Bob sees 100 DCT available at $1.00 each on the resale market.',
+        contractCall: '// rwaListings[DCT][Alice] = 100e18',
+        activeEntities: ['user'],
+        flowFrom: null, flowTo: null, flowToken: '', flowColor: 'var(--blue)',
+        balanceChanges: {},
+        explanation: 'Bob browses the resale market and sees Alice\'s listing: 100 DCT available at $1.00 each (oracle price). He decides to buy 50 DCT. The resale market provides a secondary exit path for LPs holding RWA tokens.'
+      },
+      {
+        title: 'Buyer Pays USDC',
+        description: 'Bob pays 50.15 USDC for 50 DCT (0.3% resale fee included).',
+        contractCall: 'hook.buyListedRwa(DCT, 50e18)',
+        activeEntities: ['user', 'hook'],
+        flowFrom: 'user', flowTo: 'hook', flowToken: '50.15 USDC', flowColor: 'var(--green)',
+        balanceChanges: {
+          user: { USDC: -50.15 },
+          hook: { USDC: +50.15 }
+        },
+        explanation: 'Bob calls buyListedRwa(DCT, 50). The cost is 50 USDC + 0.3% fee = 50.15 USDC total. The USDC is sent to the hook, which will distribute it to the seller and fee pool.'
+      },
+      {
+        title: 'FIFO Fill',
+        description: 'Alice\'s listing partially filled. 50 USDC to Alice, 50 DCT to Bob.',
+        contractCall: 'listings[Alice] -= 50; transfer(DCT, Bob, 50)',
+        activeEntities: ['hook', 'lp-wallet', 'user'],
+        flowFrom: 'hook', flowTo: 'user', flowToken: '50 DCT', flowColor: 'var(--accent)',
+        balanceChanges: {
+          hook:        { DCT: -50, USDC: -50 },
+          user:        { DCT: +50 },
+          'lp-wallet': { USDC: +50 }
+        },
+        explanation: 'The hook fills Alice\'s listing in FIFO order. 50 DCT are transferred from the hook to Bob. 50 USDC (minus fee) are sent to Alice. Alice still has 50 DCT listed for sale.'
+      },
+      {
+        title: 'Fee to LP Pool',
+        description: '0.15 USDC resale fee accrues to the LP reward pool.',
+        contractCall: 'totalLpUsdc += 0.15e18',
+        activeEntities: ['hook', 'lp-registry'],
+        flowFrom: 'hook', flowTo: 'lp-registry', flowToken: '0.15 USDC fee', flowColor: 'var(--green)',
+        balanceChanges: {
+          hook:          { USDC: -0.15 },
+          'lp-registry': { USDC: +0.15 }
+        },
+        explanation: 'The 0.3% resale fee (0.15 USDC) accrues to the LP pool, rewarding all active liquidity providers. The resale market creates a sustainable fee revenue stream from secondary trading of RWA tokens.'
+      }
+    ]
+  },
+
+  G: {
+    name: 'LP Fallback',
+    initialBalances: {
+      user:          { DCT: 0, USDC: 0, dUSDC: 100 },
+      vault:         { DCT: 100, USDC: 0, dUSDC: 0 },
+      hook:          { DCT: 0, USDC: 30, dUSDC: 0 },
+      pool:          { DCT: 0, USDC: 0, dUSDC: 0 },
+      'lp-registry': { DCT: 0, USDC: 5000, dUSDC: 0 },
+      'lp-wallet':   { DCT: 0, USDC: 5000, dUSDC: 0 }
+    },
+    steps: [
+      {
+        title: 'Hook Low on USDC',
+        description: 'Hook only holds 30 USDC. User wants to sell 100 dUSDC — shortfall incoming.',
+        contractCall: '// hook.balance(USDC) = 30e18',
+        activeEntities: ['hook'],
+        flowFrom: null, flowTo: null, flowToken: '', flowColor: 'var(--amber)',
+        balanceChanges: {},
+        explanation: 'The hook\'s USDC balance is only 30. When a user tries to sell 100 dUSDC, the hook cannot fully cover the swap from its own reserves. This triggers the LP fallback mechanism to source the remaining USDC.'
+      },
+      {
+        title: 'Normal Sell Starts',
+        description: '_handleNormalSell() calculates idealOut=100, checks hook balance.',
+        contractCall: '_handleNormalSell(DCT, 100e18) → idealOut=99.7',
+        activeEntities: ['user', 'hook'],
+        flowFrom: 'user', flowTo: 'hook', flowToken: '100 dUSDC', flowColor: 'var(--blue)',
+        balanceChanges: {
+          user: { dUSDC: -100 },
+          hook: { dUSDC: +100 }
+        },
+        explanation: 'The user initiates a sell. _handleNormalSell() calculates the ideal output: 100 * (1 - 0.003) = 99.7 USDC after the 0.3% fee. It then checks the hook\'s USDC balance: only 30 available.'
+      },
+      {
+        title: 'Shortfall Detected',
+        description: '99.7 - 30 = 69.7 USDC shortfall. LP fallback will be invoked.',
+        contractCall: 'shortfall = idealOut - hookBalance = 69.7e18',
+        activeEntities: ['hook'],
+        flowFrom: null, flowTo: null, flowToken: '', flowColor: 'var(--amber)',
+        balanceChanges: {},
+        explanation: 'The hook calculates the shortfall: 99.7 (ideal output) - 30 (available) = 69.7 USDC. Rather than reverting the transaction, the hook invokes the LP fallback mechanism to source the missing USDC from willing LPs.'
+      },
+      {
+        title: 'LP Fallback Called',
+        description: 'queryAndFillAtMarket() called for 69.7 USDC shortfall. LP fills at own discount.',
+        contractCall: 'lpRegistry.queryAndFillAtMarket(DCT, 1e18, 69.7e18)',
+        activeEntities: ['hook', 'lp-registry'],
+        flowFrom: 'hook', flowTo: 'lp-registry', flowToken: 'Fill request', flowColor: 'var(--amber)',
+        balanceChanges: {},
+        explanation: 'The hook calls queryAndFillAtMarket() on the LPRegistry for the 69.7 USDC shortfall. This is the "LP Fallback" mechanism — no distress required. LPs fill at their own minPenaltyBps discount rate, making it profitable for them to participate.'
+      },
+      {
+        title: 'LP Fills 69.7 USDC',
+        description: 'LP provides 69.7 USDC. 1.5% protocol fee deducted = 68.65 net to swap.',
+        contractCall: 'LP.alloc -= 69.7; protocolFee = 1.05',
+        activeEntities: ['lp-registry', 'lp-wallet', 'hook'],
+        flowFrom: 'lp-registry', flowTo: 'hook', flowToken: '68.65 USDC', flowColor: 'var(--green)',
+        balanceChanges: {
+          'lp-registry': { USDC: -69.7 },
+          'lp-wallet':   { USDC: -69.7, dUSDC: +69.7 },
+          hook:          { USDC: +68.65 }
+        },
+        explanation: 'The LP fills the shortfall by providing 69.7 USDC. A 1.5% protocol fee (1.05 USDC) is deducted, so 68.65 USDC net goes toward the swap. The LP receives dUSDC credit (rwaOwed) at a discount — their profit incentive for participating.'
+      },
+      {
+        title: 'Combined Settlement',
+        description: 'Hook (30) + LP net (68.65) = 98.65 USDC sent to user.',
+        contractCall: 'settle() → 30 + 68.65 = 98.65 USDC',
+        activeEntities: ['hook', 'user'],
+        flowFrom: 'hook', flowTo: 'user', flowToken: '98.65 USDC', flowColor: 'var(--green)',
+        balanceChanges: {
+          hook: { USDC: -30, dUSDC: -100 },
+          user: { USDC: +98.65 }
+        },
+        explanation: 'The hook combines its own 30 USDC with the 68.65 USDC from the LP fill, totaling 98.65 USDC to the user. The user gets slightly less than the ideal 99.7 due to the LP\'s discount and protocol fee, but the sell succeeds instead of reverting.'
+      }
+    ]
+  }
+};
+
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+
+let currentScenario = null;
+let currentStep = -1;
+let balances = {};
+let playInterval = null;
+let isPlaying = false;
+
+
+// ═══════════════════════════════════════════════════════════════
+// CORE FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
+function selectScenario(id) {
+  // Stop any ongoing playback
+  stopPlay();
+
+  currentScenario = SCENARIOS[id];
+  currentStep = -1;
+
+  // Highlight selected card
+  document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('active'));
+  const card = document.querySelector(`.scenario-card[data-id="${id}"]`);
+  if (card) card.classList.add('active');
+
+  // Show sim area
+  const simArea = document.getElementById('simArea');
+  simArea.classList.add('active');
+
+  // Scroll to sim area
+  setTimeout(() => {
+    simArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
+
+  // Initialize balances
+  balances = {};
+  for (const entity in currentScenario.initialBalances) {
+    balances[entity] = { ...currentScenario.initialBalances[entity] };
+  }
+
+  // Render timeline
+  renderTimeline();
+
+  // Render initial balances
+  renderAllBalances();
+
+  // Reset entities highlight
+  document.querySelectorAll('.entity').forEach(e => e.classList.remove('highlight'));
+
+  // Update step indicator
+  updateStepIndicator();
+
+  // Reset explanation
+  document.getElementById('explanationText').innerHTML = 'Press <strong>Play All</strong> to auto-advance through all steps, or <strong>Next Step</strong> to go one at a time.';
+
+  // Reset buttons
+  document.getElementById('btnPlay').disabled = false;
+  document.getElementById('btnNext').disabled = false;
+  document.getElementById('btnPlay').innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> Play All';
+}
+
+function renderTimeline() {
+  const timeline = document.getElementById('timeline');
+  timeline.innerHTML = '';
+
+  currentScenario.steps.forEach((step, i) => {
+    const el = document.createElement('div');
+    el.className = 'timeline-step';
+    el.id = `step-${i}`;
+    el.innerHTML = `
+      <div class="timeline-dot"></div>
+      <div class="timeline-card">
+        <h4><span class="step-num">${String(i + 1).padStart(2, '0')}</span> ${step.title}</h4>
+        <div class="desc">${step.description}</div>
+        <code>${step.contractCall}</code>
+      </div>
+    `;
+    timeline.appendChild(el);
+  });
+}
+
+function renderAllBalances() {
+  for (const entity in balances) {
+    renderEntityBalances(entity);
+  }
+}
+
+function renderEntityBalances(entity, changes) {
+  const container = document.getElementById(`bal-${entity}`);
+  if (!container) return;
+
+  container.innerHTML = '';
+  const bals = balances[entity];
+
+  for (const token in bals) {
+    const val = bals[token];
+    const div = document.createElement('div');
+    div.className = 'entity-bal';
+
+    // Check if this token changed
+    let changeClass = '';
+    if (changes && changes[token] !== undefined) {
+      changeClass = changes[token] > 0 ? ' changed' : changes[token] < 0 ? ' decreased' : '';
+    }
+    div.className = 'entity-bal' + changeClass;
+    div.innerHTML = `<span class="token">${token}:</span><span class="val">${formatNum(val)}</span>`;
+    container.appendChild(div);
+  }
+}
+
+function formatNum(n) {
+  if (n === 0) return '0';
+  if (Number.isInteger(n)) return n.toLocaleString();
+  return n.toFixed(2);
+}
+
+function updateStepIndicator() {
+  document.getElementById('stepCurrent').textContent = Math.max(0, currentStep + 1);
+  document.getElementById('stepTotal').textContent = currentScenario ? currentScenario.steps.length : 0;
+}
+
+function nextStep() {
+  if (!currentScenario) return;
+  if (currentStep >= currentScenario.steps.length - 1) {
+    stopPlay();
+    return;
+  }
+
+  currentStep++;
+  const step = currentScenario.steps[currentStep];
+
+  // Update timeline states
+  document.querySelectorAll('.timeline-step').forEach((el, i) => {
+    el.classList.remove('active', 'done');
+    if (i < currentStep) el.classList.add('done');
+    if (i === currentStep) el.classList.add('active');
+  });
+
+  // Scroll timeline step into view
+  const stepEl = document.getElementById(`step-${currentStep}`);
+  if (stepEl) {
+    stepEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // Update entity highlights
+  document.querySelectorAll('.entity').forEach(e => e.classList.remove('highlight'));
+  if (step.activeEntities) {
+    step.activeEntities.forEach(id => {
+      const entity = document.querySelector(`.entity[data-id="${id}"]`);
+      if (entity) entity.classList.add('highlight');
+    });
+  }
+
+  // Apply balance changes
+  if (step.balanceChanges) {
+    for (const entity in step.balanceChanges) {
+      const changes = step.balanceChanges[entity];
+      for (const token in changes) {
+        if (balances[entity] && balances[entity][token] !== undefined) {
+          balances[entity][token] += changes[token];
+          // Clamp to 2 decimal places to avoid floating point drift
+          balances[entity][token] = Math.round(balances[entity][token] * 100) / 100;
+        }
+      }
+      renderEntityBalances(entity, changes);
+    }
+  }
+
+  // Animate flow
+  animateFlow(step);
+
+  // Update explanation
+  document.getElementById('explanationText').innerHTML = step.explanation;
+
+  // Update step indicator
+  updateStepIndicator();
+
+  // Disable next if at end
+  if (currentStep >= currentScenario.steps.length - 1) {
+    document.getElementById('btnNext').disabled = true;
+    if (isPlaying) {
+      setTimeout(() => stopPlay(), 500);
+    }
+  }
+}
+
+function animateFlow(step) {
+  const container = document.getElementById('flowContainer');
+  container.innerHTML = '';
+
+  if (!step.flowFrom || !step.flowTo) return;
+
+  const fromEl = document.querySelector(`.entity[data-id="${step.flowFrom}"]`);
+  const toEl = document.querySelector(`.entity[data-id="${step.flowTo}"]`);
+  if (!fromEl || !toEl) return;
+
+  const panel = document.querySelector('.diagram-panel');
+  const panelRect = panel.getBoundingClientRect();
+  const fromRect = fromEl.getBoundingClientRect();
+  const toRect = toEl.getBoundingClientRect();
+
+  const fromX = fromRect.left + fromRect.width / 2 - panelRect.left;
+  const fromY = fromRect.top + fromRect.height / 2 - panelRect.top;
+  const toX = toRect.left + toRect.width / 2 - panelRect.left;
+  const toY = toRect.top + toRect.height / 2 - panelRect.top;
+
+  // Create animated dot
+  const dot = document.createElement('div');
+  dot.className = 'flow-dot';
+  dot.style.cssText = `
+    color: ${step.flowColor};
+    background: ${step.flowColor};
+    left: ${fromX - 4}px;
+    top: ${fromY - 4}px;
+    --tx: ${toX - fromX}px;
+    --ty: ${toY - fromY}px;
+  `;
+
+  // Create SVG line
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.style.cssText = `position:absolute;inset:0;width:100%;height:100%;pointer-events:none;`;
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line.setAttribute('x1', fromX);
+  line.setAttribute('y1', fromY);
+  line.setAttribute('x2', toX);
+  line.setAttribute('y2', toY);
+  line.setAttribute('stroke', step.flowColor);
+  line.setAttribute('stroke-width', '2');
+  line.setAttribute('stroke-opacity', '0.3');
+  line.setAttribute('stroke-dasharray', '6 4');
+  svg.appendChild(line);
+  container.appendChild(svg);
+
+  // Label
+  const label = document.createElement('div');
+  label.className = 'flow-label';
+  label.textContent = step.flowToken;
+  label.style.cssText = `
+    left: ${(fromX + toX) / 2}px;
+    top: ${(fromY + toY) / 2 - 18}px;
+    transform: translateX(-50%);
+    color: ${step.flowColor};
+    background: ${step.flowColor}22;
+    border: 1px solid ${step.flowColor}44;
+  `;
+  container.appendChild(label);
+  container.appendChild(dot);
+
+  // Animate the dot
+  dot.animate([
+    { left: `${fromX - 4}px`, top: `${fromY - 4}px`, opacity: 0 },
+    { opacity: 1, offset: 0.1 },
+    { opacity: 1, offset: 0.9 },
+    { left: `${toX - 4}px`, top: `${toY - 4}px`, opacity: 0 }
+  ], {
+    duration: 1000,
+    easing: 'cubic-bezier(.4,0,.2,1)',
+    fill: 'forwards'
+  });
+
+  // Animate the line dash
+  line.animate([
+    { strokeDashoffset: 100 },
+    { strokeDashoffset: 0 }
+  ], {
+    duration: 1000,
+    easing: 'cubic-bezier(.4,0,.2,1)'
+  });
+
+  // Clean up after animation
+  setTimeout(() => {
+    // fade out
+    svg.style.transition = 'opacity 0.5s';
+    label.style.transition = 'opacity 0.5s';
+    svg.style.opacity = '0';
+    label.style.opacity = '0';
+  }, 1800);
+}
+
+function playAll() {
+  if (!currentScenario) return;
+
+  if (isPlaying) {
+    stopPlay();
+    return;
+  }
+
+  // If at end, reset first
+  if (currentStep >= currentScenario.steps.length - 1) {
+    resetSim();
+    setTimeout(() => startPlay(), 300);
+    return;
+  }
+
+  startPlay();
+}
+
+function startPlay() {
+  isPlaying = true;
+  document.getElementById('btnPlay').innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Pause';
+  document.getElementById('btnNext').disabled = true;
+
+  // Advance immediately
+  nextStep();
+
+  playInterval = setInterval(() => {
+    if (currentStep >= currentScenario.steps.length - 1) {
+      stopPlay();
+      return;
+    }
+    nextStep();
+  }, 2000);
+}
+
+function stopPlay() {
+  isPlaying = false;
+  if (playInterval) {
+    clearInterval(playInterval);
+    playInterval = null;
+  }
+  document.getElementById('btnPlay').innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> Play All';
+  if (currentScenario && currentStep < currentScenario.steps.length - 1) {
+    document.getElementById('btnNext').disabled = false;
+  }
+}
+
+function resetSim() {
+  stopPlay();
+
+  if (!currentScenario) return;
+
+  currentStep = -1;
+
+  // Reset balances
+  balances = {};
+  for (const entity in currentScenario.initialBalances) {
+    balances[entity] = { ...currentScenario.initialBalances[entity] };
+  }
+
+  // Reset timeline
+  document.querySelectorAll('.timeline-step').forEach(el => {
+    el.classList.remove('active', 'done');
+  });
+
+  // Reset entities
+  document.querySelectorAll('.entity').forEach(e => e.classList.remove('highlight'));
+
+  // Reset balances display
+  renderAllBalances();
+
+  // Reset flow
+  document.getElementById('flowContainer').innerHTML = '';
+
+  // Reset explanation
+  document.getElementById('explanationText').innerHTML = 'Press <strong>Play All</strong> to auto-advance through all steps, or <strong>Next Step</strong> to go one at a time.';
+
+  // Update indicator
+  updateStepIndicator();
+
+  // Re-enable buttons
+  document.getElementById('btnPlay').disabled = false;
+  document.getElementById('btnNext').disabled = false;
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// SCROLL REVEAL
+// ═══════════════════════════════════════════════════════════════
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+// Auto-reveal hero elements
+window.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.hero .fade-up').forEach(el => el.classList.add('visible'));
+});
+
+// Navbar scroll shadow
+window.addEventListener('scroll', () => {
+  const nav = document.querySelector('.topnav');
+  if (window.scrollY > 50) {
+    nav.style.boxShadow = '0 4px 24px rgba(0,0,0,0.3)';
+  } else {
+    nav.style.boxShadow = 'none';
+  }
+});
+</script>
+
+</body>
+</html>
