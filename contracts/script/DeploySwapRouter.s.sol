@@ -8,7 +8,7 @@ import {DobSwapRouter} from "../src/DobSwapRouter.sol";
 ///
 /// Usage:
 ///   source .env && forge script script/DeploySwapRouter.s.sol:DeploySwapRouter \
-///     --rpc-url $ARB_SEPOLIA_RPC --broadcast -vvv
+///     --rpc-url $UNICHAIN_SEPOLIA_RPC --broadcast -vvv
 contract DeploySwapRouter is Script {
     function run() public {
         uint256 pk = vm.envUint("PRIVATE_KEY");
@@ -27,7 +27,7 @@ contract DeploySwapRouter is Script {
         DobSwapRouter router = new DobSwapRouter(poolManager);
         console2.log("DobSwapRouter:", address(router));
 
-        // Configure pool key: fee=0, tickSpacing=1 (matching DeployArbitrumSepolia)
+        // Configure pool key: fee=0, tickSpacing=1 (matching DeployUnichain)
         router.setPoolKey(address(vault), address(usdc), 0, 1, hook);
         console2.log("Pool key set");
 

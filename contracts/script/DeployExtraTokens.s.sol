@@ -9,13 +9,9 @@ import {RWAToken} from "../src/DobTokenFactory.sol";
 /// @notice Deploy the 6 additional RWA tokens (WFT, GLT, EVT, TBT, FLT, SCT).
 ///         Requires REGISTRY, VAULT, and USDC env vars from prior deployment.
 ///
-/// Usage (Arb Sepolia):
+/// Usage:
 ///   source .env && forge script script/DeployExtraTokens.s.sol:DeployExtraTokens \
-///     --rpc-url $ARB_SEPOLIA_RPC --broadcast -vvv
-///
-/// Usage (Robinhood):
-///   source .env && forge script script/DeployExtraTokens.s.sol:DeployExtraTokens \
-///     --rpc-url https://rpc.testnet.chain.robinhood.com --broadcast -vvv
+///     --rpc-url $UNICHAIN_SEPOLIA_RPC --broadcast -vvv
 contract DeployExtraTokens is Script {
     function run() public {
         uint256 pk = vm.envUint("PRIVATE_KEY");

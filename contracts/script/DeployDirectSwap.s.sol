@@ -5,12 +5,12 @@ import {Script, console2} from "forge-std/Script.sol";
 import {DobDirectSwap} from "../src/DobDirectSwap.sol";
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 
-/// @notice Deploy DobDirectSwap on any chain (designed for Robinhood Testnet).
+/// @notice Deploy DobDirectSwap on any chain without Uniswap V4.
 ///
 /// Usage:
 ///   source .env
 ///   forge script script/DeployDirectSwap.s.sol:DeployDirectSwap \
-///     --rpc-url $ROBINHOOD_RPC --broadcast -vvv
+///     --rpc-url $RPC_URL --broadcast -vvv
 contract DeployDirectSwap is Script {
     function run() public {
         uint256 pk = vm.envUint("PRIVATE_KEY");

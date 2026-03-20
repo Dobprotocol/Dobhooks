@@ -187,7 +187,7 @@ const server = http.createServer(async (req, res) => {
   // ── Validated pools (from MVP + Validator DBs) ──
   if (req.method === 'GET' && url.pathname === '/api/validated-pools') {
     try {
-      const networks = (url.searchParams.get('networks') || '421614,46630')
+      const networks = (url.searchParams.get('networks') || '1301')
         .split(',').map(Number).filter(Boolean);
       const pools = await getValidatedPools(networks);
       res.writeHead(200, headers);

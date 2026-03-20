@@ -17,9 +17,9 @@
 #
 # Usage:
 #   source ../.env
-#   export RPC_URL=$ARB_SEPOLIA_RPC
+#   export RPC_URL=$UNICHAIN_SEPOLIA_RPC
 #   export DCT=$DCT SFT=$SFT RET=$RET PWG=$PWG
-#   export WFT=$WFT_ARB GLT=$GLT_ARB EVT=$EVT_ARB TBT=$TBT_ARB FLT=$FLT_ARB SCT=$SCT_ARB
+#   export WFT=$WFT GLT=$GLT EVT=$EVT TBT=$TBT FLT=$FLT SCT=$SCT
 #   ./oracle-updater.sh              # single update
 #   ./oracle-updater.sh --loop 60    # update every 60 seconds
 # -────────────────────────────────────────────────────────────────
