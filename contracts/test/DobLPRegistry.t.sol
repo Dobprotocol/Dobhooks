@@ -788,23 +788,9 @@ contract DobLPRegistryTest is BaseTest {
         assertEq(liquidity, 35_000e18, "Total liquidity should be 35k");
     }
 
-    function testSimulateFill() public {
+    function testGetAssetBackerCount() public {
         _setupLP(LP1, 50_000e18, 0, 0, 200_000e18, 20_000e18);
-
-        (uint256 fillable, uint256 dobRwa) =
-            lpRegistry.simulateFill(address(rwaToken), RWA_PRICE, 2000, 8_000e18);
-
-        // LP fills 8,000 raw but 1.5% fee means 8000 - 120 = 7,880 goes to hook
-        // Need enough raw fill to produce 8,000 to hook — but simulate just processes what's available
-        // First LP iteration: fillUsdc = 8000 (matches remaining), fee = 120, usdcToHook = 7880
-        // remaining becomes 8000 - 7880 = 120, so it loops again if possible
-        // But LP1 already contributed, availableUsdc = 20000 - 8000 = 12000
-        // Second pass: fillUsdc = 120, which is > 0 but... wait, the loop index already passed LP1
-        // Actually no, the for loop continues from i=1, so only LP1 is checked once
-        // So fillable = 7,880 (not quite enough due to fee)
-        uint256 expectedFee = (8_000e18 * 150) / 10000; // 120 USDC
-        assertEq(fillable, 8_000e18 - expectedFee, "Should account for 1.5% fee");
-        assertEq(dobRwa, 10_000e18, "LP should get 10k dobRWA at 20% discount");
+        assertEq(lpRegistry.getAssetBackerCount(address(rwaToken)), 1);
     }
 
     /*//////////////////////////////////////////////////////////////

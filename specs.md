@@ -41,9 +41,21 @@ Because Uniswap V4 utilizes **Flash Accounting** (EIP-1153 Transient Storage), d
 * **Oracle Staleness & Circuit Breakers:** If the `DobValidatorRegistry` price timestamp exceeds `MAX_ORACLE_DELAY`, minting is paused.
 * **Vault Concentration Limits:** The Vault tracks RWA category values. Deposits pushing a single asset class past a max threshold (e.g., >30% TVL) are rejected to maintain index diversification.
 
-## 5. Liquidation Node
+## 5. Liquidity Node
 
-The Liquidity Node mechanism allows distressed or flagged RWA assets to be liquidated at a risk-adjusted discount, subject to configurable caps. This serves three purposes:
+The Liquidity Node is a permissionless LP marketplace where LPs deposit USDC, back specific RWA assets, and set their own discount terms. LPs participate in two modes:
+
+### Mode 1: Sell Fallback (always-on)
+
+When a seller swaps dUSDC → USDC and the hook's own USDC reserves are insufficient, the shortfall is routed to LPs via `queryAndFillAtMarket()`. Each LP fills at their own `minPenaltyBps` discount rate in FIFO order. **No distress or protocol activation required** — LPs set standing bids and the system fills automatically when needed.
+
+* Seller gets a blended rate: 1:1 from hook reserves + discounted rate from LPs.
+* LPs receive dobRWA (redeemable for underlying RWA tokens) at their chosen discount.
+* The seller passes `abi.encode(rwaTokenAddress)` as `hookData` to enable LP routing.
+
+### Mode 2: Liquidation (protocol-activated)
+
+When Dobprotocol flags an asset as distressed, a protocol-mandated penalty rate is applied via `queryAndFill()`. This serves:
 
 1. **Capital provision:** Provides exit liquidity for asset holders, even when the asset is under review.
 2. **Risk-priced acquisition:** The discount (e.g., 20%) reflects Dobprotocol's risk assessment — LPs acquire assets at a price that compensates for the assessed risk probability.
@@ -63,13 +75,10 @@ The `penaltyBps` is not an arbitrary penalty — it reflects Dobprotocol's AI va
 
 The discount portion of `dobRWA` is permanently locked as ERC6909 claims within the hook contract. This effectively removes the tokens from circulation, reducing total `dobRWA` supply and benefiting all remaining holders.
 
-### Activation
-
-Liquidation mode is triggered by passing `abi.encode(rwaTokenAddress)` as `hookData` in the swap call. Without `hookData`, swaps execute at the normal 1:1 peg regardless of liquidation status.
-
 ### USDC Source
 
-In normal mode (no liquidation), USDC for swaps comes from the hook's own reserves (seeded by the protocol via `seedUsdc()`). In liquidation mode, USDC comes from Liquidity Node LPs who have backed the distressed asset and whose conditions match the current risk assessment.
+1. **Hook reserves** (seeded via `seedUsdc()` + permissionless LP pool deposits): used first for 1:1 peg swaps.
+2. **Liquidity Node LPs** (`DobLPRegistry`): fill shortfalls on normal sells at market rates, or fill liquidation swaps at protocol penalty rates.
 
 ---
 

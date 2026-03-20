@@ -481,6 +481,53 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
     }
 
     /*//////////////////////////////////////////////////////////////
+                   HOOK-ONLY: MARKET-RATE FILL LOGIC
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Fill LPs at each LP's own minPenaltyBps (market-rate fills).
+    ///         Used by the hook when USDC reserves are insufficient for a normal
+    ///         sell — no protocol-mandated liquidation needed, LPs set their own
+    ///         discount and the system fills in FIFO order.
+    /// @param rwaToken           The RWA token whose dUSDC is being sold.
+    /// @param currentOraclePrice Current oracle price (18-decimal USD).
+    /// @param usdcNeeded         USDC shortfall to fill from LPs.
+    /// @return totalUsdcFilled   USDC filled by LPs (transferred to hook).
+    /// @return totalDobRwaForLPs dobRWA credited to LPs from this fill.
+    function queryAndFillAtMarket(
+        address rwaToken,
+        uint256 currentOraclePrice,
+        uint256 usdcNeeded
+    ) external nonReentrant returns (uint256 totalUsdcFilled, uint256 totalDobRwaForLPs) {
+        if (msg.sender != hook) revert OnlyHook();
+
+        address[] storage backers = _assetBackers[rwaToken];
+        uint256 remaining = usdcNeeded;
+
+        for (uint256 i = 0; i < backers.length && remaining > 0; i++) {
+            (uint256 filled, uint256 dobRwa) = _tryFillLPAtMarket(
+                backers[i], rwaToken, currentOraclePrice, remaining
+            );
+            if (filled == 0) continue;
+
+            totalDobRwaForLPs += dobRwa;
+            uint256 fee = (filled * PROTOCOL_FEE_BPS) / 10000;
+            accumulatedFees += fee;
+            uint256 net = filled - fee;
+            remaining -= net;
+            totalUsdcFilled += net;
+        }
+
+        // Transfer filled USDC (minus fees) to the hook
+        if (totalUsdcFilled > 0) {
+            usdc.safeTransfer(hook, totalUsdcFilled);
+        }
+
+        if (accumulatedFees > 0) {
+            emit ProtocolFeeCollected(accumulatedFees);
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////
                         DOBRWA CLAIMS
     //////////////////////////////////////////////////////////////*/
 
@@ -519,51 +566,6 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
             if (backing.active) {
                 totalAvailable += backing.usdcAllocated - backing.usdcUsed;
             }
-        }
-    }
-
-    /// @notice Simulate a fill without executing. Returns estimated LP coverage
-    ///         (USDC after 1.5% protocol fee deduction).
-    function simulateFill(
-        address rwaToken,
-        uint256 currentOraclePrice,
-        uint16  currentPenaltyBps,
-        uint256 usdcNeeded
-    ) external view returns (uint256 totalUsdcFillable, uint256 totalDobRwaForLPs) {
-        address[] storage backers = _assetBackers[rwaToken];
-        uint256 remaining = usdcNeeded;
-
-        for (uint256 i = 0; i < backers.length && remaining > 0; i++) {
-            address lp = backers[i];
-            AssetBacking storage backing = backings[lp][rwaToken];
-
-            if (!backing.active) continue;
-            if (block.timestamp - backing.backedAt < MIN_BACKING_AGE) continue;
-            if (currentOraclePrice < backing.minOraclePrice) continue;
-            if (currentPenaltyBps < backing.minPenaltyBps) continue;
-
-            uint256 availableUsdc = backing.usdcAllocated - backing.usdcUsed;
-            if (availableUsdc == 0) continue;
-
-            uint256 remainingExposure = backing.maxExposure - backing.currentExposure;
-            if (remainingExposure == 0) continue;
-
-            uint256 fillUsdc = remaining;
-            if (fillUsdc > availableUsdc) fillUsdc = availableUsdc;
-
-            uint256 dobRwaAmount = (fillUsdc * 10000) / (10000 - currentPenaltyBps);
-            if (dobRwaAmount > remainingExposure) {
-                dobRwaAmount = remainingExposure;
-                fillUsdc = (dobRwaAmount * (10000 - currentPenaltyBps)) / 10000;
-            }
-
-            if (fillUsdc == 0) continue;
-
-            uint256 fee = (fillUsdc * PROTOCOL_FEE_BPS) / 10000;
-            uint256 usdcToHook = fillUsdc - fee;
-            remaining -= usdcToHook;
-            totalUsdcFillable += usdcToHook;
-            totalDobRwaForLPs += dobRwaAmount;
         }
     }
 
@@ -615,6 +617,48 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
         if (dobRwaAmount > remainingExposure) {
             dobRwaAmount = remainingExposure;
             fillUsdc = (dobRwaAmount * (10000 - currentPenaltyBps)) / 10000;
+        }
+
+        if (fillUsdc == 0) return (0, 0);
+
+        backing.usdcUsed += fillUsdc;
+        backing.currentExposure += dobRwaAmount;
+        rwaOwed[lp][rwaToken] += dobRwaAmount;
+
+        emit FillExecuted(lp, rwaToken, fillUsdc, dobRwaAmount);
+    }
+
+    /// @dev Attempt to fill a single LP at their own minPenaltyBps (market rate).
+    function _tryFillLPAtMarket(
+        address lp,
+        address rwaToken,
+        uint256 currentOraclePrice,
+        uint256 remaining
+    ) internal returns (uint256 fillUsdc, uint256 dobRwaAmount) {
+        AssetBacking storage backing = backings[lp][rwaToken];
+
+        if (!backing.active) return (0, 0);
+        if (block.timestamp - backing.backedAt < MIN_BACKING_AGE) return (0, 0);
+        if (currentOraclePrice < backing.minOraclePrice) return (0, 0);
+
+        // Use LP's own minPenaltyBps as the discount rate
+        uint16 lpPenalty = backing.minPenaltyBps;
+        if (lpPenalty == 0) lpPenalty = 1; // at least 1bp for LP to profit
+
+        uint256 availableUsdc = backing.usdcAllocated - backing.usdcUsed;
+        if (availableUsdc == 0) return (0, 0);
+
+        uint256 remainingExposure = backing.maxExposure - backing.currentExposure;
+        if (remainingExposure == 0) return (0, 0);
+
+        fillUsdc = remaining;
+        if (fillUsdc > availableUsdc) fillUsdc = availableUsdc;
+
+        dobRwaAmount = (fillUsdc * 10000) / (10000 - lpPenalty);
+
+        if (dobRwaAmount > remainingExposure) {
+            dobRwaAmount = remainingExposure;
+            fillUsdc = (dobRwaAmount * (10000 - lpPenalty)) / 10000;
         }
 
         if (fillUsdc == 0) return (0, 0);

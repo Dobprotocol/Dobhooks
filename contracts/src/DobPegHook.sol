@@ -219,6 +219,7 @@ contract DobPegHook is BaseHook {
                 registry.getLiquidationParams(rwaToken);
 
             if (enabled) {
+                // ── Liquidation path (protocol-mandated penalty) ──
                 if (liquidatedAmount + amountIn > cap) revert LiquidationCapExceeded();
 
                 uint256 globalCap = registry.globalLiquidationCap();
@@ -245,10 +246,38 @@ contract DobPegHook is BaseHook {
 
                 emit LiquidationSwap(tx.origin, rwaToken, amountIn, amountOut, penaltyAmount);
             } else {
-                amountOut = amountIn;
+                // ── Normal sell with LP fallback ──
+                // Calculate ideal 1:1 output (minus swap fee)
+                uint256 fee = swapFeeBps > 0 ? (amountIn * swapFeeBps) / 10000 : 0;
+                uint256 idealOut = amountIn - fee;
+                if (fee > 0) totalLpUsdc += fee;
+
+                uint256 hookBalance = usdc.balanceOf(address(this));
+
+                if (hookBalance >= idealOut) {
+                    // Hook has enough USDC — full 1:1 fill
+                    amountOut = idealOut;
+                } else if (address(lpRegistry) != address(0)) {
+                    // Hook short — fill from reserves + LP fallback at market rates
+                    uint256 fromHook = hookBalance;
+                    uint256 shortfall = idealOut - fromHook;
+
+                    (uint256 oraclePrice, ) = registry.getPrice(rwaToken);
+                    (uint256 lpFilled, uint256 lpDobRwa) = lpRegistry.queryAndFillAtMarket(
+                        rwaToken, oraclePrice, shortfall
+                    );
+                    if (lpDobRwa > 0) {
+                        totalLpDobRwaOwed += lpDobRwa;
+                    }
+                    amountOut = fromHook + lpFilled;
+                    emit LPFill(lpFilled, lpDobRwa, fromHook);
+                } else {
+                    // No LP registry — attempt full fill (reverts if insufficient)
+                    amountOut = idealOut;
+                }
             }
         } else if (isDobRwaToUsdc && swapFeeBps > 0 && hookData.length == 0) {
-            // Normal sell with fee: dobRWA -> USDC
+            // Normal sell with fee, no LP routing (no rwaToken specified)
             uint256 fee = (amountIn * swapFeeBps) / 10000;
             amountOut = amountIn - fee;
             totalLpUsdc += fee; // fee accrues to LP pool
