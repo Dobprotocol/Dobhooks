@@ -17,7 +17,7 @@ import {DobLPRegistry} from "../src/DobLPRegistry.sol";
 import {MockUSDC} from "../src/RWAFaucet.sol";
 
 /// @notice Upgrade DobPegHook + DobLPRegistry on Unichain Sepolia.
-///         Adds LP fallback for sells when hook USDC is insufficient.
+///         Adds LP-only mode, RWA resale market, and ReentrancyGuard.
 ///         Keeps existing Registry, Vault, USDC, and RWA tokens.
 ///
 /// Usage:
@@ -31,7 +31,7 @@ contract UpgradeUnichain is Script {
     DobValidatorRegistry constant REGISTRY = DobValidatorRegistry(0x652E5572aF3a879D591a4DD289566bcF28BeA52B);
     DobRwaVault constant VAULT = DobRwaVault(0x5d38b9bD487D8a0ff7997dB953a68F650B242e00);
     MockUSDC constant USDC = MockUSDC(0x217f355497A67F5ef82cff105Fb14a84C9A9E071);
-    DobPegHook constant OLD_HOOK = DobPegHook(0x359e428d52fC67453b603ca52858a61a1B9a6888);
+    DobPegHook constant OLD_HOOK = DobPegHook(0xf49aa3f7160e051813268e6fFD0f51E2909DA888);
 
     // ── New contracts ──
     DobLPRegistry newLpRegistry;

@@ -12,6 +12,7 @@ import {BeforeSwapDelta, toBeforeSwapDelta} from "@uniswap/v4-core/src/types/Bef
 
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
+import {ReentrancyGuard} from "solmate/src/utils/ReentrancyGuard.sol";
 
 import {DobRwaVault} from "./DobRwaVault.sol";
 import {DobValidatorRegistry} from "./DobValidatorRegistry.sol";
@@ -22,7 +23,7 @@ import {DobLPRegistry} from "./DobLPRegistry.sol";
 ///         dobRWA <> USDC swaps at an exact 1:1 oracle-pegged price, with
 ///         support for liquidation mode, permissionless USDC LP pool with fees,
 ///         and RWA token rewards for liquidation LPs.
-contract DobPegHook is BaseHook {
+contract DobPegHook is BaseHook, ReentrancyGuard {
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
     using SafeTransferLib for ERC20;
@@ -78,6 +79,29 @@ contract DobPegHook is BaseHook {
     /// @notice Dead shares minted on first deposit to prevent first-depositor attack.
     uint256 private constant DEAD_SHARES = 1000;
 
+    /// @notice Maximum sellers per RWA token in the resale market.
+    uint8 public constant MAX_RWA_SELLERS = 50;
+
+    // ── RWA Resale Market ──
+
+    /// @notice seller → rwaToken → amount of RWA listed for sale.
+    mapping(address => mapping(address => uint256)) public rwaForSale;
+
+    /// @notice rwaToken → ordered list of sellers (FIFO).
+    mapping(address => address[]) internal _rwaSellers;
+
+    /// @dev rwaToken → seller → index in _rwaSellers.
+    mapping(address => mapping(address => uint256)) internal _sellerIndex;
+
+    /// @dev rwaToken → seller → is in the sellers array.
+    mapping(address => mapping(address => bool)) internal _isSeller;
+
+    /// @notice rwaToken → total RWA amount listed for sale.
+    mapping(address => uint256) public totalRwaListed;
+
+    /// @notice rwaToken → LP-only mode (no dUSDC protection, sells only via LP fills).
+    mapping(address => bool) public lpOnlyMode;
+
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -104,6 +128,11 @@ contract DobPegHook is BaseHook {
     event UsdcWithdrawn(address indexed lp, uint256 shares, uint256 amount);
     event SwapFeeSet(uint16 feeBps);
     event ProtocolReserveWithdrawn(address indexed to, uint256 amount);
+    event RwaListed(address indexed seller, address indexed rwaToken, uint256 amount);
+    event RwaDelisted(address indexed seller, address indexed rwaToken, uint256 amount);
+    event RwaSold(address indexed buyer, address indexed seller, address indexed rwaToken, uint256 rwaAmount, uint256 usdcAmount);
+    event RwaPurchased(address indexed buyer, address indexed rwaToken, uint256 rwaAmount, uint256 usdcCost, uint256 fee);
+    event LpOnlyModeSet(address indexed rwaToken, bool enabled);
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -111,6 +140,7 @@ contract DobPegHook is BaseHook {
 
     error OnlyAdmin();
     error InsufficientUsdcReserves();
+    error InsufficientLiquidity();
     error LiquidationCapExceeded();
     error GlobalLiquidationCapExceeded();
     error OnlyLPRegistry();
@@ -119,6 +149,11 @@ contract DobPegHook is BaseHook {
     error FeeTooHigh();
     error LPDurationNotMet();
     error InsufficientShares();
+    error OracleStale();
+    error InsufficientListedRwa();
+    error NoListingsAvailable();
+    error TokenNotApproved();
+    error TooManySellers();
 
     /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR
@@ -246,35 +281,7 @@ contract DobPegHook is BaseHook {
 
                 emit LiquidationSwap(tx.origin, rwaToken, amountIn, amountOut, penaltyAmount);
             } else {
-                // ── Normal sell with LP fallback ──
-                // Calculate ideal 1:1 output (minus swap fee)
-                uint256 fee = swapFeeBps > 0 ? (amountIn * swapFeeBps) / 10000 : 0;
-                uint256 idealOut = amountIn - fee;
-                if (fee > 0) totalLpUsdc += fee;
-
-                uint256 hookBalance = usdc.balanceOf(address(this));
-
-                if (hookBalance >= idealOut) {
-                    // Hook has enough USDC — full 1:1 fill
-                    amountOut = idealOut;
-                } else if (address(lpRegistry) != address(0)) {
-                    // Hook short — fill from reserves + LP fallback at market rates
-                    uint256 fromHook = hookBalance;
-                    uint256 shortfall = idealOut - fromHook;
-
-                    (uint256 oraclePrice, ) = registry.getPrice(rwaToken);
-                    (uint256 lpFilled, uint256 lpDobRwa) = lpRegistry.queryAndFillAtMarket(
-                        rwaToken, oraclePrice, shortfall
-                    );
-                    if (lpDobRwa > 0) {
-                        totalLpDobRwaOwed += lpDobRwa;
-                    }
-                    amountOut = fromHook + lpFilled;
-                    emit LPFill(lpFilled, lpDobRwa, fromHook);
-                } else {
-                    // No LP registry — attempt full fill (reverts if insufficient)
-                    amountOut = idealOut;
-                }
+                amountOut = _handleNormalSell(rwaToken, amountIn);
             }
         } else if (isDobRwaToUsdc && swapFeeBps > 0 && hookData.length == 0) {
             // Normal sell with fee, no LP routing (no rwaToken specified)
@@ -310,6 +317,47 @@ contract DobPegHook is BaseHook {
         );
 
         return (BaseHook.beforeSwap.selector, delta, 0);
+    }
+
+    /// @dev Normal sell path: applies swap fee, checks lpOnlyMode, fills from
+    ///      hook USDC reserves and/or LP fallback.
+    function _handleNormalSell(address rwaToken, uint256 amountIn) internal returns (uint256 amountOut) {
+        uint256 fee = swapFeeBps > 0 ? (amountIn * swapFeeBps) / 10000 : 0;
+        uint256 idealOut = amountIn - fee;
+        if (fee > 0) totalLpUsdc += fee;
+
+        if (lpOnlyMode[rwaToken]) {
+            // LP-only mode: no dUSDC protection, only LP fills
+            if (address(lpRegistry) == address(0)) revert InsufficientLiquidity();
+
+            (uint256 oraclePrice, ) = registry.getPrice(rwaToken);
+            (uint256 lpFilled, uint256 lpDobRwa) = lpRegistry.queryAndFillAtMarket(
+                rwaToken, oraclePrice, idealOut
+            );
+            if (lpDobRwa > 0) totalLpDobRwaOwed += lpDobRwa;
+            amountOut = lpFilled;
+            if (amountOut == 0) revert InsufficientLiquidity();
+            emit LPFill(lpFilled, lpDobRwa, 0);
+        } else {
+            uint256 hookBalance = usdc.balanceOf(address(this));
+
+            if (hookBalance >= idealOut) {
+                amountOut = idealOut;
+            } else if (address(lpRegistry) != address(0)) {
+                uint256 shortfall = idealOut - hookBalance;
+
+                (uint256 oraclePrice, ) = registry.getPrice(rwaToken);
+                (uint256 lpFilled, uint256 lpDobRwa) = lpRegistry.queryAndFillAtMarket(
+                    rwaToken, oraclePrice, shortfall
+                );
+                if (lpDobRwa > 0) totalLpDobRwaOwed += lpDobRwa;
+                amountOut = hookBalance + lpFilled;
+                if (amountOut == 0) revert InsufficientLiquidity();
+                emit LPFill(lpFilled, lpDobRwa, hookBalance);
+            } else {
+                amountOut = idealOut;
+            }
+        }
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -414,6 +462,14 @@ contract DobPegHook is BaseHook {
         emit LPRegistrySet(_lpRegistry);
     }
 
+    /// @notice Enable or disable LP-only mode for an RWA token.
+    ///         When enabled, sells skip hook USDC reserves and only fill from LPs.
+    function setLpOnlyMode(address rwaToken, bool enabled) external {
+        if (msg.sender != admin) revert OnlyAdmin();
+        lpOnlyMode[rwaToken] = enabled;
+        emit LpOnlyModeSet(rwaToken, enabled);
+    }
+
     /// @notice Release RWA tokens to an LP by burning ERC6909 claims,
     ///         converting dobRWA to RWA tokens via the vault.
     ///         Only callable by the LP Registry.
@@ -450,5 +506,147 @@ contract DobPegHook is BaseHook {
         vault.withdraw(rwaToken, dobRwaAmount, to);
 
         return "";
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                         RWA RESALE MARKET
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice List RWA tokens for sale at oracle price.
+    ///         Seller deposits RWA tokens into the hook. Buyers can purchase
+    ///         via `buyListedRwa` at the current oracle price.
+    /// @param rwaToken The RWA token address to sell.
+    /// @param amount   The amount of RWA tokens to list.
+    function listRwaForSale(address rwaToken, uint256 amount) external nonReentrant {
+        if (amount == 0) revert ZeroAmount();
+        if (!vault.approvedAssets(rwaToken)) revert TokenNotApproved();
+
+        ERC20(rwaToken).safeTransferFrom(msg.sender, address(this), amount);
+
+        if (!_isSeller[rwaToken][msg.sender]) {
+            if (_rwaSellers[rwaToken].length >= MAX_RWA_SELLERS) revert TooManySellers();
+            _sellerIndex[rwaToken][msg.sender] = _rwaSellers[rwaToken].length;
+            _rwaSellers[rwaToken].push(msg.sender);
+            _isSeller[rwaToken][msg.sender] = true;
+        }
+
+        rwaForSale[msg.sender][rwaToken] += amount;
+        totalRwaListed[rwaToken] += amount;
+
+        emit RwaListed(msg.sender, rwaToken, amount);
+    }
+
+    /// @notice Delist (withdraw) RWA tokens from the resale market.
+    /// @param rwaToken The RWA token address to delist.
+    /// @param amount   The amount of RWA tokens to withdraw.
+    function delistRwa(address rwaToken, uint256 amount) external nonReentrant {
+        if (amount == 0) revert ZeroAmount();
+        if (rwaForSale[msg.sender][rwaToken] < amount) revert InsufficientListedRwa();
+
+        rwaForSale[msg.sender][rwaToken] -= amount;
+        totalRwaListed[rwaToken] -= amount;
+
+        if (rwaForSale[msg.sender][rwaToken] == 0) {
+            _removeRwaSeller(rwaToken, msg.sender);
+        }
+
+        ERC20(rwaToken).safeTransfer(msg.sender, amount);
+
+        emit RwaDelisted(msg.sender, rwaToken, amount);
+    }
+
+    /// @notice Buy listed RWA tokens at oracle price. Buyer pays USDC.
+    ///         Fills sellers in FIFO order. Swap fee accrues to the LP pool.
+    /// @param rwaToken  The RWA token to buy.
+    /// @param rwaAmount The amount of RWA tokens to purchase.
+    function buyListedRwa(address rwaToken, uint256 rwaAmount) external nonReentrant {
+        if (rwaAmount == 0) revert ZeroAmount();
+        if (totalRwaListed[rwaToken] < rwaAmount) revert NoListingsAvailable();
+
+        // Oracle price + staleness check
+        (uint256 priceUsd, uint48 updatedAt) = registry.getPrice(rwaToken);
+        if (block.timestamp - updatedAt > vault.maxOracleDelay()) revert OracleStale();
+
+        uint256 usdcCost = (rwaAmount * priceUsd) / 1e18;
+        uint256 fee = swapFeeBps > 0 ? (usdcCost * swapFeeBps) / 10000 : 0;
+
+        usdc.safeTransferFrom(msg.sender, address(this), usdcCost + fee);
+        if (fee > 0) totalLpUsdc += fee;
+
+        // Fill sellers FIFO and pay them
+        _fillRwaSellers(rwaToken, rwaAmount, priceUsd);
+
+        totalRwaListed[rwaToken] -= rwaAmount;
+        ERC20(rwaToken).safeTransfer(msg.sender, rwaAmount);
+
+        emit RwaPurchased(msg.sender, rwaToken, rwaAmount, usdcCost, fee);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                     RWA RESALE VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Get the list of sellers for an RWA token.
+    function getRwaSellers(address rwaToken) external view returns (address[] memory) {
+        return _rwaSellers[rwaToken];
+    }
+
+    /// @notice Get the total available RWA listed for sale.
+    function getRwaSellersCount(address rwaToken) external view returns (uint256) {
+        return _rwaSellers[rwaToken].length;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                     RWA RESALE INTERNALS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Iterate sellers FIFO, deduct amounts, pay USDC, and clean up emptied sellers.
+    function _fillRwaSellers(address rwaToken, uint256 rwaAmount, uint256 priceUsd) internal {
+        address[] storage sellers = _rwaSellers[rwaToken];
+        uint256 remaining = rwaAmount;
+
+        address[] memory toRemove = new address[](sellers.length);
+        uint256 removeCount = 0;
+
+        for (uint256 i = 0; i < sellers.length && remaining > 0; i++) {
+            address seller = sellers[i];
+            uint256 available = rwaForSale[seller][rwaToken];
+            if (available == 0) continue;
+
+            uint256 fill = remaining > available ? available : remaining;
+            rwaForSale[seller][rwaToken] -= fill;
+            remaining -= fill;
+
+            uint256 sellerPayment = (fill * priceUsd) / 1e18;
+            usdc.safeTransfer(seller, sellerPayment);
+
+            emit RwaSold(msg.sender, seller, rwaToken, fill, sellerPayment);
+
+            if (rwaForSale[seller][rwaToken] == 0) {
+                toRemove[removeCount++] = seller;
+            }
+        }
+
+        for (uint256 i = 0; i < removeCount; i++) {
+            _removeRwaSeller(rwaToken, toRemove[i]);
+        }
+    }
+
+    /// @dev Remove a seller from the _rwaSellers array using swap-and-pop.
+    function _removeRwaSeller(address rwaToken, address seller) internal {
+        if (!_isSeller[rwaToken][seller]) return;
+
+        uint256 index = _sellerIndex[rwaToken][seller];
+        uint256 lastIndex = _rwaSellers[rwaToken].length - 1;
+
+        if (index != lastIndex) {
+            address lastSeller = _rwaSellers[rwaToken][lastIndex];
+            _rwaSellers[rwaToken][index] = lastSeller;
+            _sellerIndex[rwaToken][lastSeller] = index;
+        }
+
+        _rwaSellers[rwaToken].pop();
+        delete _sellerIndex[rwaToken][seller];
+        _isSeller[rwaToken][seller] = false;
     }
 }

@@ -280,7 +280,7 @@
 
     /* ═══ HOW IT WORKS ═══ */
     .how-grid {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px;
       position: relative;
     }
     .how-grid::before {
@@ -510,7 +510,7 @@
       <div class="hero-stat"><div class="val" style="color:var(--accent)">3</div><div class="lbl">Chains Live</div></div>
       <div class="hero-stat"><div class="val" style="color:var(--purple)">10</div><div class="lbl">RWA Tokens</div></div>
       <div class="hero-stat"><div class="val" style="color:var(--green)">0%</div><div class="lbl">Slippage</div></div>
-      <div class="hero-stat"><div class="val" style="color:var(--accent)">77</div><div class="lbl">Tests Passing</div></div>
+      <div class="hero-stat"><div class="val" style="color:var(--accent)">110</div><div class="lbl">Tests Passing</div></div>
     </div>
   </div>
 </section>
@@ -604,9 +604,25 @@
       <div class="feat-icon" style="background:var(--accent-dim);">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#597CE9" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       </div>
+      <h3>LP-Only Mode</h3>
+      <p>Per-token toggle that skips protocol reserves entirely. Sells only succeed if LPs fill them. Protects dUSDC backing from riskier assets while enabling permissionless listing.</p>
+      <span class="feat-tag" style="background:var(--accent-dim);color:var(--accent);">setLpOnlyMode()</span>
+    </div>
+    <div class="feat-card fade-in" style="transition-delay:0.45s">
+      <div class="feat-icon" style="background:var(--purple-dim);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#975AFF" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <h3>RWA Resale Market</h3>
+      <p>On-chain secondary market. LPs and holders list RWA tokens for sale at oracle price. Buyers pay USDC directly to sellers. FIFO fills, swap fee to LP pool.</p>
+      <span class="feat-tag" style="background:var(--purple-dim);color:var(--purple);">listRwaForSale()</span>
+    </div>
+    <div class="feat-card fade-in" style="transition-delay:0.5s">
+      <div class="feat-icon" style="background:rgba(245,82,82,0.08);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F55252" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+      </div>
       <h3>Safety Rails</h3>
-      <p>Anti-flash-loan protection (MIN_BACKING_AGE), 24h withdrawal timelocks, per-asset and global liquidation caps, oracle staleness circuit breaker.</p>
-      <span class="feat-tag" style="background:var(--accent-dim);color:var(--accent);">Built-in Security</span>
+      <p>Anti-flash-loan protection, 24h withdrawal timelocks, per-asset and global caps, oracle staleness breaker, ReentrancyGuard on all state changes.</p>
+      <span class="feat-tag" style="background:rgba(245,82,82,0.08);color:var(--red);">Built-in Security</span>
     </div>
   </div>
 </section>
@@ -640,7 +656,12 @@
     <div class="how-step">
       <div class="how-num">4</div>
       <h4>Redeem or LP</h4>
-      <p>Redeem dUSDC for USDC, provide USDC liquidity to earn swap fees, or back assets to earn discounted RWA tokens from liquidations.</p>
+      <p>Redeem dUSDC for USDC, provide USDC liquidity to earn swap fees, or back assets to earn discounted RWA tokens.</p>
+    </div>
+    <div class="how-step">
+      <div class="how-num" style="background:var(--purple);">5</div>
+      <h4>Resell RWA</h4>
+      <p>LPs list claimed RWA on the Resale Market at oracle price. Buyers pay USDC directly. Complete exit cycle.</p>
     </div>
   </div>
 </section>
@@ -691,7 +712,7 @@
 
   <div class="traction-grid">
     <div class="traction-card fade-in" style="transition-delay:0.15s">
-      <div class="traction-val" style="color:var(--green);">77</div>
+      <div class="traction-val" style="color:var(--green);">110</div>
       <div class="traction-lbl">Tests Passing</div>
     </div>
     <div class="traction-card fade-in" style="transition-delay:0.2s">

@@ -377,6 +377,7 @@
       <a href="#flow">Swap Flow</a>
       <a href="#liquidation">Liquidation</a>
       <a href="#lp">Liquidity Nodes</a>
+      <a href="#resale">Resale Market</a>
       <a href="#trust">Trust Flywheel</a>
       <a href="#safety">Safety</a>
     </div>
@@ -611,13 +612,16 @@
           </div>
         </div>
         <div class="cc-body">
-          LPs deposit USDC and set per-asset <strong>conditions</strong>: minimum oracle price, minimum penalty, max exposure, and USDC allocation. During liquidations, the hook calls <code>queryAndFill</code> which iterates backers in FIFO order, checks conditions, and fills willing LPs. LPs receive the underlying <strong>RWA tokens</strong> at a discount (buy at penalty price), claimable via the vault's withdraw mechanism.
+          LPs deposit USDC and set per-asset <strong>conditions</strong>: minimum oracle price, minimum penalty, max exposure, and USDC allocation. LPs participate in two modes: <strong>Liquidation fills</strong> (<code>queryAndFill</code>) when an asset is distressed at the protocol-mandated penalty rate, and <strong>Sell fallback</strong> (<code>queryAndFillAtMarket</code>) when the hook lacks USDC for a normal sell &mdash; LPs fill at their own discount, no distress required. LPs receive the underlying <strong>RWA tokens</strong> at a discount, claimable via the vault. Tokens in <strong>LP-Only mode</strong> skip protocol reserves entirely &mdash; sells only succeed if LPs fill them. LPs can also <strong>resell</strong> claimed RWA tokens at oracle price via the on-chain Resale Market.
         </div>
         <div class="cc-funcs">
           <span class="cc-func">register()</span>
           <span class="cc-func">backAsset()</span>
           <span class="cc-func">queryAndFill()</span>
+          <span class="cc-func">queryAndFillAtMarket()</span>
           <span class="cc-func">claimRwaTokens()</span>
+          <span class="cc-func">listRwaForSale()</span>
+          <span class="cc-func">buyListedRwa()</span>
         </div>
       </div>
     </div>
@@ -717,8 +721,8 @@
       <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:20px;">
         <div style="font-size:11px; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Normal Mode</div>
         <h4 style="font-size:14px; font-weight:800; margin-bottom:6px;">1:1 Peg Swap</h4>
-        <p style="font-size:12px; color:var(--text-2); line-height:1.55; margin-bottom:10px;">Asset is healthy. User sells dobRWA and receives USDC at 1:1 rate (minus optional swap fee on sell direction). USDC comes from the <strong style="color:var(--text-1);">hook's USDC pool</strong> (protocol reserves + permissionless LP deposits).</p>
-        <div style="font-family:var(--mono); font-size:10px; background:var(--bg-elevated); border-radius:4px; padding:6px 10px; color:var(--green);">Liquidity Nodes: NOT involved</div>
+        <p style="font-size:12px; color:var(--text-2); line-height:1.55; margin-bottom:10px;">Asset is healthy. User sells dobRWA and receives USDC at 1:1 rate (minus optional swap fee). USDC comes from the <strong style="color:var(--text-1);">hook's USDC pool</strong> first. If reserves are insufficient, <strong style="color:var(--green);">Liquidity Nodes fill the shortfall</strong> at their own discount rate (sell fallback). <strong>LP-Only</strong> tokens skip reserves entirely.</p>
+        <div style="font-family:var(--mono); font-size:10px; background:var(--bg-elevated); border-radius:4px; padding:6px 10px; color:var(--green);">Liquidity Nodes: FALLBACK (queryAndFillAtMarket)</div>
       </div>
       <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:20px;">
         <div style="font-size:11px; font-weight:700; color:var(--red); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Liquidation Mode</div>
@@ -944,6 +948,33 @@
         </div>
       </div>
       <p style="font-size:11px; color:var(--text-3); margin-top:12px; text-align:center;">The reserve ensures liquidity is available when it's needed most. LPs who backed an asset are committed during distress.</p>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- RWA RESALE MARKET -->
+  <section class="section" id="resale">
+    <div class="section-tag" style="background:var(--accent-dim);color:var(--accent);">Resale Market</div>
+    <h2>RWA Secondary Market</h2>
+    <p class="sub">LPs and token holders can list their RWA tokens for sale at oracle price. Buyers pay USDC directly to sellers &mdash; no intermediary.</p>
+
+    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-top:24px;">
+      <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:20px;">
+        <div style="font-size:11px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">List</div>
+        <h4 style="font-size:14px; font-weight:800; margin-bottom:6px;">listRwaForSale()</h4>
+        <p style="font-size:12px; color:var(--text-2); line-height:1.55;">Deposit RWA tokens into the hook. Listed at current oracle price. Max 50 sellers per token.</p>
+      </div>
+      <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:20px;">
+        <div style="font-size:11px; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Buy</div>
+        <h4 style="font-size:14px; font-weight:800; margin-bottom:6px;">buyListedRwa()</h4>
+        <p style="font-size:12px; color:var(--text-2); line-height:1.55;">Pay USDC at oracle price + swap fee. Sellers are filled FIFO. USDC goes directly to sellers.</p>
+      </div>
+      <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:20px;">
+        <div style="font-size:11px; font-weight:700; color:var(--warning); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">LP-Only Mode</div>
+        <h4 style="font-size:14px; font-weight:800; margin-bottom:6px;">setLpOnlyMode()</h4>
+        <p style="font-size:12px; color:var(--text-2); line-height:1.55;">Per-token toggle. When enabled, sells skip protocol reserves &mdash; only LPs can fill. Protects dUSDC backing from riskier assets.</p>
+      </div>
     </div>
   </section>
 

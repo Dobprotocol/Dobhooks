@@ -437,8 +437,8 @@
       </div>
       <div class="step">
         <div class="step-num" style="background:var(--purple);">04</div>
-        <h4>Programmatic buybacks enable on-demand liquidity</h4>
-        <p>When investors sell, the Uniswap V4 hook executes at oracle-pegged price. Liquidity Nodes provide exit capital for distressed assets.</p>
+        <h4>Programmatic buybacks + RWA Resale Market</h4>
+        <p>Hook executes at oracle-pegged price. LPs provide exit capital. LP-Only mode per token. LPs resell claimed RWA on the on-chain Resale Market.</p>
       </div>
     </div>
     <p style="text-align:center; margin-top:32px; font-size:15px; color:var(--gray-600);">
@@ -498,12 +498,12 @@
         <div>
           <div style="font-size:11px; color:var(--gray-400); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Normal Exit</div>
           <div style="font-size:20px; font-weight:900; color:var(--green);">1:1 Peg</div>
-          <div style="font-size:11px; color:var(--gray-400);">From hook reserves</div>
+          <div style="font-size:11px; color:var(--gray-400);">Hook reserves + LP fallback</div>
         </div>
         <div>
-          <div style="font-size:11px; color:var(--gray-400); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">Distressed Exit</div>
-          <div style="font-size:20px; font-weight:900; color:var(--red);">Risk-Adjusted</div>
-          <div style="font-size:11px; color:var(--gray-400);">Oracle sets discount from risk probability</div>
+          <div style="font-size:11px; color:var(--gray-400); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">LP-Only Mode</div>
+          <div style="font-size:20px; font-weight:900; color:var(--amber);">LP Fills Only</div>
+          <div style="font-size:11px; color:var(--gray-400);">Per-token toggle, protects dUSDC</div>
         </div>
         <div>
           <div style="font-size:11px; color:var(--gray-400); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">LP Incentive</div>
@@ -698,7 +698,7 @@
         <div class="card" style="border-left:4px solid var(--cyan); background:rgba(0,229,204,0.03);">
           <div style="font-size:12px; font-weight:700; color:var(--cyan); margin-bottom:8px;">Technical Readiness</div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-            <div><span style="font-size:18px; font-weight:900; color:var(--gray-800);">94</span> <span style="font-size:11px; color:var(--gray-400);">tests passing</span></div>
+            <div><span style="font-size:18px; font-weight:900; color:var(--gray-800);">110</span> <span style="font-size:11px; color:var(--gray-400);">tests passing</span></div>
             <div><span style="font-size:18px; font-weight:900; color:var(--gray-800);">3</span> <span style="font-size:11px; color:var(--gray-400);">chains deployed</span></div>
             <div><span style="font-size:18px; font-weight:900; color:var(--gray-800);">10</span> <span style="font-size:11px; color:var(--gray-400);">RWA tokens/chain</span></div>
             <div><span style="font-size:18px; font-weight:900; color:var(--gray-800);">~2,500</span> <span style="font-size:11px; color:var(--gray-400);">LOC Solidity</span></div>

@@ -455,4 +455,231 @@ contract DobPegHookTest is BaseTest {
         vm.expectRevert(DobValidatorRegistry.ZeroCap.selector);
         registry.setLiquidationParams(address(rwaToken), 2000, 0);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                      LP-ONLY MODE TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testSetLpOnlyMode() public {
+        assertEq(hook.lpOnlyMode(address(rwaToken)), false, "Should default to false");
+        hook.setLpOnlyMode(address(rwaToken), true);
+        assertEq(hook.lpOnlyMode(address(rwaToken)), true, "Should be true after set");
+        hook.setLpOnlyMode(address(rwaToken), false);
+        assertEq(hook.lpOnlyMode(address(rwaToken)), false, "Should be false after unset");
+    }
+
+    function testSetLpOnlyModeOnlyAdmin() public {
+        vm.prank(address(0xdead));
+        vm.expectRevert(DobPegHook.OnlyAdmin.selector);
+        hook.setLpOnlyMode(address(rwaToken), true);
+    }
+
+    function testLpOnlyModeRevertsWithNoLpRegistry() public {
+        // Enable lpOnly without an LP registry set
+        hook.setLpOnlyMode(address(rwaToken), true);
+
+        // Deposit RWA to get dobRWA
+        _depositRwa(1e18);
+
+        // Swap with hookData (triggers lpOnly path)
+        bytes memory hookData = abi.encode(address(rwaToken));
+        vm.expectRevert(); // InsufficientLiquidity wrapped by PoolManager
+        _swapDobRwaToUsdc(1000e18, hookData);
+    }
+
+    function testLpOnlyModeDisabledUsesHookReserves() public {
+        // lpOnly is false by default — swap should use hook USDC as usual
+        _depositRwa(1e18);
+        uint256 usdcBefore = usdcToken.balanceOf(address(this));
+
+        bytes memory hookData = abi.encode(address(rwaToken));
+        _swapDobRwaToUsdc(1000e18, hookData);
+
+        uint256 usdcAfter = usdcToken.balanceOf(address(this));
+        assertEq(usdcAfter - usdcBefore, 1000e18, "Should fill from hook reserves at 1:1");
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                     RWA RESALE MARKET TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testListRwaForSale() public {
+        // Give user some RWA tokens directly
+        rwaToken.mint(address(this), 500e18);
+        rwaToken.approve(address(hook), 500e18);
+
+        hook.listRwaForSale(address(rwaToken), 100e18);
+
+        assertEq(hook.totalRwaListed(address(rwaToken)), 100e18, "Total listed should be 100");
+        assertEq(hook.rwaForSale(address(this), address(rwaToken)), 100e18, "Seller listed amount");
+        assertEq(hook.getRwaSellersCount(address(rwaToken)), 1, "Should have 1 seller");
+        assertEq(rwaToken.balanceOf(address(hook)), 100e18, "Hook should hold the RWA");
+    }
+
+    function testListRwaForSaleRevertsUnapproved() public {
+        MockERC20 rogue = new MockERC20("Rogue", "RGE", 18);
+        rogue.mint(address(this), 100e18);
+        rogue.approve(address(hook), 100e18);
+
+        vm.expectRevert(DobPegHook.TokenNotApproved.selector);
+        hook.listRwaForSale(address(rogue), 100e18);
+    }
+
+    function testListRwaForSaleRevertsZero() public {
+        vm.expectRevert(DobPegHook.ZeroAmount.selector);
+        hook.listRwaForSale(address(rwaToken), 0);
+    }
+
+    function testDelistRwa() public {
+        rwaToken.mint(address(this), 100e18);
+        rwaToken.approve(address(hook), 100e18);
+
+        hook.listRwaForSale(address(rwaToken), 100e18);
+
+        uint256 balBefore = rwaToken.balanceOf(address(this));
+        hook.delistRwa(address(rwaToken), 40e18);
+        uint256 balAfter = rwaToken.balanceOf(address(this));
+
+        assertEq(balAfter - balBefore, 40e18, "Should return 40 RWA tokens");
+        assertEq(hook.rwaForSale(address(this), address(rwaToken)), 60e18, "60 should remain listed");
+        assertEq(hook.totalRwaListed(address(rwaToken)), 60e18, "Total listed should be 60");
+    }
+
+    function testDelistRwaFull() public {
+        rwaToken.mint(address(this), 100e18);
+        rwaToken.approve(address(hook), 100e18);
+        hook.listRwaForSale(address(rwaToken), 100e18);
+
+        hook.delistRwa(address(rwaToken), 100e18);
+
+        assertEq(hook.rwaForSale(address(this), address(rwaToken)), 0, "Should be 0 listed");
+        assertEq(hook.getRwaSellersCount(address(rwaToken)), 0, "Seller should be removed");
+    }
+
+    function testDelistRwaRevertsInsufficientListed() public {
+        vm.expectRevert(DobPegHook.InsufficientListedRwa.selector);
+        hook.delistRwa(address(rwaToken), 100e18);
+    }
+
+    function testBuyListedRwa() public {
+        // Setup: seller lists RWA
+        rwaToken.mint(address(this), 10e18);
+        rwaToken.approve(address(hook), 10e18);
+        hook.listRwaForSale(address(rwaToken), 10e18);
+
+        // Setup: buyer
+        address buyer = address(0xBEEF);
+        uint256 usdcNeeded = (10e18 * RWA_PRICE) / 1e18; // 10 * 100k = 1M
+        usdcToken.mint(buyer, usdcNeeded + 100_000e18); // extra for fee
+
+        vm.startPrank(buyer);
+        usdcToken.approve(address(hook), type(uint256).max);
+        hook.buyListedRwa(address(rwaToken), 10e18);
+        vm.stopPrank();
+
+        // Buyer should have the RWA
+        assertEq(rwaToken.balanceOf(buyer), 10e18, "Buyer should have 10 RWA");
+        // Seller should have received USDC
+        assertEq(usdcToken.balanceOf(address(this)), usdcNeeded + 500_000e18, "Seller should receive USDC at oracle price");
+        // Listed amounts should be zero
+        assertEq(hook.totalRwaListed(address(rwaToken)), 0, "No RWA should be listed");
+        assertEq(hook.getRwaSellersCount(address(rwaToken)), 0, "Seller array should be empty");
+    }
+
+    function testBuyListedRwaWithFee() public {
+        // Set 1% swap fee
+        hook.setSwapFee(100);
+
+        // Seller lists
+        rwaToken.mint(address(this), 1e18);
+        rwaToken.approve(address(hook), 1e18);
+        hook.listRwaForSale(address(rwaToken), 1e18);
+
+        // Buyer
+        address buyer = address(0xBEEF);
+        uint256 usdcCost = (1e18 * RWA_PRICE) / 1e18; // 100k
+        uint256 fee = (usdcCost * 100) / 10000; // 1% = 1k
+        usdcToken.mint(buyer, usdcCost + fee);
+
+        uint256 lpPoolBefore = hook.totalLpUsdc();
+
+        vm.startPrank(buyer);
+        usdcToken.approve(address(hook), type(uint256).max);
+        hook.buyListedRwa(address(rwaToken), 1e18);
+        vm.stopPrank();
+
+        uint256 lpPoolAfter = hook.totalLpUsdc();
+        assertEq(lpPoolAfter - lpPoolBefore, fee, "Fee should accrue to LP pool");
+    }
+
+    function testBuyListedRwaRevertsNoListings() public {
+        vm.expectRevert(DobPegHook.NoListingsAvailable.selector);
+        hook.buyListedRwa(address(rwaToken), 1e18);
+    }
+
+    function testBuyListedRwaRevertsStaleOracle() public {
+        rwaToken.mint(address(this), 1e18);
+        rwaToken.approve(address(hook), 1e18);
+        hook.listRwaForSale(address(rwaToken), 1e18);
+
+        // Warp past oracle staleness
+        vm.warp(block.timestamp + MAX_DELAY + 1);
+
+        address buyer = address(0xBEEF);
+        usdcToken.mint(buyer, 200_000e18);
+        vm.startPrank(buyer);
+        usdcToken.approve(address(hook), type(uint256).max);
+        vm.expectRevert(DobPegHook.OracleStale.selector);
+        hook.buyListedRwa(address(rwaToken), 1e18);
+        vm.stopPrank();
+    }
+
+    function testBuyListedRwaFIFO() public {
+        // Seller A lists first
+        address sellerA = address(0xAAA);
+        rwaToken.mint(sellerA, 5e18);
+        vm.startPrank(sellerA);
+        rwaToken.approve(address(hook), 5e18);
+        hook.listRwaForSale(address(rwaToken), 5e18);
+        vm.stopPrank();
+
+        // Seller B lists second
+        address sellerB = address(0xBBB);
+        rwaToken.mint(sellerB, 5e18);
+        vm.startPrank(sellerB);
+        rwaToken.approve(address(hook), 5e18);
+        hook.listRwaForSale(address(rwaToken), 5e18);
+        vm.stopPrank();
+
+        // Buyer buys 7 RWA (should drain A=5, partial B=2)
+        address buyer = address(0xBEEF);
+        uint256 cost = (7e18 * RWA_PRICE) / 1e18;
+        usdcToken.mint(buyer, cost);
+        vm.startPrank(buyer);
+        usdcToken.approve(address(hook), type(uint256).max);
+        hook.buyListedRwa(address(rwaToken), 7e18);
+        vm.stopPrank();
+
+        // Seller A fully drained, Seller B has 3 remaining
+        assertEq(hook.rwaForSale(sellerA, address(rwaToken)), 0, "A should be fully sold");
+        assertEq(hook.rwaForSale(sellerB, address(rwaToken)), 3e18, "B should have 3 remaining");
+
+        // Seller A should have received USDC for 5 tokens
+        uint256 paymentA = (5e18 * RWA_PRICE) / 1e18;
+        assertEq(usdcToken.balanceOf(sellerA), paymentA, "A should receive payment for 5 tokens");
+    }
+
+    function testMultipleListAndBuy() public {
+        // Same seller lists multiple times
+        rwaToken.mint(address(this), 50e18);
+        rwaToken.approve(address(hook), 50e18);
+
+        hook.listRwaForSale(address(rwaToken), 20e18);
+        hook.listRwaForSale(address(rwaToken), 30e18);
+
+        assertEq(hook.rwaForSale(address(this), address(rwaToken)), 50e18, "Total for seller");
+        assertEq(hook.totalRwaListed(address(rwaToken)), 50e18, "Total listed");
+        // Should still be just 1 seller in array (not duplicated)
+        assertEq(hook.getRwaSellersCount(address(rwaToken)), 1, "Should not duplicate seller");
+    }
 }

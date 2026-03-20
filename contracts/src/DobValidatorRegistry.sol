@@ -46,6 +46,9 @@ contract DobValidatorRegistry is Owned {
     /// @notice The authorized hook address that can record liquidations.
     address public hook;
 
+    /// @notice RWA token address → LP-only mode (sells only via LP fills, no dUSDC protection).
+    mapping(address => bool) public lpOnlyMode;
+
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -56,6 +59,7 @@ contract DobValidatorRegistry is Owned {
     event LiquidationRecorded(address indexed token, uint256 amount, uint256 totalLiquidated);
     event GlobalLiquidationCapSet(uint256 cap);
     event HookSet(address indexed hook);
+    event LpOnlyModeSet(address indexed token, bool enabled);
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -137,6 +141,15 @@ contract DobValidatorRegistry is Owned {
         if (cap == 0) revert ZeroCap();
         globalLiquidationCap = cap;
         emit GlobalLiquidationCapSet(cap);
+    }
+
+    /// @notice Enable or disable LP-only mode for an RWA token.
+    ///         When enabled, sells skip hook USDC reserves and only fill from LPs.
+    /// @param token   The RWA token address.
+    /// @param enabled True to enable LP-only mode.
+    function setLpOnlyMode(address token, bool enabled) external onlyOwner {
+        lpOnlyMode[token] = enabled;
+        emit LpOnlyModeSet(token, enabled);
     }
 
     /// @notice Record a liquidation event. Only callable by the authorized hook.

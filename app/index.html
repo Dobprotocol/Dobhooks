@@ -884,6 +884,7 @@
       <div class="tabs" style="width:fit-content; margin-bottom:16px;">
         <button class="tab on" id="swapSellTab" onclick="swapMode('sell')">Sell RWA</button>
         <button class="tab" id="swapBuyTab" onclick="swapMode('buy')">Buy RWA</button>
+        <button class="tab" id="swapResaleTab" onclick="swapMode('resale')">Resale Market</button>
       </div>
     </div>
 
@@ -962,6 +963,72 @@
       </div>
     </div>
     <input type="hidden" id="buyAsset" value=""/>
+
+    <!-- Resale Market: List/Buy RWA from other users -->
+    <div id="swapResaleCard" style="display:none; width:100%; max-width:420px; background:var(--bg-1); border:1px solid var(--border); border-radius:var(--r-xl); padding:4px; margin-bottom:12px; box-shadow:0 8px 40px rgba(0,0,0,0.35), 0 0 0 1px var(--border-subtle) inset;">
+      <div style="padding:16px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+          <h2 style="font-size:14px; font-weight:700; letter-spacing:-0.2px;">RWA Resale Market</h2>
+          <span style="font-size:10px; font-weight:600; padding:3px 8px; background:var(--accent-dim); border-radius:999px; color:var(--accent-light);">Oracle Price</span>
+        </div>
+        <p style="font-size:11px;color:var(--text-3);margin-bottom:14px;line-height:1.5;">List your RWA tokens for sale at oracle price, or buy listed tokens from other users. Sellers receive USDC directly.</p>
+
+        <!-- Sub-tabs: List / Buy / My Listings -->
+        <div class="tabs" style="width:fit-content;margin-bottom:14px;font-size:11px;">
+          <button class="tab on" id="resaleListTab" onclick="resaleMode('list')" style="padding:6px 14px;">List for Sale</button>
+          <button class="tab" id="resaleBuyTab" onclick="resaleMode('buy')" style="padding:6px 14px;">Buy Listed</button>
+        </div>
+
+        <!-- LIST sub-card -->
+        <div id="resaleListCard">
+          <div class="tbox" style="margin-bottom:8px;">
+            <div class="tbox-hd"><span>Token to list</span><span>Balance: <span class="mx" id="resaleListBal" onclick="maxResaleList()">0.00</span></span></div>
+            <div class="tbox-body">
+              <input type="number" class="tbox-in" id="resaleListAmt" placeholder="0" min="0" step="0.01" oninput="uResaleList()"/>
+              <button class="tsel-btn" id="resaleListAssetBtn" onclick="openTokenSelector('resaleList')">
+                <span class="placeholder"></span>
+                <span>Select token</span>
+                <span class="arrow">&#9662;</span>
+              </button>
+            </div>
+            <div class="tbox-usd" id="resaleListUsd"></div>
+          </div>
+          <div class="sw-info" id="resaleListDetail" style="display:none;">
+            <div class="sw-row"><span>Oracle Price</span><span class="v" id="resaleListPrice">--</span></div>
+            <div class="sw-row"><span>Buyers pay</span><span class="v">Oracle price + swap fee</span></div>
+          </div>
+          <button class="sw-btn" id="resaleListBtn" disabled onclick="doListRwa()">Select a token</button>
+
+          <!-- My active listings -->
+          <div id="myListings" style="margin-top:14px;"></div>
+        </div>
+
+        <!-- BUY sub-card -->
+        <div id="resaleBuyCard" style="display:none;">
+          <div class="tbox" style="margin-bottom:8px;">
+            <div class="tbox-hd"><span>Token to buy</span><span></span></div>
+            <div class="tbox-body">
+              <input type="number" class="tbox-in" id="resaleBuyAmt" placeholder="0" min="0" step="0.01" oninput="uResaleBuy()"/>
+              <button class="tsel-btn" id="resaleBuyAssetBtn" onclick="openTokenSelector('resaleBuy')">
+                <span class="placeholder"></span>
+                <span>Select token</span>
+                <span class="arrow">&#9662;</span>
+              </button>
+            </div>
+            <div class="tbox-usd" id="resaleBuyUsd"></div>
+          </div>
+          <div id="resaleAvailable" style="margin-bottom:8px;"></div>
+          <div class="sw-info" id="resaleBuyDetail" style="display:none;">
+            <div class="sw-row"><span>Oracle Price</span><span class="v" id="resaleBuyPrice">--</span></div>
+            <div class="sw-row"><span>USDC Cost</span><span class="v" id="resaleBuyCost">--</span></div>
+            <div class="sw-row"><span>Swap Fee</span><span class="v" id="resaleBuyFee">--</span></div>
+          </div>
+          <button class="sw-btn" id="resaleBuyBtn" disabled onclick="doBuyListedRwa()">Select a token</button>
+        </div>
+      </div>
+    </div>
+    <input type="hidden" id="resaleListAsset" value=""/>
+    <input type="hidden" id="resaleBuyAsset" value=""/>
 
   </div>
 </div>
@@ -1403,8 +1470,8 @@ const S={on:false,addr:'',short:'',prov:null,sig:null,dob:0,usdc:0,hook:0,minted
 const CHAINS={
   1301:{name:'Unichain Sepolia',explorer:'https://sepolia.uniscan.xyz',
     USDC:"0x217f355497A67F5ef82cff105Fb14a84C9A9E071",Registry:"0x652E5572aF3a879D591a4DD289566bcF28BeA52B",
-    Vault:"0x5d38b9bD487D8a0ff7997dB953a68F650B242e00",LPRegistry:"0xF9b4b9Add57020d46F16069cAe7A2Bd11aD58E93",
-    Hook:"0x3211100C80EfcB1cE35d7Ccd8BB5Fa84D9cC2888",PoolManager:"0x00B036B58a818B1BC34d502D3fE730Db729e62AC",Router:"0x7DE1d7FA86045A5fA4D42ACb81C54ec9FF6578Fb",
+    Vault:"0x5d38b9bD487D8a0ff7997dB953a68F650B242e00",LPRegistry:"0xE77C5957ae8bA5E902E0c038a8d2ea6cbE1763aF",
+    Hook:"0xf49aa3f7160e051813268e6fFD0f51E2909DA888",PoolManager:"0x00B036B58a818B1BC34d502D3fE730Db729e62AC",Router:"0x7DE1d7FA86045A5fA4D42ACb81C54ec9FF6578Fb",
     AlertReceiver:"0x7D336CC15A7675EAa717F004B973623F7Db59a4b",
     tokens:{dct:"0x9E1aeb6c2f8f17C372D62ECe44792818d8BFb97a",sft:"0x1784CD059E11D3d8eBf25b5daaC183614F772bC0",
       ret:"0xde66Fd2575B92f62b0bcD2F976ea6398C3D06551",pwg:"0x1dcB1e529869173AB35064B45e35B26aEdc1B475",
@@ -1435,7 +1502,7 @@ const RWA_ABI=["function approve(address,uint256) returns (bool)","function bala
 const ROUTER_ABI=["function swap(bool,uint256,bytes) returns (uint256)"];
 const REG_ABI=["function getPrice(address) view returns (uint256 priceUsd, uint48 updatedAt)","function liquidations(address) view returns (bool enabled, uint16 penaltyBps, uint256 cap, uint256 liquidatedAmount)","function MAX_ORACLE_DELAY() view returns (uint48)"];
 const LP_ABI=["function getAssetBackerCount(address) view returns (uint256)","function getAssetLiquidity(address) view returns (uint256)","function register(uint256)","function depositMore(uint256)","function positions(address) view returns (uint256 usdcDeposited,uint256 usdcAvailable,uint48 registeredAt,bool active)","function backAsset(address,uint256,uint16,uint256,uint256)","function getBacking(address,address) view returns (uint256 minOraclePrice,uint16 minPenaltyBps,uint256 maxExposure,uint256 currentExposure,uint256 usdcAllocated,uint256 usdcUsed,uint48 backedAt,bool active)","function updateConditions(address,uint256,uint16,uint256)","function increaseAllocation(address,uint256)","function stopBacking(address)","function releaseReserve(uint256)","function requestWithdrawal(uint256)","function cancelWithdrawal()","function executeWithdrawal()","function withdrawalRequests(address) view returns (uint256 amount, uint48 requestedAt)","function rwaOwed(address,address) view returns (uint256)","function claimRwaTokens(address,uint256)"];
-const HOOK_ABI=["function swapFeeBps() view returns (uint16)","function totalLpUsdc() view returns (uint256)","function totalShares() view returns (uint256)","function lpShares(address) view returns (uint256)","function sharePrice() view returns (uint256)","function depositUsdc(uint256) returns (uint256)","function withdrawUsdc(uint256) returns (uint256)","function protocolReserveUsdc() view returns (uint256)"];
+const HOOK_ABI=["function swapFeeBps() view returns (uint16)","function totalLpUsdc() view returns (uint256)","function totalShares() view returns (uint256)","function lpShares(address) view returns (uint256)","function sharePrice() view returns (uint256)","function depositUsdc(uint256) returns (uint256)","function withdrawUsdc(uint256) returns (uint256)","function protocolReserveUsdc() view returns (uint256)","function lpOnlyMode(address) view returns (bool)","function listRwaForSale(address,uint256)","function delistRwa(address,uint256)","function buyListedRwa(address,uint256)","function getRwaSellers(address) view returns (address[])","function getRwaSellersCount(address) view returns (uint256)","function totalRwaListed(address) view returns (uint256)","function rwaForSale(address,address) view returns (uint256)"];
 
 // ── Load validated pools from API ──
 async function loadValidatedPools(){
@@ -1503,6 +1570,14 @@ async function syncOnChainData(){
       try{
         const [enabled,penaltyBps,cap,liquidatedAmount]=await reg.liquidations(addr);
         a.liq={enabled,penaltyBps:Number(penaltyBps),cap:parseFloat(ethers.formatUnits(cap,18)),liquidated:parseFloat(ethers.formatUnits(liquidatedAmount,18))};
+      }catch(e){}
+      try{
+        const hk=new ethers.Contract(c.Hook,HOOK_ABI,rp);
+        a.lpOnly=await hk.lpOnlyMode(addr);
+        const listed=await hk.totalRwaListed(addr);
+        a.resaleTotal=parseFloat(ethers.formatUnits(listed,18));
+        const sellerCount=await hk.getRwaSellersCount(addr);
+        a.resaleSellers=Number(sellerCount);
       }catch(e){}
       try{
         const rwa=new ethers.Contract(addr,RWA_ABI,rp);
@@ -1609,7 +1684,7 @@ function renderPopularChips(){
 function renderTokenList(q){
   const lq=q.toLowerCase();
   const filtered=q?A.filter(a=>a.name.toLowerCase().includes(lq)||a.ticker.toLowerCase().includes(lq)):A;
-  const currentSel=tselTarget==='deposit'?document.getElementById('depositAsset').value:document.getElementById('buyAsset').value;
+  const currentSel=tselTarget==='deposit'?document.getElementById('depositAsset').value:tselTarget==='buy'?document.getElementById('buyAsset').value:tselTarget==='resaleList'?document.getElementById('resaleListAsset').value:tselTarget==='resaleBuy'?document.getElementById('resaleBuyAsset').value:'';
   document.getElementById('tselList').innerHTML=filtered.length?filtered.map(a=>{
     const bal=S.faucetBals?.[a.id]||0;
     const usdVal=bal*a.price;
@@ -1635,6 +1710,14 @@ function selectToken(id){
     document.getElementById('buyAsset').value=id;
     updateBuyBtn(a);
     uBuy();
+  }else if(tselTarget==='resaleList'){
+    document.getElementById('resaleListAsset').value=id;
+    document.getElementById('resaleListAssetBtn').innerHTML=`<img src="${a.icon}" alt="${a.ticker}"/><span>${a.ticker}</span><span class="arrow">&#9662;</span>`;
+    uResaleList();
+  }else if(tselTarget==='resaleBuy'){
+    document.getElementById('resaleBuyAsset').value=id;
+    document.getElementById('resaleBuyAssetBtn').innerHTML=`<img src="${a.icon}" alt="${a.ticker}"/><span>${a.ticker}</span><span class="arrow">&#9662;</span>`;
+    uResaleBuy();
   }
   closeTokenSelector();
 }
@@ -1836,7 +1919,11 @@ function rAssetsFull(){
     return `<div class="asset-full">
       <div class="af-top">
         <div class="af-id"><img class="af-ico" src="${a.icon}" alt="${a.ticker}"/><div><div class="af-nm">${a.name}</div><div class="af-tk">${a.ticker}</div></div></div>
-        <div class="af-badge" style="background:${lps.length?'var(--green-dim);color:var(--green)':'var(--accent-dim);color:var(--accent-light)'}">${lps.length?lps.length+' LP'+(lps.length>1?'s':''):'No LPs'}</div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          ${a.lpOnly?'<div class="af-badge" style="background:var(--amber-dim,rgba(255,193,7,0.12));color:var(--amber,#FFC107);font-size:9px;">LP-Only</div>':''}
+          ${a.resaleTotal>0?`<div class="af-badge" style="background:var(--accent-dim);color:var(--accent-light);font-size:9px;">${fmt(a.resaleTotal,0)} Listed</div>`:''}
+          <div class="af-badge" style="background:${lps.length?'var(--green-dim);color:var(--green)':'var(--accent-dim);color:var(--accent-light)'}">${lps.length?lps.length+' LP'+(lps.length>1?'s':''):'No LPs'}</div>
+        </div>
       </div>
       <div style="font-size:11px;color:var(--text-3);margin-bottom:12px;line-height:1.4;">${a.desc}</div>
       <div class="af-oracle">
@@ -2103,8 +2190,116 @@ async function doSwap(){
 function swapMode(m){
   document.getElementById('swapSellTab').classList.toggle('on',m==='sell');
   document.getElementById('swapBuyTab').classList.toggle('on',m==='buy');
+  document.getElementById('swapResaleTab').classList.toggle('on',m==='resale');
   document.getElementById('swapSellCard').style.display=m==='sell'?'':'none';
   document.getElementById('swapBuyCard').style.display=m==='buy'?'':'none';
+  document.getElementById('swapResaleCard').style.display=m==='resale'?'':'none';
+  if(m==='resale')rMyListings();
+}
+function resaleMode(m){
+  document.getElementById('resaleListTab').classList.toggle('on',m==='list');
+  document.getElementById('resaleBuyTab').classList.toggle('on',m==='buy');
+  document.getElementById('resaleListCard').style.display=m==='list'?'':'none';
+  document.getElementById('resaleBuyCard').style.display=m==='buy'?'':'none';
+}
+function maxResaleList(){
+  const aid=document.getElementById('resaleListAsset').value;
+  const bal=S.faucetBals?.[aid]||0;
+  document.getElementById('resaleListAmt').value=bal;uResaleList();
+}
+function uResaleList(){
+  const aid=document.getElementById('resaleListAsset').value,amt=parseFloat(document.getElementById('resaleListAmt').value)||0,a=A.find(x=>x.id===aid);
+  const btn=document.getElementById('resaleListBtn'),det=document.getElementById('resaleListDetail');
+  if(!a){btn.disabled=true;btn.textContent='Select a token';btn.className='sw-btn';det.style.display='none';return;}
+  document.getElementById('resaleListBal').textContent=fmt(S.faucetBals?.[aid]||0,2);
+  document.getElementById('resaleListUsd').textContent=amt>0?'~$'+fmt(amt*a.price,2):'';
+  document.getElementById('resaleListPrice').textContent='1 '+a.ticker+' = '+fmt(a.price,2)+' USDC';
+  det.style.display=a.price>0?'block':'none';
+  if(amt<=0){btn.disabled=true;btn.textContent='Enter amount';btn.className='sw-btn';return;}
+  if(!S.on){btn.disabled=true;btn.textContent='Connect Wallet';btn.className='sw-btn';return;}
+  if(amt>(S.faucetBals?.[aid]||0)){btn.disabled=true;btn.textContent='Insufficient '+a.ticker;btn.className='sw-btn';return;}
+  btn.disabled=false;btn.textContent='List '+fmt(amt,2)+' '+a.ticker+' for Sale';btn.className='sw-btn go';
+}
+function uResaleBuy(){
+  const aid=document.getElementById('resaleBuyAsset').value,amt=parseFloat(document.getElementById('resaleBuyAmt').value)||0,a=A.find(x=>x.id===aid);
+  const btn=document.getElementById('resaleBuyBtn'),det=document.getElementById('resaleBuyDetail');
+  const avail=document.getElementById('resaleAvailable');
+  if(!a){btn.disabled=true;btn.textContent='Select a token';btn.className='sw-btn';det.style.display='none';avail.innerHTML='';return;}
+  avail.innerHTML=`<div style="font-size:11px;color:var(--text-3);padding:6px 10px;background:var(--bg-2);border-radius:var(--r-xs);margin-bottom:8px;">Available: <strong style="color:var(--text-1);">${fmt(a.resaleTotal||0,2)} ${a.ticker}</strong> from ${a.resaleSellers||0} seller${(a.resaleSellers||0)!==1?'s':''}</div>`;
+  if(amt<=0){btn.disabled=true;btn.textContent='Enter amount';btn.className='sw-btn';det.style.display='none';return;}
+  const cost=amt*a.price;const feeBps=S.swapFeeBps||0;const fee=(cost*feeBps)/10000;
+  document.getElementById('resaleBuyPrice').textContent='1 '+a.ticker+' = '+fmt(a.price,2)+' USDC';
+  document.getElementById('resaleBuyCost').textContent=fmt(cost,2)+' USDC';
+  document.getElementById('resaleBuyFee').textContent=fmt(fee,2)+' USDC ('+((feeBps/100).toFixed(1))+'%)';
+  document.getElementById('resaleBuyUsd').textContent='~$'+fmt(cost+fee,2);
+  det.style.display='block';
+  if(!S.on){btn.disabled=true;btn.textContent='Connect Wallet';btn.className='sw-btn';return;}
+  if(amt>(a.resaleTotal||0)){btn.disabled=true;btn.textContent='Exceeds available listings';btn.className='sw-btn';return;}
+  if((cost+fee)>S.usdc){btn.disabled=true;btn.textContent='Insufficient USDC';btn.className='sw-btn';return;}
+  btn.disabled=false;btn.textContent='Buy '+fmt(amt,2)+' '+a.ticker;btn.className='sw-btn go';
+}
+async function doListRwa(){
+  const aid=document.getElementById('resaleListAsset').value,amt=parseFloat(document.getElementById('resaleListAmt').value)||0,a=A.find(x=>x.id===aid);
+  if(!a||amt<=0||!S.on)return;
+  const addr=tokenAddr(aid);if(!addr){toast('Token not on this chain');return;}
+  try{
+    const c=ADDR();const gas=await gasOverrides();
+    const w=ethers.parseUnits(amt.toString(),18);
+    const rwa=new ethers.Contract(addr,E20,S.sig);
+    const hk=new ethers.Contract(c.Hook,HOOK_ABI,S.sig);
+    toast('Approving '+a.ticker+'...');await(await rwa.approve(c.Hook,w,gas)).wait();
+    toast('Listing for sale...');await(await hk.listRwaForSale(addr,w,gas)).wait();
+    await readBalances();await syncOnChainData();
+    log('swap',`<strong>Listed</strong> ${fmt(amt,2)} ${a.ticker} for sale at ${fmt(a.price,2)} USDC`);
+    toast('Listed '+fmt(amt,2)+' '+a.ticker);document.getElementById('resaleListAmt').value='';rMyListings();renderAll();
+  }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');}else{console.error(e);toast('List failed: '+(e.reason||e.message));}}
+}
+async function doDelistRwa(aid,rawWei){
+  const a=A.find(x=>x.id===aid);if(!a||!S.on)return;
+  const addr=tokenAddr(aid);if(!addr)return;
+  try{
+    const c=ADDR();const gas=await gasOverrides();
+    const w=BigInt(rawWei);
+    const hk=new ethers.Contract(c.Hook,HOOK_ABI,S.sig);
+    toast('Delisting...');await(await hk.delistRwa(addr,w,gas)).wait();
+    await readBalances();await syncOnChainData();
+    const amt=parseFloat(ethers.formatUnits(w,18));
+    toast('Delisted '+fmt(amt,2)+' '+a.ticker);rMyListings();renderAll();
+  }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');}else{console.error(e);toast('Delist failed: '+(e.reason||e.message));}}
+}
+async function doBuyListedRwa(){
+  const aid=document.getElementById('resaleBuyAsset').value,amt=parseFloat(document.getElementById('resaleBuyAmt').value)||0,a=A.find(x=>x.id===aid);
+  if(!a||amt<=0||!S.on)return;
+  const addr=tokenAddr(aid);if(!addr){toast('Token not on this chain');return;}
+  try{
+    const c=ADDR();const gas=await gasOverrides();
+    const w=ethers.parseUnits(amt.toString(),18);
+    const usdc=new ethers.Contract(c.USDC,USDC_ABI,S.sig);
+    const hk=new ethers.Contract(c.Hook,HOOK_ABI,S.sig);
+    // Approve max to avoid JS float vs Solidity integer rounding mismatch
+    toast('Approving USDC...');await(await usdc.approve(c.Hook,ethers.MaxUint256,gas)).wait();
+    toast('Buying listed '+a.ticker+'...');await(await hk.buyListedRwa(addr,w,gas)).wait();
+    await readBalances();await syncOnChainData();
+    log('swap',`<strong>Bought</strong> ${fmt(amt,2)} ${a.ticker} from resale market for ${fmt(cost,2)} USDC`);
+    toast('Bought '+fmt(amt,2)+' '+a.ticker);document.getElementById('resaleBuyAmt').value='';renderAll();
+  }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');}else{console.error(e);toast('Buy failed: '+(e.reason||e.message));}}
+}
+async function rMyListings(){
+  const el=document.getElementById('myListings');if(!el||!S.on)return;
+  const c=ADDR();const rp=getReadProvider();const hk=new ethers.Contract(c.Hook,HOOK_ABI,rp);
+  let html='';
+  for(const a of A){
+    const addr=tokenAddr(a.id);if(!addr)continue;
+    try{
+      const listed=await hk.rwaForSale(S.addr,addr);
+      if(listed>0n){const amt=parseFloat(ethers.formatUnits(listed,18));const raw=listed.toString();
+      html+=`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg-2);border-radius:var(--r-xs);margin-bottom:6px;font-size:11px;">
+        <div><strong>${fmt(amt,2)} ${a.ticker}</strong> <span style="color:var(--text-3);">@ ${fmt(a.price,2)} USDC</span></div>
+        <button class="sw-btn" style="padding:4px 10px;font-size:10px;width:auto;" onclick="doDelistRwa('${a.id}','${raw}')">Delist</button>
+      </div>`;}
+    }catch(e){}
+  }
+  el.innerHTML=html?`<div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.4px;font-weight:600;margin-bottom:6px;">Your Listings</div>`+html:'';
 }
 function uBuy(){
   const aid=document.getElementById('buyAsset').value,amt=parseFloat(document.getElementById('buyAmt').value)||0,a=A.find(x=>x.id===aid);
