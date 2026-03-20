@@ -10,3 +10,5 @@ node_modules/
 *.mp4
 *.pdf
 app/videos/
+CLAUDE.md
+DOBVALIDATOR_ORACLE_PROMPT.md
