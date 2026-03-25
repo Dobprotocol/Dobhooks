@@ -369,7 +369,7 @@
     <div class="hero-glow glow-1"></div>
     <div class="hero-glow glow-2"></div>
     <h1>How <span class="grad">dobdex</span> Works</h1>
-    <p>The complete protocol architecture: from real-world asset tokenization to zero-slippage oracle-pegged swaps, permissionless Liquidity Nodes, shared Pooled LNs, and AI-driven risk management. Seven smart contracts, one unified pipeline.</p>
+    <p>The complete protocol architecture: from real-world asset tokenization to LP-priced secondary sales, permissionless Liquidity Nodes, shared Pooled LNs, and AI-driven risk management. The oracle prices the asset; Liquidity Nodes price the exit. Seven smart contracts, one unified pipeline.</p>
     <div class="toc">
       <a href="#ecosystem">Ecosystem</a>
       <a href="#architecture">Architecture</a>
@@ -444,9 +444,9 @@
           <div style="font-size:11px; font-weight:700; color:var(--accent-light); text-transform:uppercase; letter-spacing:0.5px;">Trade</div>
         </div>
         <h3 style="font-size:18px; font-weight:900; margin-bottom:6px;">Dobdex</h3>
-        <p style="font-size:12px; color:var(--text-2); line-height:1.6; margin-bottom:16px;">Dobprotocol lists the token on the DEX. Users deposit RWA tokens, mint dobRWA, and swap at a 1:1 oracle peg with zero slippage. LPs provide exit liquidity.</p>
+        <p style="font-size:12px; color:var(--text-2); line-height:1.6; margin-bottom:16px;">Dobprotocol lists the token on the DEX. Users deposit RWA tokens, mint dUSDC at oracle price, and sell through Liquidity Nodes who provide exit capital at a discount. Sellers pay the discount; LPs earn discounted RWA tokens.</p>
         <div style="display:flex; flex-direction:column; gap:6px;">
-          <span style="font-family:var(--mono); font-size:10px; background:var(--bg-elevated); border-radius:4px; padding:4px 8px; color:var(--text-3);">1:1 peg swaps</span>
+          <span style="font-family:var(--mono); font-size:10px; background:var(--bg-elevated); border-radius:4px; padding:4px 8px; color:var(--text-3);">LP-priced exits</span>
           <span style="font-family:var(--mono); font-size:10px; background:var(--bg-elevated); border-radius:4px; padding:4px 8px; color:var(--text-3);">Liquidation engine</span>
           <span style="font-family:var(--mono); font-size:10px; background:var(--bg-elevated); border-radius:4px; padding:4px 8px; color:var(--text-3);">Permissionless LPs</span>
         </div>
@@ -511,7 +511,7 @@
           <div class="arch-box" style="border-color: rgba(151,90,255,0.3);">
             <span class="box-label" style="background:var(--accent-dim);color:var(--accent);">DobPegHook</span>
             <h4>Uniswap V4 Hook</h4>
-            <p>NoOp custom accounting: 1:1 peg swaps with optional LP fee on sell. Permissionless USDC pool.</p>
+            <p>NoOp custom accounting: routes sells to Liquidity Nodes who price the exit. Bootstrap reserves as fallback.</p>
           </div>
           <div class="arch-box" style="border-color: rgba(64,192,87,0.3);">
             <span class="box-label" style="background:var(--green-dim);color:var(--green);">DobLPRegistry</span>
@@ -598,7 +598,7 @@
           </div>
         </div>
         <div class="cc-body">
-          The core innovation. A Uniswap V4 <strong>Custom Accounting Hook</strong> that intercepts every swap via <code>beforeSwap</code> and executes it off-AMM at an exact 1:1 oracle-pegged rate. Uses the NoOp pattern: settles output tokens and mints ERC6909 claims for input tokens, creating zero-net deltas. In liquidation mode, applies a penalty discount and routes fills through the LP Registry.
+          The core innovation. A Uniswap V4 <strong>Custom Accounting Hook</strong> that intercepts every swap via <code>beforeSwap</code> and executes it off-AMM using the NoOp pattern: settles output tokens and mints ERC6909 claims for input tokens, creating zero-net deltas. In production, <strong>LP-Only mode</strong> is the default &mdash; all sells are routed to Liquidity Nodes who provide USDC at a discount they set. LPs earn discounted RWA tokens; sellers pay the discount for instant USDC exit. Hook reserves at 1:1 serve as bootstrap/fallback only. In liquidation mode, Dobprotocol sets a penalty rate and LPs fill at that mandated discount.
         </div>
         <div class="cc-funcs">
           <span class="cc-func">_beforeSwap()</span>
@@ -747,9 +747,9 @@
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:32px;">
       <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:20px;">
         <div style="font-size:11px; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Normal Mode</div>
-        <h4 style="font-size:14px; font-weight:800; margin-bottom:6px;">1:1 Peg Swap</h4>
-        <p style="font-size:12px; color:var(--text-2); line-height:1.55; margin-bottom:10px;">Asset is healthy. User sells dobRWA and receives USDC at 1:1 rate (minus optional swap fee). USDC comes from the <strong style="color:var(--text-1);">hook's USDC pool</strong> first. If reserves are insufficient, <strong style="color:var(--green);">Liquidity Nodes fill the shortfall</strong> at their own discount rate (sell fallback). <strong>LP-Only</strong> tokens skip reserves entirely.</p>
-        <div style="font-family:var(--mono); font-size:10px; background:var(--bg-elevated); border-radius:4px; padding:6px 10px; color:var(--green);">Liquidity Nodes: FALLBACK (queryAndFillAtMarket)</div>
+        <h4 style="font-size:14px; font-weight:800; margin-bottom:6px;">LP-Priced Exit</h4>
+        <p style="font-size:12px; color:var(--text-2); line-height:1.55; margin-bottom:10px;">Asset is healthy. User sells dobRWA and receives USDC from <strong style="color:var(--green);">Liquidity Nodes</strong> who charge a discount (<code style="font-family:var(--mono); font-size:10px; color:var(--accent-light);">minPenaltyBps</code>) for providing exit capital. Sellers pay this discount for instant USDC; LPs earn discounted RWA tokens. In production, <strong>LP-Only mode is the default</strong> &mdash; all sells go through LPs. Hook reserves at 1:1 serve as bootstrap/fallback only.</p>
+        <div style="font-family:var(--mono); font-size:10px; background:var(--bg-elevated); border-radius:4px; padding:6px 10px; color:var(--green);">Liquidity Nodes: PRIMARY (queryAndFillAtMarket)</div>
       </div>
       <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:20px;">
         <div style="font-size:11px; font-weight:700; color:var(--red); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Liquidation Mode</div>
@@ -787,9 +787,9 @@
       <div class="flow-step">
         <div class="flow-dot" style="background:var(--green);">3</div>
         <div class="flow-content">
-          <div class="flow-sub" style="color:var(--green);">NoOp Custom Accounting</div>
-          <h3>Hook settles the swap at 1:1 peg</h3>
-          <p>The hook bypasses the AMM entirely. It <strong>settles</strong> USDC from its reserves to the PoolManager (creating a +amountOut delta that cancels the hook's -amountOut obligation) and <strong>mints ERC6909 claims</strong> for the incoming dobRWA (creating a -amountIn delta that cancels the +amountIn obligation). Net deltas = zero. On sell swaps, an optional fee (set by admin) is deducted and accrues to the permissionless LP pool.</p>
+          <div class="flow-sub" style="color:var(--green);">NoOp Custom Accounting &rarr; LP Fill</div>
+          <h3>Hook routes the sell to Liquidity Nodes</h3>
+          <p>The hook bypasses the AMM entirely using the NoOp pattern. In <strong>LP-Only mode</strong> (the production default), the hook routes the sell to Liquidity Nodes via <code>queryAndFillAtMarket</code>. LPs provide USDC at a discount they set (<code>minPenaltyBps</code>), and receive the seller's RWA tokens at that discounted price. The hook <strong>mints ERC6909 claims</strong> for the incoming dobRWA and <strong>settles</strong> the LP-provided USDC to the PoolManager. Net deltas = zero. If LP-Only mode is off, hook reserves can fill at 1:1 as a fallback.</p>
           <div class="code-line">delta = toBeforeSwapDelta(+amountIn, -amountOut)</div>
         </div>
       </div>
@@ -798,8 +798,8 @@
         <div class="flow-dot" style="background:var(--text-1);">4</div>
         <div class="flow-content">
           <div class="flow-sub" style="color:var(--text-2);">Settlement</div>
-          <h3>User receives USDC from hook reserves</h3>
-          <p>The PoolManager adjusts the swapper's deltas (<code>swapDelta - hookDelta</code>), so the user pays dobRWA and receives USDC (minus any swap fee). The hook retains the dobRWA as ERC6909 claims in the PoolManager. No Liquidity Nodes are involved &mdash; the USDC comes from the protocol's seeded reserves and the permissionless LP pool.</p>
+          <h3>Seller receives USDC, LPs receive RWA tokens</h3>
+          <p>The PoolManager adjusts the swapper's deltas (<code>swapDelta - hookDelta</code>), so the seller pays dobRWA and receives USDC minus the LP discount. Liquidity Nodes receive the RWA tokens at the discounted price &mdash; yield-bearing assets they can hold for dividends or resell on the RWA Resale Market. The hook retains the dobRWA as ERC6909 claims in the PoolManager.</p>
         </div>
       </div>
     </div>
@@ -831,8 +831,8 @@
 
       <!-- Normal mode -->
       <div class="liq-label">
-        <h3>Normal Mode (1:1 Peg)</h3>
-        <p>Full value swap with zero slippage &mdash; no liquidation active</p>
+        <h3>Normal Mode (LP-Priced Exit)</h3>
+        <p>Seller pays the LP discount for instant USDC &mdash; no liquidation active</p>
       </div>
       <div class="liq-scenario">
         <div class="liq-box">
@@ -841,10 +841,10 @@
         </div>
         <div class="liq-arrow">
           <span class="arr">&#8594;</span>
-          <span>1:1 PEG</span>
+          <span>-3% LP</span>
         </div>
         <div class="liq-box">
-          <div class="val" style="color:var(--green);">1,000</div>
+          <div class="val" style="color:var(--green);">970</div>
           <div class="lbl">USDC out</div>
         </div>
       </div>

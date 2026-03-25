@@ -3,11 +3,11 @@
 
 ## 1. System Components & Repository Structure
 
-The architecture is split into the **Vault** (handling regulated assets) and the **DEX Hook** (handling liquid trades). The codebase inherits its structure, deployment scripts, and testing utilities directly from the official `uniswapfoundation/v4-template`.
+The architecture is split into the **Vault** (handling regulated assets), the **DEX Hook** (routing swaps through Liquidity Nodes), and the **LP system** (providing exit liquidity). The codebase inherits its structure, deployment scripts, and testing utilities directly from the official `uniswapfoundation/v4-template`.
 
 * **`src/DobRwaVault.sol`:** The central depository. Accepts deposits of ERC-20 RWA tokens, queries the Oracle, and mints `dUSDC` (the protocol's USD-pegged stablecoin).
 * **`src/DobValidatorRegistry.sol`:** The on-chain Oracle updated by Dobprotocol's AI agents. Maps specific RWA contract addresses to validated USD valuations. Includes price change bounds and emergency controls.
-* **`src/DobPegHook.sol`:** The Uniswap V4 Hook. Manages custom accounting to ensure swaps execute exactly at the peg defined by the Vault's collateral. Includes slippage protection, LP pool isolation, and pause mechanism.
+* **`src/DobPegHook.sol`:** The Uniswap V4 Hook. Routes sell swaps through Liquidity Nodes — LPs provide USDC exit liquidity at their chosen discount rate. Uses Custom Accounting (NoOp pattern) to bypass the AMM. Includes slippage protection, LP pool isolation, and pause mechanism.
 * **`src/DobLPRegistry.sol`:** Permissionless LP registry for the Liquidity Node. LPs deposit USDC, back specific assets with conditions, and earn discounted RWA tokens.
 * **`lib/v4-core` & `lib/v4-periphery`:** Standard Uniswap libraries managed via Foundry, providing the `PoolManager` and routing logic.
 
@@ -17,7 +17,7 @@ The hook relies on V4 Custom Accounting (AsyncSwap) to override internal swap lo
 
 * `beforeInitialize: true` (Admin-only pool creation).
 * `beforeAddLiquidity: true` (Admin-only liquidity provision).
-* `beforeSwap: true` (Intercepts swap for Oracle valuation).
+* `beforeSwap: true` (Intercepts swap, routes through Liquidity Nodes).
 * `beforeSwapReturnDelta: true` (Allows hook to return a custom `BeforeSwapDelta`, skipping V3-style math).
 
 ## 3. Execution Path: The Secondary Sale (Atomic Flow)
@@ -28,12 +28,12 @@ Because Uniswap V4 utilizes **Flash Accounting** (EIP-1153 Transient Storage), d
 2. **Valuation:** Vault queries `DobValidatorRegistry` (e.g., Datacenter Token = $100,000).
 3. **Minting:** Vault mints 100,000 `dUSDC` tokens to the user.
 4. **The Hook Intercept:** The Router initiates an exact-input swap on the `PoolManager` to swap 100,000 `dUSDC` for `USDC`.
-5. **Custom Accounting:**
-   * `beforeSwap` triggers.
-   * Hook intercepts the 100,000 `dUSDC`.
-   * Hook returns a `BeforeSwapDelta` to the `PoolManager` indicating exactly 100,000 `USDC` is owed to the user (minus fees).
-   * `PoolManager` skips standard AMM execution.
-6. **Settlement:** User receives USDC (minus swap fee + protocol fee).
+5. **LP-Priced Exit:**
+   * `beforeSwap` triggers. Hook detects a sell (dUSDC → USDC).
+   * With `lpOnlyMode` enabled, the hook routes the entire sell to Liquidity Nodes via `queryAndFillAtMarket()`.
+   * LPs fill the order at their chosen discount rate (e.g., 3% = 97,000 USDC for 100,000 dUSDC).
+   * Hook returns a `BeforeSwapDelta` to the `PoolManager`. AMM execution is skipped.
+6. **Settlement:** User receives USDC (minus swap fee + protocol fee + LP discount). LPs receive discounted dUSDC (convertible to RWA tokens).
 
 ## 4. Risk & Security Parameters
 
@@ -52,7 +52,7 @@ The Liquidity Node is a permissionless LP marketplace where LPs deposit USDC, ba
 
 When a seller swaps dUSDC → USDC and the hook's own USDC reserves are insufficient, the shortfall is routed to LPs via `queryAndFillAtMarket()`. Each LP fills at their own `minPenaltyBps` discount rate in FIFO order. **No distress or protocol activation required** — LPs set standing bids and the system fills automatically when needed.
 
-* Seller gets a blended rate: 1:1 from hook reserves + discounted rate from LPs.
+* Seller gets a blended rate from LPs at their discount. With `lpOnlyMode` (default), all USDC comes from LPs.
 * LPs receive dUSDC (redeemable for underlying RWA tokens) at their chosen discount.
 * The seller passes `abi.encode(rwaTokenAddress, minAmountOut)` as `hookData` to enable LP routing with slippage protection. Legacy format `abi.encode(rwaTokenAddress)` is also supported.
 
@@ -97,7 +97,7 @@ The Liquidity Node (`DobLPRegistry`) is a separate contract with its own USDC po
 
 ## 8. Redeem (dUSDC → USDC)
 
-"Redeem" is functionally a sell swap through the hook (dUSDC → USDC at 1:1 peg). There is no separate `redeem()` function because it would bypass Uniswap V4's Custom Accounting settlement mechanism. On the UI, the "Redeem" tab performs a standard sell swap. Swap and protocol fees apply. On chains without Uniswap V4, `DobDirectSwap` provides the same functionality.
+"Redeem" is functionally a sell swap through the hook (dUSDC → USDC). There is no separate `redeem()` function because it would bypass Uniswap V4's Custom Accounting settlement mechanism. On the UI, the "Redeem" tab performs a standard sell swap routed through Liquidity Nodes. Swap fee, protocol fee, and LP discount apply. On chains without Uniswap V4, `DobDirectSwap` provides the same functionality.
 
 ## 9. RWA Resale Market
 

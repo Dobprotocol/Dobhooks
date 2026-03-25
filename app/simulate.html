@@ -550,7 +550,7 @@
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
       </div>
       <h3>Sell RWA</h3>
-      <p>Deposit RWA tokens into the vault, mint dUSDC, then swap for USDC at oracle peg price.</p>
+      <p>Deposit RWA tokens into the vault, mint dUSDC, then exit to USDC via Liquidity Nodes.</p>
       <span class="scenario-tag tag-blue">SELL FLOW</span>
     </div>
 
@@ -701,7 +701,7 @@
 <section class="cta-section">
   <div class="section-label green fade-up">Explore More</div>
   <h2 class="fade-up" style="font-size:32px;font-weight:900;letter-spacing:-1.5px;margin-bottom:12px;transition-delay:0.1s;">Try DobDex Live</h2>
-  <p class="fade-up" style="font-size:15px;color:var(--text-2);max-width:420px;margin:0 auto;line-height:1.7;transition-delay:0.2s;">Connect your wallet and swap RWA tokens with zero slippage on testnet.</p>
+  <p class="fade-up" style="font-size:15px;color:var(--text-2);max-width:420px;margin:0 auto;line-height:1.7;transition-delay:0.2s;">Connect your wallet and swap RWA tokens on testnet. Sells exit via Liquidity Nodes.</p>
   <div class="cta-links fade-up" style="transition-delay:0.3s;">
     <a href="index.html">Launch App</a>
     <a href="demo.html">Product Demo</a>
@@ -769,16 +769,16 @@ const SCENARIOS = {
         explanation: 'The user grants the hook an allowance to pull dUSDC during the swap. This is required before initiating the Uniswap V4 swap.'
       },
       {
-        title: 'Swap at Peg',
-        description: 'Hook intercepts swap via beforeSwap, settles at 1:1 oracle price. 0.3% fee on sell.',
-        contractCall: 'hook._beforeSwap() → NoOp + returnDelta',
+        title: 'Exit via LP',
+        description: 'Hook routes dUSDC sell to Liquidity Nodes. LP fills at their discount (e.g. 0.3%). Swap fee may also apply.',
+        contractCall: 'hook._beforeSwap() → queryAndFillAtMarket()',
         activeEntities: ['user', 'hook', 'pool'],
         flowFrom: 'user', flowTo: 'hook', flowToken: '100 dUSDC', flowColor: 'var(--accent)',
         balanceChanges: {
           user: { dUSDC: -100, USDC: +99.7 },
           hook: { USDC: -99.7, dUSDC: +100 }
         },
-        explanation: 'The Uniswap V4 PoolManager calls beforeSwap on DobPegHook. The hook returns BeforeSwapDelta to skip the AMM curve entirely. It takes 100 dUSDC from the user and sends 99.7 USDC (after 0.3% fee). Zero slippage — settlement at exact oracle price.'
+        explanation: 'The hook intercepts the sell swap via beforeSwap. Since the hook may lack USDC reserves, it calls queryAndFillAtMarket on the LPRegistry. Liquidity Nodes fill the order at their own discount (minPenaltyBps). The user receives USDC minus LP discount and any swap fee.'
       },
       {
         title: 'Fee Accrues',
@@ -817,7 +817,7 @@ const SCENARIOS = {
       },
       {
         title: 'Swap USDC for dUSDC',
-        description: '100 USDC sent to hook, 100 dUSDC returned at 1:1 peg. No fee on buys.',
+        description: '100 USDC sent to hook, 100 dUSDC returned at 1:1. No fee on buys.',
         contractCall: 'hook._beforeSwap() → 100 USDC in, 100 dUSDC out',
         activeEntities: ['user', 'hook', 'pool'],
         flowFrom: 'user', flowTo: 'hook', flowToken: '100 USDC', flowColor: 'var(--green)',
@@ -825,7 +825,7 @@ const SCENARIOS = {
           user: { USDC: -100, dUSDC: +100 },
           hook: { USDC: +100, dUSDC: -100 }
         },
-        explanation: 'The hook intercepts the buy swap via beforeSwap. It takes 100 USDC from the user and returns 100 dUSDC at exact 1:1 oracle price. No fee is charged on buy direction — only sells pay the 0.3% fee.'
+        explanation: 'The hook intercepts the buy swap via beforeSwap. It takes 100 USDC from the user and returns 100 dUSDC at 1:1. No fee is charged on the buy direction — only sells incur LP discount and swap fees.'
       },
       {
         title: 'Approve dUSDC to Vault',
@@ -846,7 +846,7 @@ const SCENARIOS = {
           user:  { dUSDC: -100, DCT: +100 },
           vault: { DCT: -100 }
         },
-        explanation: 'The vault burns 100 dUSDC and transfers 100 DCT to the user. The buy flow is now complete: the user paid 100 USDC and received 100 DCT at the exact oracle price of $1.00.'
+        explanation: 'The vault burns 100 dUSDC and transfers 100 DCT to the user. The buy flow is now complete: the user paid 100 USDC and received 100 DCT. The vault mints/burns dUSDC at oracle price ($1.00 per DCT).'
       }
     ]
   },

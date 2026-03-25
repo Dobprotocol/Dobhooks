@@ -918,7 +918,7 @@
         </div>
         <div class="sw-info" id="depositDetail" style="display:none;">
           <div class="sw-row"><span>Oracle Price</span><span class="v" id="depositOraclePrice">—</span></div>
-          <div class="sw-row"><span>Route</span><span class="v">DobPegHook (NoOp)</span></div>
+          <div class="sw-row"><span>Route</span><span class="v">DobRwaVault (Mint at Oracle)</span></div>
           <div class="sw-row"><span>Price Impact</span><span class="v" style="color:var(--green)">0%</span></div>
         </div>
         <button class="sw-btn" id="depositBtn" disabled>Select a token</button>
@@ -1052,7 +1052,7 @@
   <div class="ln">
     <div class="ln-top"><h1>Liquidity Node</h1><span class="pill off" id="lpBadge"><i></i> Not Registered</span></div>
     <p style="font-size:12px; color:var(--text-3); margin-bottom:24px; max-width:600px; line-height:1.6;">
-      Liquidity Nodes provide USDC exit liquidity for RWA asset sellers. Choose between the <b>Pooled LN</b> (co-invest with Dobprotocol, earn proportional RWA) or run your own <b>Individual LP</b> with custom conditions per asset.
+      Liquidity Nodes provide USDC exit liquidity for RWA asset sellers at an LP-set discount. Choose between the <b>Pooled LN</b> (co-invest with Dobprotocol, earn proportional RWA) or run your own <b>Individual LP</b> with custom conditions per asset.
     </p>
 
     <!-- ═══ SECTION 1: NETWORK OVERVIEW ═══ -->
@@ -1341,7 +1341,7 @@
     <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:28px;">
       <div class="sw-card"><div class="sw-inner">
         <div class="sw-top"><h2 style="font-size:14px;">Redeem dUSDC → USDC</h2><button class="sw-set">&#9881;</button></div>
-        <div class="sw-peg"><i></i> 1 dUSDC = 1 USDC &middot; DobValidatorRegistry &middot; Zero Slippage</div>
+        <div class="sw-peg"><i></i> dUSDC &rarr; USDC &middot; Liquidity Node exit &middot; LP discount may apply</div>
         <div class="tbox" style="margin-bottom:4px;">
           <div class="tbox-hd"><span>You pay</span><span>Balance: <span class="mx" id="fromBal">0.00</span></span></div>
           <div class="tbox-body">
@@ -1360,9 +1360,9 @@
           <div class="tbox-usd" id="toUsd"></div>
         </div>
         <div class="sw-info" id="swapDetail" style="display:none;">
-          <div class="sw-row"><span>Rate</span><span class="v">1 dUSDC = 1 USDC</span></div>
-          <div class="sw-row"><span>Route</span><span class="v">DobPegHook (NoOp)</span></div>
-          <div class="sw-row"><span>Price Impact</span><span class="v" style="color:var(--green)">0%</span></div>
+          <div class="sw-row"><span>Rate</span><span class="v">1 dUSDC &cong; 1 USDC (LP discount may apply)</span></div>
+          <div class="sw-row"><span>Route</span><span class="v">DobPegHook &rarr; Liquidity Node</span></div>
+          <div class="sw-row"><span>LP Discount</span><span class="v" style="color:var(--amber)">Set by LP</span></div>
           <div class="sw-row" id="swapFeeRow" style="display:none;"><span>Swap Fee</span><span class="v" id="swapFeeVal" style="color:var(--amber)">0%</span></div>
           <div class="sw-row" id="protocolFeeRow" style="display:none;"><span>Protocol Fee</span><span class="v" id="protocolFeeVal" style="color:var(--text-3)">0%</span></div>
           <div class="sw-row" id="slippageRow" style="display:none;"><span>Slippage Tolerance</span><span class="v"><input type="number" id="slippageInput" value="1" min="0.1" max="50" step="0.1" style="width:50px;text-align:right;background:var(--bg-2);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:11px;color:var(--text-1);"/>%</span></div>
@@ -1397,7 +1397,7 @@
       <div class="card-t" style="margin-bottom:14px">Hook Configuration</div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
         <div class="hi"><div class="hi-l">Mechanism</div><div style="font-size:12px;font-weight:600;margin-top:3px">NoOp (Custom Accounting)</div></div>
-        <div class="hi"><div class="hi-l">Peg Rate</div><div style="font-size:12px;font-weight:600;margin-top:3px">1 dUSDC = 1 USDC</div></div>
+        <div class="hi"><div class="hi-l">Buy Rate</div><div style="font-size:12px;font-weight:600;margin-top:3px">1 USDC = 1 dUSDC</div></div>
         <div class="hi"><div class="hi-l">Oracle</div><div style="font-size:12px;font-weight:600;margin-top:3px;color:var(--green)">DobValidatorRegistry</div></div>
         <div class="hi"><div class="hi-l">Max Oracle Delay</div><div style="font-size:12px;font-weight:600;margin-top:3px">24 hours</div></div>
         <div class="hi"><div class="hi-l">Swap Fee (Sell)</div><div style="font-size:12px;font-weight:600;margin-top:3px" id="hookSwapFee">0%</div></div>

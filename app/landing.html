@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DobDex — Zero-Slippage RWA Liquidity Infrastructure</title>
-  <meta name="description" content="The first zero-slippage DEX for tokenized real-world assets. Uniswap V4 Custom Accounting Hook on Unichain. Cross-chain oracle sync via Reactive Network." />
+  <title>DobDex — LP-Priced Exit Liquidity for Real-World Assets</title>
+  <meta name="description" content="LP-priced exit liquidity for tokenized real-world assets. Liquidity Nodes set their own terms. Uniswap V4 Custom Accounting Hook on Unichain. Cross-chain oracle sync via Reactive Network." />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 89 89'><circle cx='44.9' cy='44' r='44' fill='%23597CE9'/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -502,7 +502,7 @@
   <div class="hero-content">
     <div class="hero-badge fade-in"><span class="dot"></span> Live on Unichain &middot; Powered by Reactive Network</div>
     <h1 class="fade-in" style="transition-delay:0.1s">Turn Real Assets Into<br><span class="grad">On-Chain Capital</span></h1>
-    <p class="hero-sub fade-in" style="transition-delay:0.2s">Tokenize real-world assets. Trade them at oracle price with zero slippage. Provide exit liquidity and earn yield from the underlying asset. Powered by Uniswap V4 Custom Accounting &mdash; no AMM curve, no impermanent loss.</p>
+    <p class="hero-sub fade-in" style="transition-delay:0.2s">Tokenize real-world assets. Sell them instantly through Liquidity Nodes who price the exit. LPs set their own discount, conditions, and exposure. Powered by Uniswap V4 Custom Accounting &mdash; no AMM curve, no impermanent loss.</p>
     <div class="hero-btns fade-in" style="transition-delay:0.3s">
       <a class="btn-primary" href="index.html">Launch App</a>
       <a class="btn-secondary" href="demo.html">Watch Demo</a>
@@ -510,7 +510,7 @@
     <div class="hero-stats fade-in" style="transition-delay:0.4s">
       <div class="hero-stat"><div class="val" style="color:var(--accent)">3</div><div class="lbl">Chains Live</div></div>
       <div class="hero-stat"><div class="val" style="color:var(--purple)">10+</div><div class="lbl">RWA Tokens</div></div>
-      <div class="hero-stat"><div class="val" style="color:var(--green)">0%</div><div class="lbl">Slippage</div></div>
+      <div class="hero-stat"><div class="val" style="color:var(--green)">LP</div><div class="lbl">Priced Exits</div></div>
       <div class="hero-stat"><div class="val" style="color:var(--accent)">176</div><div class="lbl">Tests Passing</div></div>
     </div>
   </div>
@@ -545,7 +545,7 @@
       <div class="pipeline-step"><span class="pipeline-num">03</span><div class="pipeline-line"></div></div>
       <h3>Trade</h3>
       <div class="pipeline-product">DobDex</div>
-      <p>Sell tokenized assets at oracle price with zero slippage. Liquidity Nodes provide exit capital and earn discounted RWA tokens. Pooled LN lets anyone co-invest. Built on Uniswap V4.</p>
+      <p>Sell tokenized assets through Liquidity Nodes who price the exit. LPs earn discounted RWA tokens for providing capital. Pooled LN lets anyone co-invest. Built on Uniswap V4.</p>
     </div>
   </div>
 </section>
@@ -565,8 +565,8 @@
       <div class="feat-icon" style="background:var(--accent-dim);">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#597CE9" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       </div>
-      <h3>Zero-Slippage Swaps</h3>
-      <p>Every trade settles at the exact oracle price. No AMM curve, no price impact, no impermanent loss. Uniswap V4 Custom Accounting Hook bypasses the bonding curve entirely.</p>
+      <h3>LP-Priced Exit Liquidity</h3>
+      <p>Sellers pay a market discount to Liquidity Nodes for instant exit. No AMM curve, no impermanent loss. Uniswap V4 Custom Accounting Hook bypasses the bonding curve &mdash; LPs set their own terms.</p>
       <span class="feat-tag" style="background:var(--accent-dim);color:var(--accent);">DobPegHook.sol</span>
     </div>
     <div class="feat-card fade-in" style="transition-delay:0.2s">
@@ -660,7 +660,7 @@
     <div class="how-step">
       <div class="how-num">3</div>
       <h4>Trade on DEX</h4>
-      <p>Swap through Uniswap V4 Hook at 1:1 oracle price. Zero slippage, low fee. Buy or sell RWA tokens with dUSDC.</p>
+      <p>Sell RWA tokens through Liquidity Nodes at a market discount, or buy at oracle price. LPs provide the exit capital and set their own terms.</p>
     </div>
     <div class="how-step">
       <div class="how-num">4</div>
@@ -692,7 +692,7 @@
         <div class="chain-icon" style="background:#FF007A;">U</div>
         <div><h3>Unichain</h3><div class="chain-sub">Uniswap V4 Hooks</div></div>
       </div>
-      <p>DobPegHook deployed on Uniswap's own L2. Native V4 Custom Accounting Hook settles swaps at exact oracle price. 200ms Flashblocks for real-time oracle updates.</p>
+      <p>DobPegHook deployed on Uniswap's own L2. Native V4 Custom Accounting Hook routes sells through Liquidity Nodes. 200ms Flashblocks for real-time oracle updates.</p>
       <span class="chain-tag" style="background:rgba(255,0,122,0.1);color:#FF007A;">6 Contracts</span>
     </div>
     <div class="chain-card fade-in" style="transition-delay:0.25s">
@@ -765,7 +765,7 @@
   <div class="cta-box fade-in">
     <div class="cta-glow"></div>
     <h2>Start Using DobDex</h2>
-    <p>Connect your wallet, deposit RWAs, and experience zero-slippage oracle-pegged swaps on testnet.</p>
+    <p>Connect your wallet, deposit RWAs, and experience LP-priced exit liquidity for real-world assets on testnet.</p>
     <a class="btn-primary" href="index.html" style="position:relative;">Launch App</a>
     <div class="cta-links">
       <a href="demo.html">Interactive Demo</a>
