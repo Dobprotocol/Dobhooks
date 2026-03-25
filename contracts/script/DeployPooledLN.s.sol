@@ -16,14 +16,14 @@ import {MockUSDC} from "../src/RWAFaucet.sol";
 contract DeployPooledLN is Script {
     // ── Existing contracts (from UpgradeUnichain deployment) ──
     // Update these addresses after UpgradeUnichain runs
-    DobLPRegistry constant LP_REGISTRY = DobLPRegistry(0xE77C5957ae8bA5E902E0c038a8d2ea6cbE1763aF);
+    DobLPRegistry constant LP_REGISTRY = DobLPRegistry(0xb00Ee936e85B9e0F2f67bd890D545a0E8FCa404F);
     MockUSDC constant USDC = MockUSDC(0x217f355497A67F5ef82cff105Fb14a84C9A9E071);
 
     // ── RWA Token addresses (Unichain Sepolia) ──
-    address constant DCT = 0xb802B347FBb832d3E3Ee4e35E0A4a5ac4Be1ca49;
-    address constant SFT = 0x0b2f54B1aae1b909b3F452b179f026B8b0bd6837;
-    address constant RET = 0x4A51e0dCc1eB07e8E72B1438c3E1B12C0ACaE0CD;
-    address constant PWG = 0x3f0f8e2c21D7F46FA87db6b69c3E5E3a3A08A11b;
+    address constant DCT = 0x9E1aeb6c2f8f17C372D62ECe44792818d8BFb97a;
+    address constant SFT = 0x1784CD059E11D3d8eBf25b5daaC183614F772bC0;
+    address constant RET = 0xde66Fd2575B92f62b0bcD2F976ea6398C3D06551;
+    address constant PWG = 0x1dcB1e529869173AB35064B45e35B26aEdc1B475;
 
     function run() public {
         uint256 pk = vm.envUint("PRIVATE_KEY");
