@@ -5,9 +5,10 @@
 
 The architecture is split into the **Vault** (handling regulated assets) and the **DEX Hook** (handling liquid trades). The codebase inherits its structure, deployment scripts, and testing utilities directly from the official `uniswapfoundation/v4-template`.
 
-* **`src/DobRwaVault.sol`:** The central depository. Accepts deposits of ERC-3643 tokens, queries the Oracle, and mints `dobRWA`.
-* **`src/DobValidatorRegistry.sol`:** The on-chain Oracle updated by Dobprotocol's AI agents. Maps specific RWA contract addresses to validated USD valuations.
-* **`src/DobPegHook.sol`:** The Uniswap V4 Hook. Manages custom accounting to ensure swaps execute exactly at the peg defined by the Vault's collateral.
+* **`src/DobRwaVault.sol`:** The central depository. Accepts deposits of ERC-20 RWA tokens, queries the Oracle, and mints `dUSDC` (the protocol's USD-pegged stablecoin).
+* **`src/DobValidatorRegistry.sol`:** The on-chain Oracle updated by Dobprotocol's AI agents. Maps specific RWA contract addresses to validated USD valuations. Includes price change bounds and emergency controls.
+* **`src/DobPegHook.sol`:** The Uniswap V4 Hook. Manages custom accounting to ensure swaps execute exactly at the peg defined by the Vault's collateral. Includes slippage protection, LP pool isolation, and pause mechanism.
+* **`src/DobLPRegistry.sol`:** Permissionless LP registry for the Liquidity Node. LPs deposit USDC, back specific assets with conditions, and earn discounted RWA tokens.
 * **`lib/v4-core` & `lib/v4-periphery`:** Standard Uniswap libraries managed via Foundry, providing the `PoolManager` and routing logic.
 
 ## 2. Hook Permissions & Flags (`DobPegHook.sol`)
@@ -15,7 +16,7 @@ The architecture is split into the **Vault** (handling regulated assets) and the
 The hook relies on V4 Custom Accounting (AsyncSwap) to override internal swap logic. Following the `v4-template` deployment patterns, the hook address must be mined with the following flags enabled:
 
 * `beforeInitialize: true` (Admin-only pool creation).
-* `beforeAddLiquidity: true` (Enforces KYC/AML whitelisting for LPs).
+* `beforeAddLiquidity: true` (Admin-only liquidity provision).
 * `beforeSwap: true` (Intercepts swap for Oracle valuation).
 * `beforeSwapReturnDelta: true` (Allows hook to return a custom `BeforeSwapDelta`, skipping V3-style math).
 
@@ -25,21 +26,23 @@ Because Uniswap V4 utilizes **Flash Accounting** (EIP-1153 Transient Storage), d
 
 1. **Deposit:** User sends 1 "Datacenter Token" to `DobRwaVault.sol`.
 2. **Valuation:** Vault queries `DobValidatorRegistry` (e.g., Datacenter Token = $100,000).
-3. **Minting:** Vault mints 100,000 `dobRWA` tokens to the user.
-4. **The Hook Intercept:** The Router initiates an exact-input swap on the `PoolManager` to swap 100,000 `dobRWA` for `USDC`.
-5. **Custom Accounting:** * `beforeSwap` triggers.
-* Hook intercepts the 100,000 `dobRWA`.
-* Hook returns a `BeforeSwapDelta` to the `PoolManager` indicating exactly 100,000 `USDC` is owed to the user.
-* `PoolManager` skips standard AMM execution.
-
-
-6. **Settlement:** User receives 100,000 `USDC`.
+3. **Minting:** Vault mints 100,000 `dUSDC` tokens to the user.
+4. **The Hook Intercept:** The Router initiates an exact-input swap on the `PoolManager` to swap 100,000 `dUSDC` for `USDC`.
+5. **Custom Accounting:**
+   * `beforeSwap` triggers.
+   * Hook intercepts the 100,000 `dUSDC`.
+   * Hook returns a `BeforeSwapDelta` to the `PoolManager` indicating exactly 100,000 `USDC` is owed to the user (minus fees).
+   * `PoolManager` skips standard AMM execution.
+6. **Settlement:** User receives USDC (minus swap fee + protocol fee).
 
 ## 4. Risk & Security Parameters
 
-* **ERC-3643 Compliance Enforcement:** `DobRwaVault` integrates with decentralized identity registries (like ONCHAINID) to reject unauthorized deposits.
-* **Oracle Staleness & Circuit Breakers:** If the `DobValidatorRegistry` price timestamp exceeds `MAX_ORACLE_DELAY`, minting is paused.
-* **Vault Concentration Limits:** The Vault tracks RWA category values. Deposits pushing a single asset class past a max threshold (e.g., >30% TVL) are rejected to maintain index diversification.
+* **Oracle Staleness & Circuit Breakers:** If the `DobValidatorRegistry` price timestamp exceeds `maxOracleDelay`, minting and swaps are paused.
+* **Oracle Price Bounds:** `maxPriceChangeBps` limits how much a price can change per update. `emergencySetPrice()` bypasses the limit for legitimate corrections.
+* **Emergency Pause:** All four core contracts (`DobPegHook`, `DobRwaVault`, `DobValidatorRegistry`, `DobLPRegistry`) have `pause()`/`unpause()` functions to halt operations during incidents.
+* **LP Pool Isolation:** The permissionless LP pool (swap fee yield) is protected from sell drain. Only protocol-seeded reserves and Liquidity Node LP fills cover sell-side swaps.
+* **Slippage Protection:** Sellers can encode `(rwaToken, minAmountOut)` in hookData to revert if the output falls below their minimum.
+* **Admin Rotation:** Hook admin is mutable via `transferAdmin()`. Vault, Registry, and LPRegistry use Solmate's `Owned` with `transferOwnership()`.
 
 ## 5. Liquidity Node
 
@@ -50,8 +53,8 @@ The Liquidity Node is a permissionless LP marketplace where LPs deposit USDC, ba
 When a seller swaps dUSDC → USDC and the hook's own USDC reserves are insufficient, the shortfall is routed to LPs via `queryAndFillAtMarket()`. Each LP fills at their own `minPenaltyBps` discount rate in FIFO order. **No distress or protocol activation required** — LPs set standing bids and the system fills automatically when needed.
 
 * Seller gets a blended rate: 1:1 from hook reserves + discounted rate from LPs.
-* LPs receive dobRWA (redeemable for underlying RWA tokens) at their chosen discount.
-* The seller passes `abi.encode(rwaTokenAddress)` as `hookData` to enable LP routing.
+* LPs receive dUSDC (redeemable for underlying RWA tokens) at their chosen discount.
+* The seller passes `abi.encode(rwaTokenAddress, minAmountOut)` as `hookData` to enable LP routing with slippage protection. Legacy format `abi.encode(rwaTokenAddress)` is also supported.
 
 ### Mode 2: Liquidation (protocol-activated)
 
@@ -68,17 +71,74 @@ The `penaltyBps` is not an arbitrary penalty — it reflects Dobprotocol's AI va
 ### Parameters (set in `DobValidatorRegistry`)
 
 * **`penaltyBps`:** Risk-adjusted discount in basis points (e.g., 2000 = 20% risk). User receives `amountIn × (10000 − penaltyBps) / 10000` USDC.
-* **`cap` (per-asset):** Maximum total `dobRWA` that can be liquidated for a given RWA token.
+* **`cap` (per-asset):** Maximum total `dUSDC` that can be liquidated for a given RWA token.
 * **`globalLiquidationCap`:** Safety-net cap across all assets combined.
 
 ### Discount Destination
 
-The discount portion of `dobRWA` is permanently locked as ERC6909 claims within the hook contract. This effectively removes the tokens from circulation, reducing total `dobRWA` supply and benefiting all remaining holders.
+The discount portion of `dUSDC` is permanently locked as ERC6909 claims within the hook contract. This effectively removes the tokens from circulation, reducing total `dUSDC` supply and benefiting all remaining holders.
 
-### USDC Source
+## 6. USDC Sources & LP Pool Isolation
 
-1. **Hook reserves** (seeded via `seedUsdc()` + permissionless LP pool deposits): used first for 1:1 peg swaps.
-2. **Liquidity Node LPs** (`DobLPRegistry`): fill shortfalls on normal sells at market rates, or fill liquidation swaps at protocol penalty rates.
+The hook holds two separate pools of USDC:
+
+1. **Protocol Reserves** (`protocolReserveUsdc`): Seeded via `seedUsdc()`, replenished via `redeemUsdcClaims()` (converts ERC6909 USDC claims from buy swaps to real USDC), and grows from protocol fees. **This is the only pool used to cover sell swaps.**
+2. **LP Pool** (`totalLpUsdc`): Permissionless USDC deposits via `depositUsdc()`. Grows from swap fees (`swapFeeBps`). **Protected from sell drain — never used to cover swaps.** LPs earn yield from swap fees and can withdraw at any time (after `MIN_LP_DURATION`).
+
+The Liquidity Node (`DobLPRegistry`) is a separate contract with its own USDC pool, used for LP fills on liquidations and sell fallbacks.
+
+## 7. Fee Structure
+
+| Fee | Applied to | Destination | Max |
+|-----|-----------|-------------|-----|
+| `swapFeeBps` | Normal sells, Resale Market buys | LP Pool (`totalLpUsdc`) | 10% (1000 bps) |
+| `protocolFeeBps` | All sells (normal + liquidation), Resale Market buys | Protocol Reserve (`protocolReserveUsdc`) | 5% (500 bps) |
+| `PROTOCOL_FEE_BPS` (1.5%) | LP fills (liquidation + sell fallback) | LPRegistry treasury (`accumulatedFees`) | Fixed 150 bps |
+
+## 8. Redeem (dUSDC → USDC)
+
+"Redeem" is functionally a sell swap through the hook (dUSDC → USDC at 1:1 peg). There is no separate `redeem()` function because it would bypass Uniswap V4's Custom Accounting settlement mechanism. On the UI, the "Redeem" tab performs a standard sell swap. Swap and protocol fees apply. On chains without Uniswap V4, `DobDirectSwap` provides the same functionality.
+
+## 9. RWA Resale Market
+
+LPs (or anyone holding RWA tokens) can list them for sale at oracle price via `listRwaForSale()`. Buyers purchase via `buyListedRwa()`, paying USDC at oracle price + swap fee + protocol fee. Sellers receive USDC directly. FIFO fill order, max 50 sellers per token.
+
+## 10. Three LP Systems
+
+| System | Contract | Risk Profile | Returns |
+|--------|----------|-------------|---------|
+| **LP Pool** (passive) | `DobPegHook.depositUsdc()` | Low — USDC is isolated from sells | Swap fee yield on shares |
+| **Liquidity Node** (individual) | `DobLPRegistry.register()` + `backAsset()` | High — USDC used for fills, exposed to RWA | Discounted RWA tokens from liquidation/sell fills |
+| **Pooled LN** (shared) | `DobPooledLN.deposit()` | High — same as individual LN, but shared | Proportional share of RWA tokens acquired from fills |
+
+## 11. Pooled Liquidity Node (`DobPooledLN.sol`)
+
+The Pooled LN is a shared USDC vault that acts as a single LP position in the `DobLPRegistry`. Managed by an operator (e.g., Dobprotocol), open for anyone to co-invest.
+
+### How It Works
+
+1. **Anyone deposits USDC** into the pooled LN and receives shares proportional to their contribution.
+2. **The operator** (Dobprotocol admin) decides which RWA assets to back and sets the discount rate (`minPenaltyBps`).
+3. **When sells or liquidations occur**, the pooled LN fills them like any other LP in the registry — earning discounted RWA tokens.
+4. **The operator claims** the earned RWA tokens from the registry and **distributes** them to depositors proportionally.
+5. **Depositors withdraw** their RWA tokens (which generate APR via the Token Studio's distribution mechanism).
+
+### Dynamic Discount Updates
+
+The operator can call `updateDiscount(rwaToken, newPenaltyBps)` at any time to change the discount rate for a backed asset. This enables:
+
+* **On-chain data-driven pricing**: Adjust discounts based on oracle price movements, TVL changes, or utilization.
+* **Off-chain data-driven pricing**: A keeper bot updates discounts based on external market data, risk assessments, or AI validator signals.
+* **Manual adjustments**: Operator sets discounts based on strategic decisions.
+
+The underlying `DobLPRegistry.updateConditions()` handles re-sorting the backer array so the cheapest LPs are always filled first.
+
+### Main LN (Dobprotocol-Managed)
+
+Dobprotocol deploys one `DobPooledLN` instance as the **main Liquidity Node** — the default exit liquidity provider for the DEX. Anyone can deposit USDC into this pool and earn a proportional share of all RWA tokens the LN acquires. Since RWA tokens generate APR (via the Token Studio's `DistributionPool`), depositors effectively earn yield from the underlying real-world assets.
+
+### Multiple Strategies
+
+Multiple `DobPooledLN` instances can coexist, each with a different operator and strategy (e.g., "conservative" with high discount requirements, "aggressive" with low discounts). They all register as independent LPs in the same `DobLPRegistry`.
 
 ---
-

@@ -1052,7 +1052,7 @@
   <div class="ln">
     <div class="ln-top"><h1>Liquidity Node</h1><span class="pill off" id="lpBadge"><i></i> Not Registered</span></div>
     <p style="font-size:12px; color:var(--text-3); margin-bottom:24px; max-width:600px; line-height:1.6;">
-      Liquidity Nodes provide USDC exit liquidity for distressed RWA assets. When Dobprotocol triggers a liquidation, your deposited USDC fills orders at a discount — you earn the penalty spread as dUSDC.
+      Liquidity Nodes provide USDC exit liquidity for RWA asset sellers. Choose between the <b>Pooled LN</b> (co-invest with Dobprotocol, earn proportional RWA) or run your own <b>Individual LP</b> with custom conditions per asset.
     </p>
 
     <!-- ═══ SECTION 1: NETWORK OVERVIEW ═══ -->
@@ -1096,11 +1096,76 @@
       </div>
     </div>
 
-    <!-- ═══ SECTION 2: YOUR POSITION ═══ -->
+    <!-- ═══ SECTION 1.5: POOLED LIQUIDITY NODE ═══ -->
+    <div style="margin-bottom:32px;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+        <div style="width:3px; height:18px; border-radius:2px; background:var(--green);"></div>
+        <h2 style="font-size:16px; font-weight:800; letter-spacing:-0.3px;">Pooled Liquidity</h2>
+        <span class="pill ok" style="margin-left:8px; font-size:9px;"><i></i> Main LN</span>
+        <span style="font-size:10px; color:var(--text-3); font-weight:500; margin-left:auto;">DobPooledLN</span>
+      </div>
+
+      <p style="font-size:12px; color:var(--text-3); margin-bottom:16px; max-width:600px; line-height:1.6;">
+        The Main Liquidity Node is managed by Dobprotocol. Deposit USDC to co-invest and earn a proportional share of RWA tokens acquired from sell fills. RWA tokens generate APR via the underlying real-world asset.
+      </p>
+
+      <div class="kpi" style="grid-template-columns:repeat(4,1fr); margin-bottom:16px;">
+        <div class="kpi-box"><div class="kpi-lbl">Pool USDC</div><div class="kpi-val" id="plnTotal">$0</div><div class="kpi-sub">Total deposited</div></div>
+        <div class="kpi-box"><div class="kpi-lbl">Share Price</div><div class="kpi-val" id="plnPrice">$1.00</div><div class="kpi-sub">Per share</div></div>
+        <div class="kpi-box"><div class="kpi-lbl">Your Shares</div><div class="kpi-val" id="plnShares" style="color:var(--green)">0</div><div class="kpi-sub">Your position</div></div>
+        <div class="kpi-box"><div class="kpi-lbl">Assets Backed</div><div class="kpi-val" id="plnBacked">0</div><div class="kpi-sub">By this pool</div></div>
+      </div>
+
+      <div class="row-2" style="margin-bottom:16px;">
+        <div class="card">
+          <div class="card-t">Deposit to Pooled LN</div>
+          <div class="card-d">Deposit USDC into the shared Liquidity Node. You receive shares proportional to your contribution. Minimum <span id="plnMinDep">100</span> USDC.</div>
+          <div class="f"><label class="f-l">USDC Amount</label><input type="number" class="f-i" id="plnDepAmt" placeholder="100" min="0"/></div>
+          <button class="btn btn-b" id="plnDepBtn" disabled onclick="doPooledDeposit()">Deposit USDC</button>
+          <div class="f-h" style="margin-top:8px;">Your shares represent proportional ownership of the pool's assets and future RWA earnings.</div>
+        </div>
+        <div class="card">
+          <div class="card-t">Withdraw & Claim RWA</div>
+          <div class="card-d">Withdraw USDC by burning shares, or claim distributed RWA tokens earned from fills.</div>
+          <div class="f"><label class="f-l">Shares to Withdraw</label><input type="number" class="f-i" id="plnWdShares" placeholder="0" min="0"/></div>
+          <button class="btn btn-o btn-s" id="plnWdBtn" disabled onclick="doPooledWithdraw()" style="width:100%;margin-bottom:12px;">Withdraw USDC</button>
+          <div style="border-top:1px solid var(--border-subtle);padding-top:12px;">
+            <div style="font-size:11px;font-weight:600;margin-bottom:8px;">Claimable RWA Tokens</div>
+            <div id="plnRwaClaims" style="font-size:11px;color:var(--text-3);">Connect wallet to view</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:16px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+          <div class="card-t" style="margin:0;">How the Pooled LN Works</div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;">
+          <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--green);">
+            <div style="font-size:9px; color:var(--green); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">1. Deposit</div>
+            <div style="font-size:11px; color:var(--text-2); line-height:1.5;">Anyone deposits USDC and receives shares proportional to their contribution.</div>
+          </div>
+          <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--accent-soft);">
+            <div style="font-size:9px; color:var(--accent-light); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">2. Operator Backs</div>
+            <div style="font-size:11px; color:var(--text-2); line-height:1.5;">Dobprotocol decides which RWA assets to back and sets dynamic discount rates.</div>
+          </div>
+          <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--blue);">
+            <div style="font-size:9px; color:var(--blue); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">3. Fills Happen</div>
+            <div style="font-size:11px; color:var(--text-2); line-height:1.5;">When sellers exit, the pool fills at a discount — earning RWA tokens at below-market price.</div>
+          </div>
+          <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--amber);">
+            <div style="font-size:9px; color:var(--amber); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">4. Earn RWA</div>
+            <div style="font-size:11px; color:var(--text-2); line-height:1.5;">RWA tokens are distributed to depositors proportionally. These tokens generate APR from the real asset.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ SECTION 2: YOUR POSITION (Individual LP) ═══ -->
     <div>
       <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
         <div style="width:3px; height:18px; border-radius:2px; background:var(--accent);"></div>
-        <h2 style="font-size:16px; font-weight:800; letter-spacing:-0.3px;">Your Position</h2>
+        <h2 style="font-size:16px; font-weight:800; letter-spacing:-0.3px;">Individual LP Position</h2>
         <span class="pill off" id="lpBadge2" style="margin-left:8px;"><i></i> Not Registered</span>
       </div>
 
@@ -1299,6 +1364,8 @@
           <div class="sw-row"><span>Route</span><span class="v">DobPegHook (NoOp)</span></div>
           <div class="sw-row"><span>Price Impact</span><span class="v" style="color:var(--green)">0%</span></div>
           <div class="sw-row" id="swapFeeRow" style="display:none;"><span>Swap Fee</span><span class="v" id="swapFeeVal" style="color:var(--amber)">0%</span></div>
+          <div class="sw-row" id="protocolFeeRow" style="display:none;"><span>Protocol Fee</span><span class="v" id="protocolFeeVal" style="color:var(--text-3)">0%</span></div>
+          <div class="sw-row" id="slippageRow" style="display:none;"><span>Slippage Tolerance</span><span class="v"><input type="number" id="slippageInput" value="1" min="0.1" max="50" step="0.1" style="width:50px;text-align:right;background:var(--bg-2);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:11px;color:var(--text-1);"/>%</span></div>
         </div>
         <button class="sw-btn" id="swapBtn" disabled>Enter an amount</button>
       </div></div>
@@ -1472,6 +1539,7 @@ const CHAINS={
     USDC:"0x217f355497A67F5ef82cff105Fb14a84C9A9E071",Registry:"0x652E5572aF3a879D591a4DD289566bcF28BeA52B",
     Vault:"0x5d38b9bD487D8a0ff7997dB953a68F650B242e00",LPRegistry:"0xE77C5957ae8bA5E902E0c038a8d2ea6cbE1763aF",
     Hook:"0xf49aa3f7160e051813268e6fFD0f51E2909DA888",PoolManager:"0x00B036B58a818B1BC34d502D3fE730Db729e62AC",Router:"0x7DE1d7FA86045A5fA4D42ACb81C54ec9FF6578Fb",
+    PooledLN:"",
     AlertReceiver:"0x7D336CC15A7675EAa717F004B973623F7Db59a4b",
     tokens:{dct:"0x9E1aeb6c2f8f17C372D62ECe44792818d8BFb97a",sft:"0x1784CD059E11D3d8eBf25b5daaC183614F772bC0",
       ret:"0xde66Fd2575B92f62b0bcD2F976ea6398C3D06551",pwg:"0x1dcB1e529869173AB35064B45e35B26aEdc1B475",
@@ -1502,7 +1570,8 @@ const RWA_ABI=["function approve(address,uint256) returns (bool)","function bala
 const ROUTER_ABI=["function swap(bool,uint256,bytes) returns (uint256)"];
 const REG_ABI=["function getPrice(address) view returns (uint256 priceUsd, uint48 updatedAt)","function liquidations(address) view returns (bool enabled, uint16 penaltyBps, uint256 cap, uint256 liquidatedAmount)","function MAX_ORACLE_DELAY() view returns (uint48)"];
 const LP_ABI=["function getAssetBackerCount(address) view returns (uint256)","function getAssetLiquidity(address) view returns (uint256)","function register(uint256)","function depositMore(uint256)","function positions(address) view returns (uint256 usdcDeposited,uint256 usdcAvailable,uint48 registeredAt,bool active)","function backAsset(address,uint256,uint16,uint256,uint256)","function getBacking(address,address) view returns (uint256 minOraclePrice,uint16 minPenaltyBps,uint256 maxExposure,uint256 currentExposure,uint256 usdcAllocated,uint256 usdcUsed,uint48 backedAt,bool active)","function updateConditions(address,uint256,uint16,uint256)","function increaseAllocation(address,uint256)","function stopBacking(address)","function releaseReserve(uint256)","function requestWithdrawal(uint256)","function cancelWithdrawal()","function executeWithdrawal()","function withdrawalRequests(address) view returns (uint256 amount, uint48 requestedAt)","function rwaOwed(address,address) view returns (uint256)","function claimRwaTokens(address,uint256)"];
-const HOOK_ABI=["function swapFeeBps() view returns (uint16)","function totalLpUsdc() view returns (uint256)","function totalShares() view returns (uint256)","function lpShares(address) view returns (uint256)","function sharePrice() view returns (uint256)","function depositUsdc(uint256) returns (uint256)","function withdrawUsdc(uint256) returns (uint256)","function protocolReserveUsdc() view returns (uint256)","function lpOnlyMode(address) view returns (bool)","function listRwaForSale(address,uint256)","function delistRwa(address,uint256)","function buyListedRwa(address,uint256)","function getRwaSellers(address) view returns (address[])","function getRwaSellersCount(address) view returns (uint256)","function totalRwaListed(address) view returns (uint256)","function rwaForSale(address,address) view returns (uint256)"];
+const HOOK_ABI=["function swapFeeBps() view returns (uint16)","function protocolFeeBps() view returns (uint16)","function totalLpUsdc() view returns (uint256)","function totalShares() view returns (uint256)","function lpShares(address) view returns (uint256)","function sharePrice() view returns (uint256)","function depositUsdc(uint256) returns (uint256)","function withdrawUsdc(uint256) returns (uint256)","function protocolReserveUsdc() view returns (uint256)","function lpOnlyMode(address) view returns (bool)","function paused() view returns (bool)","function listRwaForSale(address,uint256)","function delistRwa(address,uint256)","function buyListedRwa(address,uint256)","function getRwaSellers(address) view returns (address[])","function getRwaSellersCount(address) view returns (uint256)","function totalRwaListed(address) view returns (uint256)","function rwaForSale(address,address) view returns (uint256)"];
+const PLN_ABI=["function totalPoolUsdc() view returns (uint256)","function totalShares() view returns (uint256)","function shares(address) view returns (uint256)","function sharePrice() view returns (uint256)","function minDeposit() view returns (uint256)","function backedAssetCount() view returns (uint256)","function paused() view returns (bool)","function deposit(uint256) returns (uint256)","function withdraw(uint256) returns (uint256)","function rwaClaimable(address,address) view returns (uint256)","function withdrawRwa(address,uint256)","function getBacking(address) view returns (uint256 minOraclePrice,uint16 minPenaltyBps,uint256 maxExposure,uint256 currentExposure,uint256 usdcAllocated,uint256 usdcUsed,uint48 backedAt,bool active)"];
 
 // ── Load validated pools from API ──
 async function loadValidatedPools(){
@@ -1628,6 +1697,8 @@ async function syncOnChainData(){
     try{
       const hk=new ethers.Contract(c.Hook,HOOK_ABI,rp);
       S.swapFeeBps=Number(await hk.swapFeeBps());
+      try{S.protocolFeeBps=Number(await hk.protocolFeeBps());}catch(e){S.protocolFeeBps=0;}
+      try{S.hookPaused=await hk.paused();}catch(e){S.hookPaused=false;}
       S.hookLpUsdc=parseFloat(ethers.formatUnits(await hk.totalLpUsdc(),18));
       S.hookLpShares=parseFloat(ethers.formatUnits(await hk.totalShares(),18));
       S.hookSharePrice=parseFloat(ethers.formatUnits(await hk.sharePrice(),18));
@@ -1784,14 +1855,21 @@ function rSwap(){
   else{fi.style.background='var(--blue-dim)';fi.style.color='var(--blue)';fi.textContent='$';fn.textContent='USDC';ti.style.background='var(--accent-dim)';ti.style.color='var(--accent)';ti.textContent='D';tn.textContent='dUSDC';}
   // Show fee row on sell direction if fee > 0
   const feeRow=document.getElementById('swapFeeRow');
+  const pfRow=document.getElementById('protocolFeeRow');
+  const slRow=document.getElementById('slippageRow');
   if(d&&S.swapFeeBps>0){feeRow.style.display='';document.getElementById('swapFeeVal').textContent=(S.swapFeeBps/100).toFixed(1)+'%';}
   else{feeRow.style.display='none';}
+  if(d&&S.protocolFeeBps>0){pfRow.style.display='';document.getElementById('protocolFeeVal').textContent=(S.protocolFeeBps/100).toFixed(1)+'%';}
+  else{pfRow.style.display='none';}
+  slRow.style.display=d?'':'none';
   uSwap();
 }
 function uSwap(){
   const v=parseFloat(document.getElementById('swapInput').value)||0;
   const isSell=(S.dir==='d2u'); // dUSDC -> USDC = sell
-  const fee=isSell&&S.swapFeeBps>0?(v*S.swapFeeBps/10000):0;
+  const swapFee=isSell&&S.swapFeeBps>0?(v*S.swapFeeBps/10000):0;
+  const pFee=isSell&&S.protocolFeeBps>0?((v-swapFee)*S.protocolFeeBps/10000):0;
+  const fee=swapFee+pFee;
   const out=v-fee;
   document.getElementById('swapOutput').value=v>0?fmt(out,2):'';
   const b=document.getElementById('swapBtn'),d=document.getElementById('swapDetail');
@@ -1987,6 +2065,68 @@ function rActivity(){
   list.innerHTML=filtered.map(l=>`<div class="act-item"><span class="act-type ${l.t}">${l.t}</span><span class="act-msg">${l.m}</span><span class="act-time">${l.time}</span></div>`).join('');
 }
 function isUserRejection(e){return e?.code===4001||e?.code==='ACTION_REJECTED'||e?.info?.error?.code===4001||/user rejected|user denied|denied transaction/i.test(e?.message||'');}
+// ── Pooled LN ──
+async function syncPooledLN(){
+  const c=ADDR();if(!c.PooledLN)return;
+  try{
+    const rp=getReadProvider();const pln=new ethers.Contract(c.PooledLN,PLN_ABI,rp);
+    const [total,sp,backed]=await Promise.all([pln.totalPoolUsdc(),pln.sharePrice(),pln.backedAssetCount()]);
+    document.getElementById('plnTotal').textContent=usd(parseFloat(ethers.formatUnits(total,18)));
+    document.getElementById('plnPrice').textContent='$'+parseFloat(ethers.formatUnits(sp,18)).toFixed(4);
+    document.getElementById('plnBacked').textContent=backed.toString();
+    if(S.addr){
+      const sh=await pln.shares(S.addr);
+      document.getElementById('plnShares').textContent=fmt(parseFloat(ethers.formatUnits(sh,18)),2);
+      const enableW=parseFloat(ethers.formatUnits(sh,18))>0;
+      document.getElementById('plnWdBtn').disabled=!enableW;
+      // Check RWA claimables
+      const clDiv=document.getElementById('plnRwaClaims');
+      let clHtml='';
+      for(const a of A){const addr=tokenAddr(a.id);if(!addr)continue;
+        try{const cl=await pln.rwaClaimable(S.addr,addr);const v=parseFloat(ethers.formatUnits(cl,18));
+        if(v>0)clHtml+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border-subtle)"><span>${a.ticker}: ${fmt(v,4)}</span><button class="btn btn-a btn-s" style="padding:4px 10px;font-size:10px" onclick="doPooledClaimRwa('${addr}',${v})">Claim</button></div>`;}catch(e){}
+      }
+      clDiv.innerHTML=clHtml||'<span style="color:var(--text-3)">No RWA tokens to claim</span>';
+    }
+    document.getElementById('plnDepBtn').disabled=!S.addr;
+  }catch(e){console.warn('PooledLN sync:',e.message);}
+}
+async function doPooledDeposit(){
+  const c=ADDR();if(!c.PooledLN||!S.sig)return;
+  const amt=document.getElementById('plnDepAmt').value;if(!amt||parseFloat(amt)<=0)return;
+  const v=ethers.parseUnits(amt,18);
+  try{
+    const usdc=new ethers.Contract(c.USDC,USDC_ABI,S.sig);
+    let tx=await usdc.approve(c.PooledLN,v);await tx.wait();
+    const pln=new ethers.Contract(c.PooledLN,PLN_ABI,S.sig);
+    tx=await pln.deposit(v);await tx.wait();
+    logAct('lp','Deposited '+amt+' USDC to Pooled LN');
+    document.getElementById('plnDepAmt').value='';
+    await syncPooledLN();
+  }catch(e){if(!isUserRejection(e))alert('Pooled deposit failed: '+e.message);}
+}
+async function doPooledWithdraw(){
+  const c=ADDR();if(!c.PooledLN||!S.sig)return;
+  const sh=document.getElementById('plnWdShares').value;if(!sh||parseFloat(sh)<=0)return;
+  const v=ethers.parseUnits(sh,18);
+  try{
+    const pln=new ethers.Contract(c.PooledLN,PLN_ABI,S.sig);
+    const tx=await pln.withdraw(v);await tx.wait();
+    logAct('lp','Withdrew '+sh+' shares from Pooled LN');
+    document.getElementById('plnWdShares').value='';
+    await syncPooledLN();
+  }catch(e){if(!isUserRejection(e))alert('Pooled withdraw failed: '+e.message);}
+}
+async function doPooledClaimRwa(tokenAddr,amount){
+  const c=ADDR();if(!c.PooledLN||!S.sig)return;
+  try{
+    const pln=new ethers.Contract(c.PooledLN,PLN_ABI,S.sig);
+    const v=ethers.parseUnits(amount.toString(),18);
+    const tx=await pln.withdrawRwa(tokenAddr,v);await tx.wait();
+    logAct('lp','Claimed RWA from Pooled LN');
+    await syncPooledLN();
+  }catch(e){if(!isUserRejection(e))alert('Claim failed: '+e.message);}
+}
 // ── Faucet ──
 const FAUCET_ABI=["function faucet()","function balanceOf(address) view returns (uint256)"];
 const FAUCET_COOLDOWN_ABI=["function lastClaim(address) view returns (uint256)"];
@@ -2076,7 +2216,7 @@ async function claimFaucet(id){
   renderAll();
 }
 
-function renderAll(){rSwap();uSwap();rLP();rBk();rFl();rLog();uDep();uBuy();uBtns();rPool();rAssetsFull();rActivity();rReserves();rFaucet();rPosition();rSidebar();}
+function renderAll(){rSwap();uSwap();rLP();rBk();rFl();rLog();uDep();uBuy();uBtns();rPool();rAssetsFull();rActivity();rReserves();rFaucet();rPosition();rSidebar();syncPooledLN();}
 
 // ── Wallet ──
 const SUPPORTED_CHAINS={1301:{hex:'0x515',name:'Unichain Sepolia',rpc:'https://sepolia.unichain.org',currency:{name:'Ether',symbol:'ETH',decimals:18},explorer:'https://sepolia.uniscan.xyz'}};

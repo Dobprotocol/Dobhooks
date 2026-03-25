@@ -1124,4 +1124,99 @@ contract DobLPRegistryTest is BaseTest {
         vm.expectRevert(DobPegHook.InsufficientUsdcReserves.selector);
         hook.withdrawProtocolReserve(reserve);
     }
+
+    /*//////////////////////////////////////////////////////////////
+               LP REGISTRY PAUSE TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testLPRegistryPauseBlocksRegister() public {
+        lpRegistry.pause();
+
+        vm.prank(LP1);
+        vm.expectRevert(DobLPRegistry.ContractPaused.selector);
+        lpRegistry.register(1_000e18);
+    }
+
+    function testLPRegistryPauseBlocksDepositMore() public {
+        vm.prank(LP1);
+        lpRegistry.register(1_000e18);
+
+        lpRegistry.pause();
+
+        vm.prank(LP1);
+        vm.expectRevert(DobLPRegistry.ContractPaused.selector);
+        lpRegistry.depositMore(500e18);
+    }
+
+    function testLPRegistryPauseBlocksBackAsset() public {
+        vm.prank(LP1);
+        lpRegistry.register(1_000e18);
+
+        lpRegistry.pause();
+
+        vm.prank(LP1);
+        vm.expectRevert(DobLPRegistry.ContractPaused.selector);
+        lpRegistry.backAsset(address(rwaToken), 0, 0, 100_000e18, 500e18);
+    }
+
+    function testLPRegistryPauseBlocksWithdrawalRequest() public {
+        vm.prank(LP1);
+        lpRegistry.register(1_000e18);
+
+        lpRegistry.pause();
+
+        vm.prank(LP1);
+        vm.expectRevert(DobLPRegistry.ContractPaused.selector);
+        lpRegistry.requestWithdrawal(500e18);
+    }
+
+    function testLPRegistryUnpauseReenables() public {
+        lpRegistry.pause();
+        lpRegistry.unpause();
+
+        // Should work after unpause
+        vm.prank(LP1);
+        lpRegistry.register(1_000e18);
+        (uint256 deposited,,, bool active) = lpRegistry.positions(LP1);
+        assertEq(deposited, 1_000e18, "Should register after unpause");
+        assertTrue(active, "Should be active");
+    }
+
+    /*//////////////////////////////////////////////////////////////
+            LP REGISTRY MIN DEPOSIT / MIN ALLOCATION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testSetMinDeposit() public {
+        lpRegistry.setMinDeposit(50e18);
+        assertEq(lpRegistry.minDeposit(), 50e18, "Min deposit should be updated");
+    }
+
+    function testSetMinAllocation() public {
+        lpRegistry.setMinAllocation(25e18);
+        assertEq(lpRegistry.minAllocation(), 25e18, "Min allocation should be updated");
+    }
+
+    function testSetMinDepositOnlyOwner() public {
+        vm.prank(LP1);
+        vm.expectRevert("UNAUTHORIZED");
+        lpRegistry.setMinDeposit(50e18);
+    }
+
+    function testSetMinAllocationOnlyOwner() public {
+        vm.prank(LP1);
+        vm.expectRevert("UNAUTHORIZED");
+        lpRegistry.setMinAllocation(25e18);
+    }
+
+    function testLowerMinDepositAllowsSmallRegistration() public {
+        lpRegistry.setMinDeposit(10e18);
+
+        usdcToken.mint(LP1, 10e18);
+        vm.prank(LP1);
+        lpRegistry.register(10e18);
+
+        (uint256 deposited,,, bool active) = lpRegistry.positions(LP1);
+        assertEq(deposited, 10e18, "Should register with lower min");
+        assertTrue(active, "Should be active");
+    }
 }

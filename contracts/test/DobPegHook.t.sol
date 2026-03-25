@@ -682,4 +682,279 @@ contract DobPegHookTest is BaseTest {
         // Should still be just 1 seller in array (not duplicated)
         assertEq(hook.getRwaSellersCount(address(rwaToken)), 1, "Should not duplicate seller");
     }
+
+    /*//////////////////////////////////////////////////////////////
+                     ADMIN TRANSFER TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testTransferAdmin() public {
+        address newAdmin = address(0xABCD);
+        hook.transferAdmin(newAdmin);
+        assertEq(hook.admin(), newAdmin, "Admin should be transferred");
+    }
+
+    function testTransferAdminOnlyAdmin() public {
+        vm.prank(address(0xdead));
+        vm.expectRevert(DobPegHook.OnlyAdmin.selector);
+        hook.transferAdmin(address(0xABCD));
+    }
+
+    function testTransferAdminRevertZeroAddress() public {
+        vm.expectRevert(DobPegHook.ZeroAddress.selector);
+        hook.transferAdmin(address(0));
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        PAUSE TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testPauseBlocksSwaps() public {
+        _depositRwa(1e18);
+        hook.pause();
+
+        vm.expectRevert(); // ContractPaused wrapped by PoolManager
+        _swapDobRwaToUsdc(1000e18, Constants.ZERO_BYTES);
+    }
+
+    function testUnpauseReenablesSwaps() public {
+        _depositRwa(1e18);
+        hook.pause();
+        hook.unpause();
+
+        uint256 usdcBefore = usdcToken.balanceOf(address(this));
+        _swapDobRwaToUsdc(1000e18, Constants.ZERO_BYTES);
+        uint256 usdcAfter = usdcToken.balanceOf(address(this));
+        assertEq(usdcAfter - usdcBefore, 1000e18, "Swap should work after unpause");
+    }
+
+    function testPauseOnlyAdmin() public {
+        vm.prank(address(0xdead));
+        vm.expectRevert(DobPegHook.OnlyAdmin.selector);
+        hook.pause();
+    }
+
+    function testPauseBlocksDeposit() public {
+        hook.pause();
+
+        vm.expectRevert(DobPegHook.ContractPaused.selector);
+        hook.depositUsdc(1000e18);
+    }
+
+    function testPauseBlocksListRwa() public {
+        hook.pause();
+        rwaToken.mint(address(this), 10e18);
+        rwaToken.approve(address(hook), 10e18);
+
+        vm.expectRevert(DobPegHook.ContractPaused.selector);
+        hook.listRwaForSale(address(rwaToken), 10e18);
+    }
+
+    function testPauseBlocksBuyListedRwa() public {
+        // List before pause
+        rwaToken.mint(address(this), 10e18);
+        rwaToken.approve(address(hook), 10e18);
+        hook.listRwaForSale(address(rwaToken), 10e18);
+
+        hook.pause();
+
+        address buyer = address(0xBEEF);
+        usdcToken.mint(buyer, 2_000_000e18);
+        vm.startPrank(buyer);
+        usdcToken.approve(address(hook), type(uint256).max);
+        vm.expectRevert(DobPegHook.ContractPaused.selector);
+        hook.buyListedRwa(address(rwaToken), 1e18);
+        vm.stopPrank();
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                     PROTOCOL FEE TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testSetProtocolFee() public {
+        hook.setProtocolFee(100); // 1%
+        assertEq(hook.protocolFeeBps(), 100, "Protocol fee should be 100 bps");
+    }
+
+    function testSetProtocolFeeOnlyAdmin() public {
+        vm.prank(address(0xdead));
+        vm.expectRevert(DobPegHook.OnlyAdmin.selector);
+        hook.setProtocolFee(100);
+    }
+
+    function testSetProtocolFeeRevertTooHigh() public {
+        vm.expectRevert(DobPegHook.FeeTooHigh.selector);
+        hook.setProtocolFee(501); // >5% max
+    }
+
+    function testProtocolFeeAppliedOnSell() public {
+        hook.setProtocolFee(100); // 1%
+
+        _depositRwa(1e18);
+        uint256 swapAmount = 10_000e18;
+        uint256 usdcBefore = usdcToken.balanceOf(address(this));
+        uint256 reserveBefore = hook.protocolReserveUsdc();
+
+        _swapDobRwaToUsdc(swapAmount, Constants.ZERO_BYTES);
+
+        uint256 usdcAfter = usdcToken.balanceOf(address(this));
+        uint256 reserveAfter = hook.protocolReserveUsdc();
+
+        // Protocol fee = 1% of amountOut (which is 10,000 at 1:1)
+        uint256 expectedFee = (swapAmount * 100) / 10000; // 100 USDC
+        uint256 expectedOut = swapAmount - expectedFee;
+
+        assertEq(usdcAfter - usdcBefore, expectedOut, "Should deduct protocol fee from output");
+        assertEq(reserveAfter - reserveBefore, expectedFee, "Protocol fee should accrue to reserve");
+    }
+
+    function testProtocolFeeAppliedOnResaleBuy() public {
+        hook.setProtocolFee(100); // 1%
+
+        // Seller lists
+        rwaToken.mint(address(this), 1e18);
+        rwaToken.approve(address(hook), 1e18);
+        hook.listRwaForSale(address(rwaToken), 1e18);
+
+        uint256 reserveBefore = hook.protocolReserveUsdc();
+
+        // Buyer
+        address buyer = address(0xBEEF);
+        usdcToken.mint(buyer, 200_000e18);
+        vm.startPrank(buyer);
+        usdcToken.approve(address(hook), type(uint256).max);
+        hook.buyListedRwa(address(rwaToken), 1e18);
+        vm.stopPrank();
+
+        uint256 reserveAfter = hook.protocolReserveUsdc();
+        uint256 usdcCost = (1e18 * RWA_PRICE) / 1e18;
+        uint256 expectedPFee = (usdcCost * 100) / 10000;
+
+        assertEq(reserveAfter - reserveBefore, expectedPFee, "Protocol fee should accrue on resale buy");
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                  SLIPPAGE PROTECTION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testSlippageProtectionPasses() public {
+        _depositRwa(1e18);
+        uint256 swapAmount = 10_000e18;
+
+        // Encode (rwaToken, minAmountOut) — minAmountOut = 9,999 should pass at 1:1
+        bytes memory hookData = abi.encode(address(rwaToken), uint256(9_999e18));
+        uint256 usdcBefore = usdcToken.balanceOf(address(this));
+
+        _swapDobRwaToUsdc(swapAmount, hookData);
+
+        uint256 usdcAfter = usdcToken.balanceOf(address(this));
+        assertEq(usdcAfter - usdcBefore, swapAmount, "Swap should pass slippage check");
+    }
+
+    function testSlippageProtectionReverts() public {
+        hook.setProtocolFee(500); // 5% fee to trigger slippage
+
+        _depositRwa(1e18);
+        uint256 swapAmount = 10_000e18;
+
+        // minAmountOut = 10,000 but fee will reduce to 9,500
+        bytes memory hookData = abi.encode(address(rwaToken), swapAmount);
+
+        vm.expectRevert(); // SlippageExceeded wrapped by PoolManager
+        _swapDobRwaToUsdc(swapAmount, hookData);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+               ORACLE PRICE BOUNDS TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testMaxPriceChangeBounds() public {
+        registry.setMaxPriceChange(1000); // 10% max change
+
+        // Current price is 100,000e18. 10% = 10,000e18 max delta
+        // Set new price within bounds
+        registry.setPrice(address(rwaToken), 109_000e18);
+        (uint256 price,) = registry.getPrice(address(rwaToken));
+        assertEq(price, 109_000e18, "Price should update within bounds");
+    }
+
+    function testMaxPriceChangeRevertsTooLarge() public {
+        registry.setMaxPriceChange(1000); // 10% max change
+
+        // Try to set price 20% higher — should revert
+        vm.expectRevert(DobValidatorRegistry.PriceChangeTooLarge.selector);
+        registry.setPrice(address(rwaToken), 120_001e18);
+    }
+
+    function testEmergencySetPriceBypassesBounds() public {
+        registry.setMaxPriceChange(1000); // 10% max change
+
+        // emergencySetPrice bypasses the limit
+        registry.emergencySetPrice(address(rwaToken), 200_000e18);
+        (uint256 price,) = registry.getPrice(address(rwaToken));
+        assertEq(price, 200_000e18, "Emergency set should bypass bounds");
+    }
+
+    /*//////////////////////////////////////////////////////////////
+              REGISTRY PAUSE TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testRegistryPauseBlocksSetPrice() public {
+        registry.pause();
+        vm.expectRevert(DobValidatorRegistry.ContractPaused.selector);
+        registry.setPrice(address(rwaToken), 50_000e18);
+    }
+
+    function testRegistryPauseBlocksSetLiquidation() public {
+        registry.pause();
+        vm.expectRevert(DobValidatorRegistry.ContractPaused.selector);
+        registry.setLiquidationParams(address(rwaToken), 2000, 500_000e18);
+    }
+
+    function testRegistryUnpause() public {
+        registry.pause();
+        registry.unpause();
+        // Should work after unpause
+        registry.setPrice(address(rwaToken), 90_000e18);
+        (uint256 price,) = registry.getPrice(address(rwaToken));
+        assertEq(price, 90_000e18, "Should update after unpause");
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                  VAULT PAUSE TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testVaultPauseBlocksDeposit() public {
+        vault.pause();
+        vm.expectRevert(DobRwaVault.ContractPaused.selector);
+        vault.deposit(address(rwaToken), 1e18);
+    }
+
+    function testVaultUnpauseAllowsDeposit() public {
+        vault.pause();
+        vault.unpause();
+        // Should work after unpause
+        vault.deposit(address(rwaToken), 1e18);
+        assertGt(ERC20(address(vault)).balanceOf(address(this)), 0, "Should mint after unpause");
+    }
+
+    /*//////////////////////////////////////////////////////////////
+               USDC CLAIM REDEMPTION TESTS
+    //////////////////////////////////////////////////////////////*/
+
+    function testUsdcClaimBalanceView() public view {
+        uint256 bal = hook.usdcClaimBalance();
+        // Before any buys, should be 0
+        assertEq(bal, 0, "No claims initially");
+    }
+
+    function testRedeemUsdcClaimsOnlyAdmin() public {
+        vm.prank(address(0xdead));
+        vm.expectRevert(DobPegHook.OnlyAdmin.selector);
+        hook.redeemUsdcClaims(1000e18);
+    }
+
+    function testRedeemUsdcClaimsRevertZero() public {
+        vm.expectRevert(DobPegHook.ZeroAmount.selector);
+        hook.redeemUsdcClaims(0);
+    }
 }

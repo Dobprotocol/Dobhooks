@@ -502,7 +502,7 @@
   <div class="hero-content">
     <div class="hero-badge fade-in"><span class="dot"></span> Live on Unichain &middot; Powered by Reactive Network</div>
     <h1 class="fade-in" style="transition-delay:0.1s">Zero-Slippage<br><span class="grad">RWA Liquidity</span></h1>
-    <p class="hero-sub fade-in" style="transition-delay:0.2s">The first DEX purpose-built for tokenized real-world assets. Uniswap V4 Custom Accounting Hook settles swaps at exact oracle price. No AMM curve, no slippage, no impermanent loss.</p>
+    <p class="hero-sub fade-in" style="transition-delay:0.2s">For asset owners seeking capital, investors earning real-world yield, and liquidity providers earning from every trade. Uniswap V4 Custom Accounting Hook settles swaps at exact oracle price. No AMM curve, no slippage, no impermanent loss.</p>
     <div class="hero-btns fade-in" style="transition-delay:0.3s">
       <a class="btn-primary" href="index.html">Launch App</a>
       <a class="btn-secondary" href="demo.html">Watch Demo</a>
@@ -625,6 +625,14 @@
       <p>Anti-flash-loan protection, 24h withdrawal timelocks, per-asset and global caps, oracle staleness breaker, ReentrancyGuard on all state changes.</p>
       <span class="feat-tag" style="background:rgba(245,82,82,0.08);color:var(--red);">Built-in Security</span>
     </div>
+    <div class="feat-card fade-in" style="transition-delay:0.55s">
+      <div class="feat-icon" style="background:var(--green-dim);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#40C057" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+      </div>
+      <h3>Pooled Liquidity Node</h3>
+      <p>Co-invest with Dobprotocol in a shared liquidity pool. Earn proportional RWA tokens when the pool fills sell orders. Dynamic discount rates adjusted by AI.</p>
+      <span class="feat-tag" style="background:var(--green-dim);color:var(--green);">Pooled LN</span>
+    </div>
   </div>
 </section>
 
@@ -636,33 +644,33 @@
 <section class="section" id="how">
   <div class="section-label fade-in">Process</div>
   <h2 class="fade-in" style="transition-delay:0.05s">How It Works</h2>
-  <p class="section-sub fade-in" style="transition-delay:0.1s">From real-world asset to on-chain stablecoin in four steps.</p>
+  <p class="section-sub fade-in" style="transition-delay:0.1s">From real-world asset to on-chain yield in five steps.</p>
 
   <div class="how-grid fade-in" style="transition-delay:0.2s">
     <div class="how-step">
       <div class="how-num">1</div>
-      <h4>Deposit RWA</h4>
-      <p>Deposit tokenized assets (DCT, SFT, RET, etc.) into the DobRwaVault at oracle price.</p>
+      <h4>Tokenize RWA Asset</h4>
+      <p>Asset owners register and validate real-world assets through DOBVALIDATOR. Tokenized into ERC-20 participation tokens. Asset owner receives capital.</p>
     </div>
     <div class="how-step">
       <div class="how-num">2</div>
       <h4>Mint dUSDC</h4>
-      <p>Receive dUSDC stablecoin minted 1:1 at the oracle-verified price of your asset.</p>
+      <p>Deposit tokenized RWA into DobRwaVault. Receive dUSDC stablecoin minted 1:1 at the oracle-verified price of your asset.</p>
     </div>
     <div class="how-step">
       <div class="how-num">3</div>
-      <h4>Swap at Peg</h4>
-      <p>Swap through Uniswap V4 Hook at 1:1 oracle price. Zero slippage, low fee on sell direction.</p>
+      <h4>Trade on DEX</h4>
+      <p>Swap through Uniswap V4 Hook at 1:1 oracle price. Zero slippage, low fee. Buy or sell RWA tokens with dUSDC.</p>
     </div>
     <div class="how-step">
       <div class="how-num">4</div>
-      <h4>Redeem or LP</h4>
-      <p>Redeem dUSDC for USDC, provide USDC liquidity to earn swap fees, or back assets to earn discounted RWA tokens.</p>
+      <h4>Provide Exit Liquidity</h4>
+      <p>Join a Pooled Liquidity Node to co-invest with Dobprotocol, or run an Individual LP with custom parameters. Back specific assets with your own conditions.</p>
     </div>
     <div class="how-step">
       <div class="how-num" style="background:var(--purple);">5</div>
-      <h4>Resell RWA</h4>
-      <p>LPs list claimed RWA on the Resale Market at oracle price. Buyers pay USDC directly. Complete exit cycle.</p>
+      <h4>Earn from Fills + RWA APR</h4>
+      <p>LPs earn discounted RWA tokens from sell fills and liquidations. Resell on the secondary market at oracle price, or hold for underlying asset APR.</p>
     </div>
   </div>
 </section>

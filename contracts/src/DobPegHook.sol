@@ -36,7 +36,7 @@ contract DobPegHook is BaseHook, ReentrancyGuard {
     DobRwaVault public immutable vault;
 
     /// @notice Admin address (allowed to initialize pools and seed liquidity).
-    address public immutable admin;
+    address public admin;
 
     /// @notice The USDC token used for settlements.
     ERC20 public immutable usdc;
@@ -68,7 +68,12 @@ contract DobPegHook is BaseHook, ReentrancyGuard {
     mapping(address => uint48) public lpDepositedAt;
 
     /// @notice Swap fee in basis points (e.g. 30 = 0.3%). Applied on sell (dUSDC->USDC).
+    ///         Accrues to the LP pool.
     uint16 public swapFeeBps;
+
+    /// @notice Protocol fee in basis points (e.g. 10 = 0.1%). Applied on sells.
+    ///         Accrues to protocolReserveUsdc (withdrawable by admin).
+    uint16 public protocolFeeBps;
 
     /// @notice Protocol-seeded USDC reserves (separate from LP pool).
     uint256 public protocolReserveUsdc;
@@ -102,6 +107,13 @@ contract DobPegHook is BaseHook, ReentrancyGuard {
     /// @notice rwaToken → LP-only mode (no dUSDC protection, sells only via LP fills).
     mapping(address => bool) public lpOnlyMode;
 
+    /// @notice Emergency pause flag — blocks swaps, deposits, listings.
+    bool public paused;
+
+    /// @dev Transient operation type for unlockCallback multiplexing.
+    ///      1 = LP RWA release, 2 = USDC claim redemption.
+    uint8 private _unlockOp;
+
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -118,7 +130,7 @@ contract DobPegHook is BaseHook, ReentrancyGuard {
         address indexed rwaToken,
         uint256 amountIn,
         uint256 amountOut,
-        uint256 penaltyBurned
+        uint256 penaltyLocked
     );
 
     event LPRegistrySet(address indexed lpRegistry);
@@ -133,6 +145,11 @@ contract DobPegHook is BaseHook, ReentrancyGuard {
     event RwaSold(address indexed buyer, address indexed seller, address indexed rwaToken, uint256 rwaAmount, uint256 usdcAmount);
     event RwaPurchased(address indexed buyer, address indexed rwaToken, uint256 rwaAmount, uint256 usdcCost, uint256 fee);
     event LpOnlyModeSet(address indexed rwaToken, bool enabled);
+    event ProtocolFeeSet(uint16 feeBps);
+    event AdminTransferred(address indexed previousAdmin, address indexed newAdmin);
+    event UsdcClaimsRedeemed(uint256 amount);
+    event Paused(address indexed account);
+    event Unpaused(address indexed account);
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -154,6 +171,9 @@ contract DobPegHook is BaseHook, ReentrancyGuard {
     error NoListingsAvailable();
     error TokenNotApproved();
     error TooManySellers();
+    error ContractPaused();
+    error ZeroAddress();
+    error SlippageExceeded();
 
     /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR
@@ -171,6 +191,32 @@ contract DobPegHook is BaseHook, ReentrancyGuard {
         dobRwa = ERC20(address(_vault));
         registry = _registry;
         admin = _admin;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                          ADMIN MANAGEMENT
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Transfer admin role to a new address.
+    function transferAdmin(address newAdmin) external {
+        if (msg.sender != admin) revert OnlyAdmin();
+        if (newAdmin == address(0)) revert ZeroAddress();
+        emit AdminTransferred(admin, newAdmin);
+        admin = newAdmin;
+    }
+
+    /// @notice Pause the contract. Blocks swaps, deposits, and listings.
+    function pause() external {
+        if (msg.sender != admin) revert OnlyAdmin();
+        paused = true;
+        emit Paused(msg.sender);
+    }
+
+    /// @notice Unpause the contract.
+    function unpause() external {
+        if (msg.sender != admin) revert OnlyAdmin();
+        paused = false;
+        emit Unpaused(msg.sender);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -222,11 +268,12 @@ contract DobPegHook is BaseHook, ReentrancyGuard {
 
     /// @dev Core NoOp swap logic with fee on sell direction (dobRWA->USDC).
     function _beforeSwap(
-        address,
+        address sender,
         PoolKey calldata key,
         SwapParams calldata params,
         bytes calldata hookData
     ) internal override returns (bytes4, BeforeSwapDelta, uint24) {
+        if (paused) revert ContractPaused();
         require(params.amountSpecified < 0, "Only exact-input swaps supported");
 
         uint256 amountIn = uint256(-params.amountSpecified);
@@ -246,10 +293,17 @@ contract DobPegHook is BaseHook, ReentrancyGuard {
 
         uint256 amountOut;
         uint256 penaltyAmount;
+        uint256 minAmountOut;
 
-        if (isDobRwaToUsdc && hookData.length > 0) {
-            address rwaToken = abi.decode(hookData, (address));
+        // ── Parse hookData: extract rwaToken and optional minAmountOut ──
+        address rwaToken;
+        if (isDobRwaToUsdc && hookData.length >= 64) {
+            (rwaToken, minAmountOut) = abi.decode(hookData, (address, uint256));
+        } else if (isDobRwaToUsdc && hookData.length >= 32) {
+            rwaToken = abi.decode(hookData, (address));
+        }
 
+        if (isDobRwaToUsdc && rwaToken != address(0)) {
             (bool enabled, uint16 penaltyBps, uint256 cap, uint256 liquidatedAmount) =
                 registry.getLiquidationParams(rwaToken);
 
@@ -269,7 +323,8 @@ contract DobPegHook is BaseHook, ReentrancyGuard {
                 registry.recordLiquidation(rwaToken, amountIn);
 
                 if (address(lpRegistry) != address(0)) {
-                    (uint256 oraclePrice, ) = registry.getPrice(rwaToken);
+                    (uint256 oraclePrice, uint48 oracleUpdatedAt) = registry.getPrice(rwaToken);
+                    if (block.timestamp - oracleUpdatedAt > vault.maxOracleDelay()) revert OracleStale();
                     (uint256 lpFilled, uint256 lpDobRwa) = lpRegistry.queryAndFill(
                         rwaToken, oraclePrice, penaltyBps, amountOut
                     );
@@ -279,19 +334,27 @@ contract DobPegHook is BaseHook, ReentrancyGuard {
                     emit LPFill(lpFilled, lpDobRwa, amountOut - lpFilled);
                 }
 
-                emit LiquidationSwap(tx.origin, rwaToken, amountIn, amountOut, penaltyAmount);
+                emit LiquidationSwap(sender, rwaToken, amountIn, amountOut, penaltyAmount);
             } else {
                 amountOut = _handleNormalSell(rwaToken, amountIn);
             }
-        } else if (isDobRwaToUsdc && swapFeeBps > 0 && hookData.length == 0) {
-            // Normal sell with fee, no LP routing (no rwaToken specified)
-            uint256 fee = (amountIn * swapFeeBps) / 10000;
-            amountOut = amountIn - fee;
-            totalLpUsdc += fee; // fee accrues to LP pool
+        } else if (isDobRwaToUsdc) {
+            // No rwaToken: simple sell without LP routing
+            amountOut = _handleNormalSell(address(0), amountIn);
         } else {
-            // Normal 1:1 peg swap (buy direction or no fee)
+            // Buy direction: 1:1 peg
             amountOut = amountIn;
         }
+
+        // ── Protocol fee on ALL sells (normal + liquidation) ──
+        if (isDobRwaToUsdc && protocolFeeBps > 0) {
+            uint256 pFee = (amountOut * protocolFeeBps) / 10000;
+            amountOut -= pFee;
+            protocolReserveUsdc += pFee;
+        }
+
+        // ── Slippage protection ──
+        if (minAmountOut > 0 && amountOut < minAmountOut) revert SlippageExceeded();
 
         // ── 1. SETTLE output tokens (hook -> PoolManager) ──
         ERC20 outputToken = ERC20(Currency.unwrap(outputCurrency));
@@ -304,7 +367,7 @@ contract DobPegHook is BaseHook, ReentrancyGuard {
 
         if (penaltyAmount == 0) {
             emit PegSwap(
-                tx.origin,
+                sender,
                 isDobRwaToUsdc,
                 amountIn,
                 amountOut
@@ -319,44 +382,52 @@ contract DobPegHook is BaseHook, ReentrancyGuard {
         return (BaseHook.beforeSwap.selector, delta, 0);
     }
 
-    /// @dev Normal sell path: applies swap fee, checks lpOnlyMode, fills from
-    ///      hook USDC reserves and/or LP fallback.
+    /// @dev Normal sell path: applies swap fee, routes to LPs FIRST (principal
+    ///      investors earn discounts), hook reserves cover any remainder.
+    ///
+    ///      Priority order:
+    ///        1. LP fills (principal investors who backed this asset)
+    ///        2. Hook USDC reserves (protocol safety net)
+    ///
+    ///      LP-only mode skips step 2 entirely — protects dUSDC backing.
     function _handleNormalSell(address rwaToken, uint256 amountIn) internal returns (uint256 amountOut) {
         uint256 fee = swapFeeBps > 0 ? (amountIn * swapFeeBps) / 10000 : 0;
         uint256 idealOut = amountIn - fee;
         if (fee > 0) totalLpUsdc += fee;
 
-        if (lpOnlyMode[rwaToken]) {
-            // LP-only mode: no dUSDC protection, only LP fills
-            if (address(lpRegistry) == address(0)) revert InsufficientLiquidity();
+        // Guard: lpOnlyMode requires an LP registry
+        if (lpOnlyMode[rwaToken] && address(lpRegistry) == address(0)) revert InsufficientLiquidity();
 
-            (uint256 oraclePrice, ) = registry.getPrice(rwaToken);
+        if (address(lpRegistry) != address(0) && rwaToken != address(0)) {
+            // ── LP-FIRST: principal investors fill sells and earn their discount ──
+            // Protect LP pool: only non-LP USDC is available for sell coverage
+            uint256 availableForSells = usdc.balanceOf(address(this)) - totalLpUsdc;
+
+            (uint256 oraclePrice, uint48 updatedAt) = registry.getPrice(rwaToken);
+            if (block.timestamp - updatedAt > vault.maxOracleDelay()) revert OracleStale();
+
             (uint256 lpFilled, uint256 lpDobRwa) = lpRegistry.queryAndFillAtMarket(
                 rwaToken, oraclePrice, idealOut
             );
             if (lpDobRwa > 0) totalLpDobRwaOwed += lpDobRwa;
-            amountOut = lpFilled;
-            if (amountOut == 0) revert InsufficientLiquidity();
-            emit LPFill(lpFilled, lpDobRwa, 0);
-        } else {
-            uint256 hookBalance = usdc.balanceOf(address(this));
 
-            if (hookBalance >= idealOut) {
-                amountOut = idealOut;
-            } else if (address(lpRegistry) != address(0)) {
-                uint256 shortfall = idealOut - hookBalance;
-
-                (uint256 oraclePrice, ) = registry.getPrice(rwaToken);
-                (uint256 lpFilled, uint256 lpDobRwa) = lpRegistry.queryAndFillAtMarket(
-                    rwaToken, oraclePrice, shortfall
-                );
-                if (lpDobRwa > 0) totalLpDobRwaOwed += lpDobRwa;
-                amountOut = hookBalance + lpFilled;
-                if (amountOut == 0) revert InsufficientLiquidity();
-                emit LPFill(lpFilled, lpDobRwa, hookBalance);
+            if (lpOnlyMode[rwaToken]) {
+                // LP-only: no hook reserves allowed, LP must cover everything
+                if (lpFilled == 0) revert InsufficientLiquidity();
+                amountOut = lpFilled;
             } else {
+                // Hook reserves cover whatever LPs didn't fill (LP pool is protected)
+                uint256 remainder = idealOut > lpFilled ? idealOut - lpFilled : 0;
+                if (remainder > availableForSells) revert InsufficientLiquidity();
                 amountOut = idealOut;
             }
+
+            emit LPFill(lpFilled, lpDobRwa, idealOut > lpFilled ? idealOut - lpFilled : 0);
+        } else {
+            // ── No LPs available: hook reserves only (LP pool is protected) ──
+            uint256 availableForSells = usdc.balanceOf(address(this)) - totalLpUsdc;
+            if (availableForSells < idealOut) revert InsufficientLiquidity();
+            amountOut = idealOut;
         }
     }
 
@@ -371,16 +442,39 @@ contract DobPegHook is BaseHook, ReentrancyGuard {
     }
 
     /// @notice Withdraw protocol reserve USDC. Only callable by admin.
+    ///         Cannot withdraw USDC that belongs to the LP pool.
     function withdrawProtocolReserve(uint256 amount) external {
         if (msg.sender != admin) revert OnlyAdmin();
         if (amount == 0) revert ZeroAmount();
         if (amount > protocolReserveUsdc) revert InsufficientUsdcReserves();
-        if (amount > usdc.balanceOf(address(this))) revert InsufficientUsdcReserves();
+        // Protect LP pool: only withdraw from non-LP portion
+        uint256 availableForWithdraw = usdc.balanceOf(address(this)) - totalLpUsdc;
+        if (amount > availableForWithdraw) revert InsufficientUsdcReserves();
 
         protocolReserveUsdc -= amount;
         usdc.safeTransfer(admin, amount);
 
         emit ProtocolReserveWithdrawn(admin, amount);
+    }
+
+    /// @notice Redeem ERC6909 USDC claims (accumulated from buys) back to real USDC.
+    ///         Replenishes hook reserves so sells can be covered.
+    function redeemUsdcClaims(uint256 amount) external {
+        if (msg.sender != admin) revert OnlyAdmin();
+        if (amount == 0) revert ZeroAmount();
+
+        _unlockOp = 2;
+        poolManager.unlock(abi.encode(amount));
+        _unlockOp = 0;
+
+        protocolReserveUsdc += amount;
+
+        emit UsdcClaimsRedeemed(amount);
+    }
+
+    /// @notice Check the hook's ERC6909 USDC claim balance in the PoolManager.
+    function usdcClaimBalance() external view returns (uint256) {
+        return poolManager.balanceOf(address(this), CurrencyLibrary.toId(Currency.wrap(address(usdc))));
     }
 
     /// @notice Check the hook's total USDC balance.
@@ -400,8 +494,17 @@ contract DobPegHook is BaseHook, ReentrancyGuard {
         emit SwapFeeSet(feeBps);
     }
 
+    /// @notice Set the protocol fee (on sells). Max 5%. Accrues to protocolReserveUsdc.
+    function setProtocolFee(uint16 feeBps) external {
+        if (msg.sender != admin) revert OnlyAdmin();
+        if (feeBps > 500) revert FeeTooHigh();
+        protocolFeeBps = feeBps;
+        emit ProtocolFeeSet(feeBps);
+    }
+
     /// @notice Deposit USDC into the LP pool and receive shares.
     function depositUsdc(uint256 amount) external returns (uint256 shares) {
+        if (paused) revert ContractPaused();
         if (amount == 0) revert ZeroAmount();
 
         usdc.safeTransferFrom(msg.sender, address(this), amount);
@@ -481,29 +584,46 @@ contract DobPegHook is BaseHook, ReentrancyGuard {
 
         // Initiate PoolManager unlock to burn ERC6909 claims, take dobRWA,
         // then route through vault.withdraw() to give LP the underlying RWA tokens
+        _unlockOp = 1;
         poolManager.unlock(abi.encode(to, rwaToken, dobRwaAmount));
+        _unlockOp = 0;
 
         emit RwaTokensReleased(to, rwaToken, dobRwaAmount);
     }
 
-    /// @notice Callback from PoolManager during LP claim unlock session.
-    ///         Burns ERC6909 claims, takes dobRWA to this hook, transfers to vault,
-    ///         and calls vault.withdraw() to send RWA tokens to the LP.
+    /// @notice Callback from PoolManager during unlock sessions.
+    ///         Dispatches based on _unlockOp:
+    ///         1 = LP RWA token release (burn dobRWA claims → withdraw RWA from vault)
+    ///         2 = USDC claim redemption (burn USDC claims → take real USDC to hook)
     function unlockCallback(bytes calldata data) external onlyPoolManager returns (bytes memory) {
-        (address to, address rwaToken, uint256 dobRwaAmount) =
-            abi.decode(data, (address, address, uint256));
+        if (_unlockOp == 1) {
+            // ── LP RWA Release ──
+            (address to, address rwaToken, uint256 dobRwaAmount) =
+                abi.decode(data, (address, address, uint256));
 
-        Currency dobRwaCurrency = Currency.wrap(address(vault));
+            Currency dobRwaCurrency = Currency.wrap(address(vault));
 
-        // Burn ERC6909 claims (creates positive delta -- hook "pays")
-        poolManager.burn(address(this), dobRwaCurrency.toId(), dobRwaAmount);
+            // Burn ERC6909 claims (creates positive delta -- hook "pays")
+            poolManager.burn(address(this), dobRwaCurrency.toId(), dobRwaAmount);
 
-        // Take underlying dobRWA tokens to this hook (creates negative delta -- cancels out)
-        poolManager.take(dobRwaCurrency, address(this), dobRwaAmount);
+            // Take underlying dobRWA tokens to this hook (creates negative delta -- cancels out)
+            poolManager.take(dobRwaCurrency, address(this), dobRwaAmount);
 
-        // Transfer dobRWA to vault, then call withdraw to convert to RWA tokens for LP
-        dobRwa.safeTransfer(address(vault), dobRwaAmount);
-        vault.withdraw(rwaToken, dobRwaAmount, to);
+            // Transfer dobRWA to vault, then call withdraw to convert to RWA tokens for LP
+            dobRwa.safeTransfer(address(vault), dobRwaAmount);
+            vault.withdraw(rwaToken, dobRwaAmount, to);
+        } else if (_unlockOp == 2) {
+            // ── USDC Claim Redemption ──
+            uint256 amount = abi.decode(data, (uint256));
+
+            Currency usdcCurrency = Currency.wrap(address(usdc));
+
+            // Burn ERC6909 USDC claims (creates positive delta)
+            poolManager.burn(address(this), usdcCurrency.toId(), amount);
+
+            // Take actual USDC tokens to hook (creates negative delta -- cancels out)
+            poolManager.take(usdcCurrency, address(this), amount);
+        }
 
         return "";
     }
@@ -518,6 +638,7 @@ contract DobPegHook is BaseHook, ReentrancyGuard {
     /// @param rwaToken The RWA token address to sell.
     /// @param amount   The amount of RWA tokens to list.
     function listRwaForSale(address rwaToken, uint256 amount) external nonReentrant {
+        if (paused) revert ContractPaused();
         if (amount == 0) revert ZeroAmount();
         if (!vault.approvedAssets(rwaToken)) revert TokenNotApproved();
 
@@ -560,6 +681,7 @@ contract DobPegHook is BaseHook, ReentrancyGuard {
     /// @param rwaToken  The RWA token to buy.
     /// @param rwaAmount The amount of RWA tokens to purchase.
     function buyListedRwa(address rwaToken, uint256 rwaAmount) external nonReentrant {
+        if (paused) revert ContractPaused();
         if (rwaAmount == 0) revert ZeroAmount();
         if (totalRwaListed[rwaToken] < rwaAmount) revert NoListingsAvailable();
 
@@ -568,10 +690,12 @@ contract DobPegHook is BaseHook, ReentrancyGuard {
         if (block.timestamp - updatedAt > vault.maxOracleDelay()) revert OracleStale();
 
         uint256 usdcCost = (rwaAmount * priceUsd) / 1e18;
-        uint256 fee = swapFeeBps > 0 ? (usdcCost * swapFeeBps) / 10000 : 0;
+        uint256 lpFee = swapFeeBps > 0 ? (usdcCost * swapFeeBps) / 10000 : 0;
+        uint256 pFee = protocolFeeBps > 0 ? (usdcCost * protocolFeeBps) / 10000 : 0;
 
-        usdc.safeTransferFrom(msg.sender, address(this), usdcCost + fee);
-        if (fee > 0) totalLpUsdc += fee;
+        usdc.safeTransferFrom(msg.sender, address(this), usdcCost + lpFee + pFee);
+        if (lpFee > 0) totalLpUsdc += lpFee;
+        if (pFee > 0) protocolReserveUsdc += pFee;
 
         // Fill sellers FIFO and pay them
         _fillRwaSellers(rwaToken, rwaAmount, priceUsd);
@@ -579,7 +703,7 @@ contract DobPegHook is BaseHook, ReentrancyGuard {
         totalRwaListed[rwaToken] -= rwaAmount;
         ERC20(rwaToken).safeTransfer(msg.sender, rwaAmount);
 
-        emit RwaPurchased(msg.sender, rwaToken, rwaAmount, usdcCost, fee);
+        emit RwaPurchased(msg.sender, rwaToken, rwaAmount, usdcCost, lpFee + pFee);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -632,17 +756,18 @@ contract DobPegHook is BaseHook, ReentrancyGuard {
         }
     }
 
-    /// @dev Remove a seller from the _rwaSellers array using swap-and-pop.
+    /// @dev Remove a seller from the _rwaSellers array using shift-left
+    ///      to preserve FIFO order (bounded by MAX_RWA_SELLERS = 50).
     function _removeRwaSeller(address rwaToken, address seller) internal {
         if (!_isSeller[rwaToken][seller]) return;
 
         uint256 index = _sellerIndex[rwaToken][seller];
         uint256 lastIndex = _rwaSellers[rwaToken].length - 1;
 
-        if (index != lastIndex) {
-            address lastSeller = _rwaSellers[rwaToken][lastIndex];
-            _rwaSellers[rwaToken][index] = lastSeller;
-            _sellerIndex[rwaToken][lastSeller] = index;
+        // Shift elements left to maintain FIFO order
+        for (uint256 i = index; i < lastIndex; i++) {
+            _rwaSellers[rwaToken][i] = _rwaSellers[rwaToken][i + 1];
+            _sellerIndex[rwaToken][_rwaSellers[rwaToken][i]] = i;
         }
 
         _rwaSellers[rwaToken].pop();

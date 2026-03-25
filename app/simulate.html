@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DobDex — Protocol Simulator</title>
-  <meta name="description" content="Interactive protocol simulation for DobDex. Step through every mechanism: sell, buy, liquidation, LP lifecycle, LP-only mode, resale market, and LP fallback." />
+  <meta name="description" content="Interactive protocol simulation for DobDex. Step through every mechanism: sell, buy, liquidation, LP lifecycle, LP-only mode, resale market, LP fallback, and pooled liquidity node." />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 89 89'><circle cx='44.9' cy='44' r='44' fill='%23597CE9'/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -237,6 +237,7 @@
     .scenario-card[data-id="E"]::before { background: linear-gradient(90deg, var(--amber), #ffd366); }
     .scenario-card[data-id="F"]::before { background: linear-gradient(90deg, var(--accent), var(--blue)); }
     .scenario-card[data-id="G"]::before { background: linear-gradient(90deg, var(--blue), var(--accent)); }
+    .scenario-card[data-id="H"]::before { background: linear-gradient(90deg, var(--green), #6dd47e); }
 
     /* ═══ SIMULATION AREA ═══ */
     .sim-area {
@@ -605,6 +606,15 @@
       <h3>LP Fallback</h3>
       <p>Hook is low on USDC. Normal sell triggers LP fallback to fill the shortfall amount.</p>
       <span class="scenario-tag tag-blue">FALLBACK</span>
+    </div>
+
+    <div class="scenario-card fade-up" style="transition-delay:0.45s;" data-id="H" onclick="selectScenario('H')">
+      <div class="scenario-icon" style="background:var(--green-dim);">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+      </div>
+      <h3>Pooled LN</h3>
+      <p>Co-invest in Dobprotocol's shared Liquidity Node</p>
+      <span class="scenario-tag tag-green">SHARED LP</span>
     </div>
   </div>
 </section>
@@ -1229,6 +1239,86 @@ const SCENARIOS = {
           user: { USDC: +98.65 }
         },
         explanation: 'The hook combines its own 30 USDC with the 68.65 USDC from the LP fill, totaling 98.65 USDC to the user. The user gets slightly less than the ideal 99.7 due to the LP\'s discount and protocol fee, but the sell succeeds instead of reverting.'
+      }
+    ]
+  },
+
+  H: {
+    name: 'Pooled LN',
+    initialBalances: {
+      user:          { DCT: 0, USDC: 15000, dUSDC: 0 },
+      vault:         { DCT: 5000, USDC: 0, dUSDC: 0 },
+      hook:          { DCT: 0, USDC: 0, dUSDC: 0 },
+      pool:          { DCT: 0, USDC: 0, dUSDC: 0 },
+      'lp-registry': { DCT: 0, USDC: 0, dUSDC: 0 },
+      'lp-wallet':   { DCT: 0, USDC: 0, dUSDC: 0 }
+    },
+    steps: [
+      {
+        title: 'Depositors Fund Pool',
+        description: 'Alice deposits 10,000 USDC, Bob deposits 5,000 USDC into DobPooledLN. They receive shares proportionally.',
+        contractCall: 'pooledLN.deposit(10000e18) → 10000 shares\npooledLN.deposit(5000e18) → 5000 shares',
+        activeEntities: ['user', 'lp-registry'],
+        flowFrom: 'user', flowTo: 'lp-registry', flowToken: '15,000 USDC', flowColor: 'var(--green)',
+        balanceChanges: {
+          user:          { USDC: -15000 },
+          'lp-registry': { USDC: +15000 }
+        },
+        explanation: 'Alice and Bob deposit USDC into the DobPooledLN contract. Alice deposits 10,000 USDC and receives 10,000 shares (66.7%). Bob deposits 5,000 USDC and receives 5,000 shares (33.3%). The pool now holds 15,000 USDC total.'
+      },
+      {
+        title: 'Operator Backs Asset',
+        description: 'Dobprotocol calls pooledLN.backAsset(DCT, 0, 500, 500000e18, 10000e18) — backing DCT with 5% discount.',
+        contractCall: 'pooledLN.backAsset(DCT, minPrice=0, minPenalty=500, maxExposure=500000e18, alloc=10000e18)',
+        activeEntities: ['lp-registry'],
+        flowFrom: null, flowTo: null, flowToken: '', flowColor: 'var(--green)',
+        balanceChanges: {},
+        explanation: 'The operator (Dobprotocol) configures the pooled LN to back DCT with these conditions: minOraclePrice=0 (accept any price), minPenaltyBps=500 (5% minimum discount), maxExposure=500,000 DCT, and 10,000 USDC allocation. This makes the pool eligible to fill DCT sells.'
+      },
+      {
+        title: 'Seller Exits',
+        description: 'A retail investor sells 1,000 dUSDC. Since DCT is in lpOnlyMode, the sell routes to LPs.',
+        contractCall: 'swap(dUSDC→USDC, 1000e18, hookData=DCT) → lpOnlyMode=true',
+        activeEntities: ['user', 'hook', 'lp-registry'],
+        flowFrom: 'user', flowTo: 'hook', flowToken: '1,000 dUSDC', flowColor: 'var(--blue)',
+        balanceChanges: {
+          user: { dUSDC: +1000 },
+          hook: { dUSDC: +1000 }
+        },
+        explanation: 'A retail investor initiates a sell of 1,000 dUSDC backed by DCT. Because DCT has lpOnlyMode enabled, the hook skips its own USDC reserves entirely and routes the full sell amount to the LP registry for fill.'
+      },
+      {
+        title: 'Pool Fills at Discount',
+        description: 'Pooled LN provides 1,000 USDC, receives ~1,053 dUSDC worth of DCT (5% discount). Protocol fee 1.5% deducted.',
+        contractCall: 'lpRegistry.queryAndFillAtMarket(DCT, 1e18, 1000e18) → filled=1000',
+        activeEntities: ['lp-registry', 'lp-wallet', 'hook'],
+        flowFrom: 'lp-registry', flowTo: 'hook', flowToken: '985 USDC net', flowColor: 'var(--green)',
+        balanceChanges: {
+          'lp-registry': { USDC: -1000, DCT: +1053 },
+          hook:          { USDC: +985 }
+        },
+        explanation: 'The pooled LN fills the 1,000 USDC sell order. At a 5% discount, the pool receives ~1,053 dUSDC worth of DCT tokens. A 1.5% protocol fee (15 USDC) is deducted, so 985 USDC net goes to the hook for the seller. The pool now holds DCT as profit.'
+      },
+      {
+        title: 'Claim & Distribute',
+        description: 'Operator calls claimRwaFromRegistry then batchDistributeRwa. Alice gets 66.7% of DCT, Bob gets 33.3%.',
+        contractCall: 'pooledLN.claimRwaFromRegistry(DCT)\npooledLN.batchDistributeRwa(DCT)',
+        activeEntities: ['lp-registry', 'lp-wallet'],
+        flowFrom: 'lp-registry', flowTo: 'lp-wallet', flowToken: '1,053 DCT', flowColor: 'var(--accent)',
+        balanceChanges: {
+          'lp-registry': { DCT: -1053 },
+          'lp-wallet':   { DCT: +1053 }
+        },
+        explanation: 'The operator claims the earned DCT from the LP registry into the pooled contract, then calls batchDistributeRwa to split it pro-rata among depositors. Alice (66.7% shares) receives ~702 DCT. Bob (33.3% shares) receives ~351 DCT. Both profit from the 5% discount.'
+      },
+      {
+        title: 'Earn APR',
+        description: 'Alice and Bob now hold DCT tokens which generate annual yield via the Token Studio\'s DistributionPool.',
+        contractCall: '// DCT.balanceOf(Alice) = 702\n// DCT.balanceOf(Bob) = 351\n// DistributionPool → annual yield',
+        activeEntities: ['lp-wallet'],
+        flowFrom: null, flowTo: null, flowToken: '', flowColor: 'var(--green)',
+        balanceChanges: {},
+        explanation: 'Alice and Bob now hold DCT tokens acquired at a 5% discount. These RWA tokens generate annual yield through the Token Studio\'s DistributionPool — the underlying real-world asset produces returns that are distributed to token holders. The pooled LN strategy compounds: discounted entry + ongoing APR.'
       }
     ]
   }

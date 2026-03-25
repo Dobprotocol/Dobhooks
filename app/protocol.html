@@ -378,6 +378,7 @@
       <a href="#flow">Swap Flow</a>
       <a href="#liquidation">Liquidation</a>
       <a href="#lp">Liquidity Nodes</a>
+      <a href="#pooled-ln">Pooled LN</a>
       <a href="#resale">Resale Market</a>
       <a href="#trust">Trust Flywheel</a>
       <a href="#safety">Safety</a>
@@ -476,7 +477,7 @@
   <section class="section" id="architecture">
     <div class="section-tag" style="background:var(--accent-dim);color:var(--accent-light);">Architecture</div>
     <h2>Dobdex Contracts</h2>
-    <p class="sub">Four smart contracts work together to create a trustless RWA liquidity layer on top of Uniswap V4.</p>
+    <p class="sub">Five smart contracts work together to create a trustless RWA liquidity layer on top of Uniswap V4.</p>
 
     <div class="arch-diagram">
       <!-- Layer 1: User entry -->
@@ -516,6 +517,11 @@
             <span class="box-label" style="background:var(--green-dim);color:var(--green);">DobLPRegistry</span>
             <h4>LP Registry</h4>
             <p>Permissionless LP system with conditional fills and FIFO ordering</p>
+          </div>
+          <div class="arch-box" style="border-color: rgba(151,90,255,0.3);">
+            <span class="box-label" style="background:var(--accent-dim);color:var(--accent);">DobPooledLN</span>
+            <h4>Pooled Liquidity Node</h4>
+            <p>Shared USDC vault &mdash; co-invest as a single LP position in the registry</p>
           </div>
         </div>
 
@@ -623,6 +629,26 @@
           <span class="cc-func">claimRwaTokens()</span>
           <span class="cc-func">listRwaForSale()</span>
           <span class="cc-func">buyListedRwa()</span>
+        </div>
+      </div>
+
+      <div class="contract-card">
+        <div class="cc-header">
+          <div class="cc-icon" style="background:var(--accent-dim);">&#129309;</div>
+          <div>
+            <div class="cc-name">DobPooledLN.sol</div>
+            <div class="cc-role">Shared Liquidity Node</div>
+          </div>
+        </div>
+        <div class="cc-body">
+          Pooled USDC vault that acts as a <strong>single LP position</strong> in DobLPRegistry. Managed by Dobprotocol, open for anyone to co-invest. Depositors receive shares proportional to their contribution. The operator decides which assets to back and dynamically updates discount rates. When fills happen, RWA tokens are distributed proportionally to all depositors.
+        </div>
+        <div class="cc-funcs">
+          <span class="cc-func">deposit()</span>
+          <span class="cc-func">withdraw()</span>
+          <span class="cc-func">updateDiscount()</span>
+          <span class="cc-func">claimRwa()</span>
+          <span class="cc-func">backAsset()</span>
         </div>
       </div>
     </div>
@@ -954,6 +980,60 @@
 
   <hr class="divider">
 
+  <!-- POOLED LIQUIDITY NODE -->
+  <section class="section" id="pooled-ln">
+    <div class="section-tag" style="background:var(--accent-dim);color:var(--accent);">Pooled LN</div>
+    <h2>Pooled Liquidity Node</h2>
+    <p class="sub">A shared vault where anyone deposits USDC to co-invest as a single LP position. Managed by Dobprotocol, powered by the crowd.</p>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px;">
+      <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:24px;">
+        <div style="font-size:11px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">How It Works</div>
+        <h4 style="font-size:15px; font-weight:800; margin-bottom:8px;">Shared USDC Vault</h4>
+        <p style="font-size:12px; color:var(--text-2); line-height:1.6;">The Pooled LN is a <strong>DobPooledLN</strong> contract that holds USDC from multiple depositors. It registers as a single LP in DobLPRegistry. The operator (Dobprotocol) decides which RWA assets to back and sets the discount rates &mdash; depositors simply provide capital and earn proportional returns.</p>
+      </div>
+      <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:24px;">
+        <div style="font-size:11px; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Share-Based</div>
+        <h4 style="font-size:15px; font-weight:800; margin-bottom:8px;">Proportional Distribution</h4>
+        <p style="font-size:12px; color:var(--text-2); line-height:1.6;">When depositors add USDC they receive <strong>shares</strong> proportional to their contribution. When LP fills occur and RWA tokens are received, they are distributed proportionally to all shareholders. RWA tokens generate APR via the Token Studio's <strong>DistributionPool</strong>.</p>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:24px;">
+      <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:20px; text-align:center;">
+        <div style="width:40px; height:40px; border-radius:10px; background:var(--accent-dim); display:flex; align-items:center; justify-content:center; font-size:18px; margin:0 auto 12px;">&#128176;</div>
+        <h4 style="font-size:13px; font-weight:800; margin-bottom:4px;">Share-Based Deposits</h4>
+        <p style="font-size:11px; color:var(--text-2); line-height:1.5;">Deposit USDC, receive shares. Withdraw anytime based on your share of the pool.</p>
+      </div>
+      <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:20px; text-align:center;">
+        <div style="width:40px; height:40px; border-radius:10px; background:var(--green-dim); display:flex; align-items:center; justify-content:center; font-size:18px; margin:0 auto 12px;">&#128200;</div>
+        <h4 style="font-size:13px; font-weight:800; margin-bottom:4px;">Dynamic Discounts</h4>
+        <p style="font-size:11px; color:var(--text-2); line-height:1.5;">Operator updates discount rates based on on-chain or off-chain data. No depositor action needed.</p>
+      </div>
+      <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:20px; text-align:center;">
+        <div style="width:40px; height:40px; border-radius:10px; background:var(--blue-dim); display:flex; align-items:center; justify-content:center; font-size:18px; margin:0 auto 12px;">&#127760;</div>
+        <h4 style="font-size:13px; font-weight:800; margin-bottom:4px;">Multiple Strategies</h4>
+        <p style="font-size:11px; color:var(--text-2); line-height:1.5;">Multiple DobPooledLN instances can exist with different risk profiles, asset preferences, and discount strategies.</p>
+      </div>
+    </div>
+
+    <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:24px;">
+      <h4 style="font-size:14px; font-weight:800; margin-bottom:12px;">Pooled LN vs Individual LP</h4>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+        <div style="background:var(--bg-elevated); border-radius:8px; padding:14px; border-left:3px solid var(--accent);">
+          <div style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:6px;">Pooled LN (DobPooledLN)</div>
+          <div style="font-size:12px; color:var(--text-2); line-height:1.55;">Deposit USDC and let the operator manage everything. No need to choose assets, set parameters, or monitor conditions. Ideal for passive co-investors.</div>
+        </div>
+        <div style="background:var(--bg-elevated); border-radius:8px; padding:14px; border-left:3px solid var(--green);">
+          <div style="font-size:12px; font-weight:700; color:var(--green); margin-bottom:6px;">Individual LP (DobLPRegistry)</div>
+          <div style="font-size:12px; color:var(--text-2); line-height:1.55;">Full control. Register directly, choose assets to back, set your own minPenaltyBps, minOraclePrice, and maxExposure. Ideal for sophisticated LPs and AI agents.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
   <!-- RWA RESALE MARKET -->
   <section class="section" id="resale">
     <div class="section-tag" style="background:var(--accent-dim);color:var(--accent);">Resale Market</div>
@@ -1079,6 +1159,30 @@
         <p>When an LP exits a distressed asset, 33% of their unused allocation is held as a reserve. This ensures liquidity is always available during crisis. The reserve unlocks when the asset returns to healthy or after 7 days.</p>
         <div class="s-val">RESERVE_BPS: 3300 &bull; RESERVE_DELAY: 7 days</div>
       </div>
+      <div class="safety-card">
+        <div class="s-icon" style="background:var(--red-dim);">&#9208;</div>
+        <h4>Emergency Pause</h4>
+        <p>All core contracts (Hook, Vault, LPRegistry, ValidatorRegistry) implement pause/unpause. Admin can halt all operations instantly in case of a security incident.</p>
+        <div class="s-val">pause() / unpause()</div>
+      </div>
+      <div class="safety-card">
+        <div class="s-icon" style="background:var(--warning-dim);">&#128200;</div>
+        <h4>Oracle Price Bounds</h4>
+        <p>The <code style="font-size:11px;">maxPriceChangeBps</code> parameter limits how much the oracle price can change in a single update, preventing drastic manipulation or erroneous price feeds.</p>
+        <div class="s-val">maxPriceChangeBps in Registry</div>
+      </div>
+      <div class="safety-card">
+        <div class="s-icon" style="background:var(--green-dim);">&#128737;</div>
+        <h4>Slippage Protection</h4>
+        <p>Sellers can encode a <code style="font-size:11px;">minAmountOut</code> in the swap hookData. The hook reverts the transaction if the output falls below the seller's specified minimum.</p>
+        <div class="s-val">minAmountOut in hookData</div>
+      </div>
+      <div class="safety-card">
+        <div class="s-icon" style="background:var(--blue-dim);">&#128273;</div>
+        <h4>Admin Transfer</h4>
+        <p>The hook admin role is transferable. Enables secure handoff of protocol governance without redeployment.</p>
+        <div class="s-val">transferAdmin()</div>
+      </div>
     </div>
   </section>
 
@@ -1090,7 +1194,7 @@
       <span><strong style="color:var(--text-2)">dob</strong>dex</span>
     </div>
     <div class="ftags">
-      <span>DobPegHook</span><span>DobRwaVault</span><span>DobValidatorRegistry</span><span>DobLPRegistry</span>
+      <span>DobPegHook</span><span>DobRwaVault</span><span>DobValidatorRegistry</span><span>DobLPRegistry</span><span>DobPooledLN</span>
     </div>
   </footer>
 

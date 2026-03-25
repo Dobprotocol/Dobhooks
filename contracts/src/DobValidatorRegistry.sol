@@ -46,8 +46,12 @@ contract DobValidatorRegistry is Owned {
     /// @notice The authorized hook address that can record liquidations.
     address public hook;
 
-    /// @notice RWA token address → LP-only mode (sells only via LP fills, no dUSDC protection).
-    mapping(address => bool) public lpOnlyMode;
+    /// @notice Maximum allowed price change per update in basis points (e.g. 5000 = 50%).
+    ///         0 = no limit (default for first price set).
+    uint16 public maxPriceChangeBps;
+
+    /// @notice Emergency pause flag.
+    bool public paused;
 
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
@@ -59,7 +63,9 @@ contract DobValidatorRegistry is Owned {
     event LiquidationRecorded(address indexed token, uint256 amount, uint256 totalLiquidated);
     event GlobalLiquidationCapSet(uint256 cap);
     event HookSet(address indexed hook);
-    event LpOnlyModeSet(address indexed token, bool enabled);
+    event MaxPriceChangeSet(uint16 maxBps);
+    event Paused(address indexed account);
+    event Unpaused(address indexed account);
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -70,6 +76,8 @@ contract DobValidatorRegistry is Owned {
     error InvalidPenalty();
     error ZeroCap();
     error OnlyHook();
+    error PriceChangeTooLarge();
+    error ContractPaused();
 
     /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR
@@ -85,7 +93,16 @@ contract DobValidatorRegistry is Owned {
     /// @param token The ERC-20 address of the RWA token.
     /// @param priceUsd The 18-decimal USD price per 1e18 base units of `token`.
     function setPrice(address token, uint256 priceUsd) external onlyOwner {
+        if (paused) revert ContractPaused();
         if (priceUsd == 0) revert ZeroPrice();
+
+        // Enforce max price change if a previous price exists and limit is set
+        uint256 oldPrice = prices[token].priceUsd;
+        if (oldPrice > 0 && maxPriceChangeBps > 0) {
+            uint256 maxDelta = (oldPrice * maxPriceChangeBps) / 10000;
+            uint256 delta = priceUsd > oldPrice ? priceUsd - oldPrice : oldPrice - priceUsd;
+            if (delta > maxDelta) revert PriceChangeTooLarge();
+        }
 
         prices[token] = PriceData({priceUsd: priceUsd, updatedAt: uint48(block.timestamp)});
 
@@ -116,6 +133,7 @@ contract DobValidatorRegistry is Owned {
     /// @param penaltyBps Penalty in basis points (1-10000). E.g., 2000 = 20% penalty.
     /// @param cap        Maximum dobRWA amount that can be liquidated for this asset.
     function setLiquidationParams(address token, uint16 penaltyBps, uint256 cap) external onlyOwner {
+        if (paused) revert ContractPaused();
         if (penaltyBps == 0 || penaltyBps > 10000) revert InvalidPenalty();
         if (cap == 0) revert ZeroCap();
 
@@ -130,8 +148,14 @@ contract DobValidatorRegistry is Owned {
     }
 
     /// @notice Disable liquidation mode for an RWA token.
+    ///         Resets the per-asset liquidated counter so a future re-enable starts fresh.
     function disableLiquidation(address token) external onlyOwner {
+        uint256 liquidatedBefore = liquidations[token].liquidatedAmount;
+        if (liquidatedBefore > 0) {
+            globalLiquidatedAmount -= liquidatedBefore;
+        }
         liquidations[token].enabled = false;
+        liquidations[token].liquidatedAmount = 0;
         emit LiquidationDisabled(token);
     }
 
@@ -143,13 +167,31 @@ contract DobValidatorRegistry is Owned {
         emit GlobalLiquidationCapSet(cap);
     }
 
-    /// @notice Enable or disable LP-only mode for an RWA token.
-    ///         When enabled, sells skip hook USDC reserves and only fill from LPs.
-    /// @param token   The RWA token address.
-    /// @param enabled True to enable LP-only mode.
-    function setLpOnlyMode(address token, bool enabled) external onlyOwner {
-        lpOnlyMode[token] = enabled;
-        emit LpOnlyModeSet(token, enabled);
+    /// @notice Set the maximum allowed price change per update.
+    /// @param maxBps Maximum change in basis points (e.g. 5000 = 50%). 0 = no limit.
+    function setMaxPriceChange(uint16 maxBps) external onlyOwner {
+        maxPriceChangeBps = maxBps;
+        emit MaxPriceChangeSet(maxBps);
+    }
+
+    /// @notice Emergency price set that bypasses the maxPriceChangeBps limit.
+    ///         Use only when a legitimate large price correction is needed.
+    function emergencySetPrice(address token, uint256 priceUsd) external onlyOwner {
+        if (priceUsd == 0) revert ZeroPrice();
+        prices[token] = PriceData({priceUsd: priceUsd, updatedAt: uint48(block.timestamp)});
+        emit PriceUpdated(token, priceUsd, uint48(block.timestamp));
+    }
+
+    /// @notice Pause the contract.
+    function pause() external onlyOwner {
+        paused = true;
+        emit Paused(msg.sender);
+    }
+
+    /// @notice Unpause the contract.
+    function unpause() external onlyOwner {
+        paused = false;
+        emit Unpaused(msg.sender);
     }
 
     /// @notice Record a liquidation event. Only callable by the authorized hook.

@@ -10,7 +10,7 @@ import {DobValidatorRegistry} from "./DobValidatorRegistry.sol";
 /// @title DobRwaVault
 /// @notice Central RWA depository. Accepts deposits of approved ERC-20 RWA tokens,
 ///         queries the DobValidatorRegistry oracle for a USD valuation, and mints
-///         `dobRWA` — a unified, highly liquid receipt token — to the depositor.
+///         `dUSDC` — the protocol's USD-pegged stablecoin — to the depositor.
 contract DobRwaVault is ERC20, Owned {
     using SafeTransferLib for ERC20;
 
@@ -30,6 +30,9 @@ contract DobRwaVault is ERC20, Owned {
     /// @notice The authorized hook address that can burn dobRWA during liquidations.
     address public hook;
 
+    /// @notice Emergency pause flag.
+    bool public paused;
+
     /*//////////////////////////////////////////////////////////////
                                 EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -40,6 +43,8 @@ contract DobRwaVault is ERC20, Owned {
     event Withdrawn(address indexed to, address indexed rwaToken, uint256 dobRwaAmount, uint256 rwaAmount);
     event DobRwaBurned(address indexed from, uint256 amount);
     event HookSet(address indexed hook);
+    event Paused(address indexed account);
+    event Unpaused(address indexed account);
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -50,6 +55,7 @@ contract DobRwaVault is ERC20, Owned {
     error ZeroAmount();
     error OnlyHook();
     error InsufficientRwaBalance();
+    error ContractPaused();
 
     /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR
@@ -59,7 +65,7 @@ contract DobRwaVault is ERC20, Owned {
     /// @param _maxDelay Maximum staleness window (seconds) for oracle prices.
     /// @param _owner   Protocol admin.
     constructor(address _oracle, uint48 _maxDelay, address _owner)
-        ERC20("Dobprotocol RWA Index", "dobRWA", 18)
+        ERC20("Dobprotocol USD Coin", "dUSDC", 18)
         Owned(_owner)
     {
         oracle = DobValidatorRegistry(_oracle);
@@ -88,6 +94,18 @@ contract DobRwaVault is ERC20, Owned {
         emit HookSet(_hook);
     }
 
+    /// @notice Pause the contract.
+    function pause() external onlyOwner {
+        paused = true;
+        emit Paused(msg.sender);
+    }
+
+    /// @notice Unpause the contract.
+    function unpause() external onlyOwner {
+        paused = false;
+        emit Unpaused(msg.sender);
+    }
+
     /// @notice Burn dobRWA tokens. Only callable by the authorized hook
     ///         during liquidation swaps to destroy the penalty portion.
     /// @param from   Address to burn from (must have approved or be msg.sender).
@@ -108,6 +126,7 @@ contract DobRwaVault is ERC20, Owned {
     /// @param amount   The amount of `rwaToken` to deposit (18-decimal).
     /// @return mintAmount The amount of `dobRWA` minted to the caller.
     function deposit(address rwaToken, uint256 amount) external returns (uint256 mintAmount) {
+        if (paused) revert ContractPaused();
         if (amount == 0) revert ZeroAmount();
         if (!approvedAssets[rwaToken]) revert AssetNotApproved();
 
@@ -140,6 +159,7 @@ contract DobRwaVault is ERC20, Owned {
     /// @param to          The address to receive the RWA tokens.
     /// @return rwaAmount  The amount of RWA tokens sent to `to`.
     function withdraw(address rwaToken, uint256 dobRwaAmount, address to) external returns (uint256 rwaAmount) {
+        if (paused) revert ContractPaused();
         if (msg.sender != hook) revert OnlyHook();
         if (dobRwaAmount == 0) revert ZeroAmount();
         if (!approvedAssets[rwaToken]) revert AssetNotApproved();

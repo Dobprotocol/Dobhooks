@@ -63,8 +63,6 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
                               CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    uint256 public constant MIN_DEPOSIT = 100e18;
-    uint256 public constant MIN_ALLOCATION = 50e18;
     uint48  public constant WITHDRAWAL_DELAY = 24 hours;
     uint48  public constant MIN_BACKING_AGE = 1 hours;
     uint8   public constant MAX_BACKERS_PER_ASSET = 50;
@@ -79,6 +77,15 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
     ERC20 public immutable usdc;
     IDobValidatorRegistryLP public registry;
     address public hook;
+
+    /// @notice Configurable minimum deposit (supports different USDC decimals).
+    uint256 public minDeposit;
+
+    /// @notice Configurable minimum allocation per asset.
+    uint256 public minAllocation;
+
+    /// @notice Emergency pause flag.
+    bool public paused;
 
     /// @notice Protocol treasury address that receives fees from LP fills.
     address public protocolTreasury;
@@ -142,6 +149,10 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
     event ReserveHeld(address indexed lp, address indexed rwaToken, uint256 amount);
     event ReserveReleased(address indexed lp, uint256 amount, uint256 holdIndex);
     event ProtocolFeeWithdrawn(address indexed to, uint256 amount);
+    event MinDepositSet(uint256 amount);
+    event MinAllocationSet(uint256 amount);
+    event Paused(address indexed account);
+    event Unpaused(address indexed account);
 
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
@@ -164,6 +175,7 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
     error ZeroAmount();
     error ReserveStillLocked();
     error InvalidHoldIndex();
+    error ContractPaused();
 
     /*//////////////////////////////////////////////////////////////
                              CONSTRUCTOR
@@ -171,6 +183,8 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
 
     constructor(address _usdc, address _owner) Owned(_owner) {
         usdc = ERC20(_usdc);
+        minDeposit = 100e18;
+        minAllocation = 50e18;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -191,6 +205,30 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
         emit TreasurySet(_treasury);
     }
 
+    /// @notice Set the minimum deposit amount (for USDC decimal compatibility).
+    function setMinDeposit(uint256 amount) external onlyOwner {
+        minDeposit = amount;
+        emit MinDepositSet(amount);
+    }
+
+    /// @notice Set the minimum allocation per asset.
+    function setMinAllocation(uint256 amount) external onlyOwner {
+        minAllocation = amount;
+        emit MinAllocationSet(amount);
+    }
+
+    /// @notice Pause the contract.
+    function pause() external onlyOwner {
+        paused = true;
+        emit Paused(msg.sender);
+    }
+
+    /// @notice Unpause the contract.
+    function unpause() external onlyOwner {
+        paused = false;
+        emit Unpaused(msg.sender);
+    }
+
     /// @notice Withdraw accumulated protocol fees to the treasury.
     function withdrawFees() external nonReentrant onlyOwner {
         uint256 fees = accumulatedFees;
@@ -209,7 +247,8 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
 
     /// @notice Register as an LP by depositing USDC.
     function register(uint256 amount) external nonReentrant {
-        if (amount < MIN_DEPOSIT) revert BelowMinDeposit();
+        if (paused) revert ContractPaused();
+        if (amount < minDeposit) revert BelowMinDeposit();
         if (positions[msg.sender].active) revert AlreadyRegistered();
 
         usdc.safeTransferFrom(msg.sender, address(this), amount);
@@ -226,6 +265,7 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
 
     /// @notice Deposit additional USDC to an existing LP position.
     function depositMore(uint256 amount) external nonReentrant {
+        if (paused) revert ContractPaused();
         if (!positions[msg.sender].active) revert NotRegistered();
         if (amount == 0) revert ZeroAmount();
 
@@ -254,10 +294,11 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
         uint256 maxExposure,
         uint256 usdcAllocation
     ) external nonReentrant {
+        if (paused) revert ContractPaused();
         if (!positions[msg.sender].active) revert NotRegistered();
         if (backings[msg.sender][rwaToken].active) revert AlreadyBacking();
         if (_assetBackers[rwaToken].length >= MAX_BACKERS_PER_ASSET) revert TooManyBackers();
-        if (usdcAllocation < MIN_ALLOCATION) revert BelowMinAllocation();
+        if (usdcAllocation < minAllocation) revert BelowMinAllocation();
         if (usdcAllocation > positions[msg.sender].usdcAvailable) revert InsufficientAvailableUsdc();
         if (minPenaltyBps > 10000) revert InvalidPenalty();
         if (maxExposure == 0) revert ZeroAmount();
@@ -275,14 +316,14 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
             active: true
         });
 
-        _backerIndex[rwaToken][msg.sender] = _assetBackers[rwaToken].length;
-        _assetBackers[rwaToken].push(msg.sender);
+        _insertSorted(rwaToken, msg.sender, minPenaltyBps);
 
         emit AssetBacked(msg.sender, rwaToken, minOraclePrice, minPenaltyBps, maxExposure, usdcAllocation);
     }
 
     /// @notice Update conditions for an asset you are already backing.
     ///         Does not change USDC allocation or reset exposure.
+    ///         Re-sorts the backer array if minPenaltyBps changes.
     function updateConditions(
         address rwaToken,
         uint256 minOraclePrice,
@@ -294,9 +335,17 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
         if (maxExposure == 0) revert ZeroAmount();
 
         AssetBacking storage backing = backings[msg.sender][rwaToken];
+        uint16 oldPenalty = backing.minPenaltyBps;
+
         backing.minOraclePrice = minOraclePrice;
         backing.minPenaltyBps = minPenaltyBps;
         backing.maxExposure = maxExposure;
+
+        // Re-sort position if penalty threshold changed
+        if (oldPenalty != minPenaltyBps) {
+            _removeBacker(rwaToken, msg.sender);
+            _insertSorted(rwaToken, msg.sender, minPenaltyBps);
+        }
 
         emit ConditionsUpdated(msg.sender, rwaToken, minOraclePrice, minPenaltyBps, maxExposure);
     }
@@ -356,6 +405,7 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
 
     /// @notice Request a withdrawal of unallocated USDC. Subject to time delay.
     function requestWithdrawal(uint256 amount) external {
+        if (paused) revert ContractPaused();
         if (!positions[msg.sender].active) revert NotRegistered();
         if (amount == 0) revert ZeroAmount();
         if (amount > positions[msg.sender].usdcAvailable) revert InsufficientAvailableUsdc();
@@ -536,6 +586,7 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
     /// @param rwaToken    The RWA token address to claim.
     /// @param dobRwaAmount The amount of dobRWA to convert to RWA tokens.
     function claimRwaTokens(address rwaToken, uint256 dobRwaAmount) external nonReentrant {
+        if (paused) revert ContractPaused();
         if (dobRwaAmount == 0) revert ZeroAmount();
         if (rwaOwed[msg.sender][rwaToken] < dobRwaAmount) revert InsufficientClaimable();
 
@@ -670,19 +721,47 @@ contract DobLPRegistry is Owned, ReentrancyGuard {
         emit FillExecuted(lp, rwaToken, fillUsdc, dobRwaAmount);
     }
 
-    /// @dev Remove an LP from the assetBackers array using swap-and-pop.
+    /// @dev Remove an LP from the assetBackers array. Shifts elements left
+    ///      to preserve sorted order (bounded by MAX_BACKERS_PER_ASSET = 50).
     function _removeBacker(address rwaToken, address lp) internal {
         uint256 index = _backerIndex[rwaToken][lp];
         uint256 lastIndex = _assetBackers[rwaToken].length - 1;
 
-        if (index != lastIndex) {
-            address lastBacker = _assetBackers[rwaToken][lastIndex];
-            _assetBackers[rwaToken][index] = lastBacker;
-            _backerIndex[rwaToken][lastBacker] = index;
+        // Shift elements left to maintain sorted order
+        for (uint256 i = index; i < lastIndex; i++) {
+            _assetBackers[rwaToken][i] = _assetBackers[rwaToken][i + 1];
+            _backerIndex[rwaToken][_assetBackers[rwaToken][i]] = i;
         }
 
         _assetBackers[rwaToken].pop();
         delete _backerIndex[rwaToken][lp];
+    }
+
+    /// @dev Insert an LP into the assetBackers array in sorted order
+    ///      (ascending by minPenaltyBps — cheapest fills first).
+    ///      Bounded by MAX_BACKERS_PER_ASSET = 50.
+    function _insertSorted(address rwaToken, address lp, uint16 penaltyBps) internal {
+        address[] storage backers = _assetBackers[rwaToken];
+        uint256 len = backers.length;
+
+        // Find insertion point: first backer with higher minPenaltyBps
+        uint256 insertAt = len;
+        for (uint256 i = 0; i < len; i++) {
+            if (backings[backers[i]][rwaToken].minPenaltyBps > penaltyBps) {
+                insertAt = i;
+                break;
+            }
+        }
+
+        // Extend array and shift elements right
+        backers.push(address(0));
+        for (uint256 i = len; i > insertAt; i--) {
+            backers[i] = backers[i - 1];
+            _backerIndex[rwaToken][backers[i]] = i;
+        }
+
+        backers[insertAt] = lp;
+        _backerIndex[rwaToken][lp] = insertAt;
     }
 }
 
