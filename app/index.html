@@ -1534,7 +1534,7 @@ const A=[
 const S={on:false,addr:'',short:'',prov:null,sig:null,dob:0,usdc:0,hook:0,minted:0,dir:'d2u',logs:[],
   lpActive:false,lpDeposited:0,lpAvailable:0,lpEarned:0,lpFillCount:0,
   backings:[],fills:[],reserveHolds:[],faucetBals:{},wdPending:false,wdAmount:0,wdTime:null,gLP:0,
-  swapFeeBps:0,hookLpUsdc:0,hookLpShares:0,hookSharePrice:0,hookMyShares:0};
+  swapFeeBps:0,protocolFeeBps:0,hookPaused:false,hookLpUsdc:0,hookLpShares:0,hookSharePrice:0,hookMyShares:0};
 // ── Multi-chain config ──
 const CHAINS={
   1301:{name:'Unichain Sepolia',explorer:'https://sepolia.uniscan.xyz',
@@ -1571,7 +1571,7 @@ const USDC_ABI=["function approve(address,uint256) returns (bool)","function bal
 const RWA_ABI=["function approve(address,uint256) returns (bool)","function balanceOf(address) view returns (uint256)","function totalSupply() view returns (uint256)","function faucet()","function buyTokens(uint256)","function salePrice() view returns (uint256)","function saleActive() view returns (bool)"];
 const ROUTER_ABI=["function swap(bool,uint256,bytes) returns (uint256)"];
 const REG_ABI=["function getPrice(address) view returns (uint256 priceUsd, uint48 updatedAt)","function liquidations(address) view returns (bool enabled, uint16 penaltyBps, uint256 cap, uint256 liquidatedAmount)","function MAX_ORACLE_DELAY() view returns (uint48)"];
-const LP_ABI=["function getAssetBackerCount(address) view returns (uint256)","function getAssetLiquidity(address) view returns (uint256)","function register(uint256)","function depositMore(uint256)","function positions(address) view returns (uint256 usdcDeposited,uint256 usdcAvailable,uint48 registeredAt,bool active)","function backAsset(address,uint256,uint16,uint256,uint256)","function getBacking(address,address) view returns (uint256 minOraclePrice,uint16 minPenaltyBps,uint256 maxExposure,uint256 currentExposure,uint256 usdcAllocated,uint256 usdcUsed,uint48 backedAt,bool active)","function updateConditions(address,uint256,uint16,uint256)","function increaseAllocation(address,uint256)","function stopBacking(address)","function releaseReserve(uint256)","function requestWithdrawal(uint256)","function cancelWithdrawal()","function executeWithdrawal()","function withdrawalRequests(address) view returns (uint256 amount, uint48 requestedAt)","function rwaOwed(address,address) view returns (uint256)","function claimRwaTokens(address,uint256)"];
+const LP_ABI=["function getAssetBackerCount(address) view returns (uint256)","function getAssetLiquidity(address) view returns (uint256)","function register(uint256)","function depositMore(uint256)","function positions(address) view returns (uint256 usdcDeposited,uint256 usdcAvailable,uint48 registeredAt,bool active)","function backAsset(address,uint256,uint16,uint256,uint256)","function getBacking(address,address) view returns (uint256 minOraclePrice,uint16 minPenaltyBps,uint256 maxExposure,uint256 currentExposure,uint256 usdcAllocated,uint256 usdcUsed,uint48 backedAt,bool active)","function updateConditions(address,uint256,uint16,uint256)","function increaseAllocation(address,uint256)","function stopBacking(address)","function releaseReserve(uint256)","function requestWithdrawal(uint256)","function cancelWithdrawal()","function executeWithdrawal()","function withdrawalRequests(address) view returns (uint256 amount, uint48 requestedAt)","function rwaOwed(address,address) view returns (uint256)","function claimRwaTokens(address,uint256)","function getReserveHolds(address) view returns (tuple(uint256 amount,address rwaToken,uint48 createdAt)[])"];
 const HOOK_ABI=["function swapFeeBps() view returns (uint16)","function protocolFeeBps() view returns (uint16)","function totalLpUsdc() view returns (uint256)","function totalShares() view returns (uint256)","function lpShares(address) view returns (uint256)","function sharePrice() view returns (uint256)","function depositUsdc(uint256) returns (uint256)","function withdrawUsdc(uint256) returns (uint256)","function protocolReserveUsdc() view returns (uint256)","function lpOnlyMode(address) view returns (bool)","function paused() view returns (bool)","function listRwaForSale(address,uint256)","function delistRwa(address,uint256)","function buyListedRwa(address,uint256)","function getRwaSellers(address) view returns (address[])","function getRwaSellersCount(address) view returns (uint256)","function totalRwaListed(address) view returns (uint256)","function rwaForSale(address,address) view returns (uint256)"];
 const PLN_ABI=["function totalPoolUsdc() view returns (uint256)","function totalShares() view returns (uint256)","function shares(address) view returns (uint256)","function sharePrice() view returns (uint256)","function minDeposit() view returns (uint256)","function backedAssetCount() view returns (uint256)","function paused() view returns (bool)","function deposit(uint256) returns (uint256)","function withdraw(uint256) returns (uint256)","function rwaClaimable(address,address) view returns (uint256)","function withdrawRwa(address,uint256)","function getBacking(address) view returns (uint256 minOraclePrice,uint16 minPenaltyBps,uint256 maxExposure,uint256 currentExposure,uint256 usdcAllocated,uint256 usdcUsed,uint48 backedAt,bool active)"];
 
@@ -1663,8 +1663,8 @@ async function syncOnChainData(){
     let lpTotal=0;
     for(let i=0;i<A.length;i+=CHUNK){
       const chunk=A.slice(i,i+CHUNK);
-      const vals=await Promise.all(chunk.map(async a=>{const addr=tokenAddr(a.id);if(!addr)return 0;try{return Number(await lp.getAssetBackerCount(addr));}catch(e){return 0;}}));
-      lpTotal+=vals.reduce((s,v)=>s+v,0);
+      const vals=await Promise.all(chunk.map(async a=>{const addr=tokenAddr(a.id);if(!addr)return{count:0,liq:0};try{const [count,liq]=await Promise.all([lp.getAssetBackerCount(addr),lp.getAssetLiquidity(addr)]);a.lpAvailUsdc=parseFloat(ethers.formatUnits(liq,18));return{count:Number(count),liq:a.lpAvailUsdc};}catch(e){return{count:0,liq:0};}}));
+      lpTotal+=vals.reduce((s,v)=>s+v.count,0);
     }
     S.gLP=lpTotal;
     if(S.on&&S.addr){
@@ -1691,6 +1691,15 @@ async function syncOnChainData(){
       }
       // Read pending withdrawal
       try{const wr=await lp.withdrawalRequests(S.addr);S.wdAmount=parseFloat(ethers.formatUnits(wr.amount,18));S.wdPending=S.wdAmount>0;S.wdTime=S.wdPending?Number(wr.requestedAt)*1000:null;}catch(e){}
+      // Read reserve holds
+      try{
+        const holds=await lp.getReserveHolds(S.addr);
+        S.reserveHolds=holds.map(h=>{
+          const rwaAddr=h.rwaToken.toLowerCase();
+          const asset=A.find(a=>{const ta=tokenAddr(a.id);return ta&&ta.toLowerCase()===rwaAddr;});
+          return{amount:parseFloat(ethers.formatUnits(h.amount,18)),aid:asset?asset.id:'unknown',createdAt:Number(h.createdAt)*1000};
+        });
+      }catch(e){S.reserveHolds=[];}
     }
   }catch(e){}
   if(c.Hook){
@@ -2004,8 +2013,8 @@ function rAssetsFull(){
   dEl.textContent=distressedCount;dEl.style.color=distressedCount?'var(--red)':'var(--green)';
   g.innerHTML=A.map(a=>{
     const lps=S.backings.filter(b=>b.aid===a.id&&b.active);
-    const liq=lps.reduce((s,b)=>s+b.alloc-b.used,0);
-    const alloc=lps.reduce((s,b)=>s+b.alloc,0);
+    const liq=a.lpAvailUsdc||lps.reduce((s,b)=>s+b.alloc-b.used,0);
+    const alloc=lps.reduce((s,b)=>s+b.alloc,0)||liq;
     const used=lps.reduce((s,b)=>s+b.used,0);
     const pct=alloc>0?((used/alloc)*100).toFixed(1):'0.0';
     const o=a.oracle,l=a.liq;
@@ -2087,10 +2096,11 @@ async function syncPooledLN(){
   const c=ADDR();if(!c.PooledLN)return;
   try{
     const rp=getReadProvider();const pln=new ethers.Contract(c.PooledLN,PLN_ABI,rp);
-    const [total,sp,backed]=await Promise.all([pln.totalPoolUsdc(),pln.sharePrice(),pln.backedAssetCount()]);
+    const [total,sp,backed,minDep]=await Promise.all([pln.totalPoolUsdc(),pln.sharePrice(),pln.backedAssetCount(),pln.minDeposit()]);
     document.getElementById('plnTotal').textContent=usd(parseFloat(ethers.formatUnits(total,18)));
     document.getElementById('plnPrice').textContent='$'+parseFloat(ethers.formatUnits(sp,18)).toFixed(4);
     document.getElementById('plnBacked').textContent=backed.toString();
+    try{document.getElementById('plnMinDep').textContent=parseFloat(ethers.formatUnits(minDep,18)).toFixed(0);}catch(e){}
     if(S.addr){
       const sh=await pln.shares(S.addr);
       document.getElementById('plnShares').textContent=fmt(parseFloat(ethers.formatUnits(sh,18)),2);
@@ -2120,7 +2130,7 @@ async function doPooledDeposit(){
     log('lp','Deposited '+amt+' USDC to Pooled LN');
     document.getElementById('plnDepAmt').value='';
     await syncPooledLN();
-  }catch(e){if(!isUserRejection(e))alert('Pooled deposit failed: '+e.message);}
+  }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');}else{console.error(e);toast('Pooled deposit failed: '+(e.reason||e.message));}}
 }
 async function doPooledWithdraw(){
   const c=ADDR();if(!c.PooledLN||!S.sig)return;
@@ -2132,7 +2142,7 @@ async function doPooledWithdraw(){
     log('lp','Withdrew '+sh+' shares from Pooled LN');
     document.getElementById('plnWdShares').value='';
     await syncPooledLN();
-  }catch(e){if(!isUserRejection(e))alert('Pooled withdraw failed: '+e.message);}
+  }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');}else{console.error(e);toast('Pooled withdraw failed: '+(e.reason||e.message));}}
 }
 async function doPooledClaimRwa(tokenAddr,amount){
   const c=ADDR();if(!c.PooledLN||!S.sig)return;
@@ -2142,7 +2152,7 @@ async function doPooledClaimRwa(tokenAddr,amount){
     const tx=await pln.withdrawRwa(tokenAddr,v);await tx.wait();
     log('lp','Claimed RWA from Pooled LN');
     await syncPooledLN();
-  }catch(e){if(!isUserRejection(e))alert('Claim failed: '+e.message);}
+  }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');}else{console.error(e);toast('Claim failed: '+(e.reason||e.message));}}
 }
 // ── Faucet ──
 const FAUCET_ABI=["function faucet()","function balanceOf(address) view returns (uint256)"];
@@ -2233,7 +2243,7 @@ async function claimFaucet(id){
   renderAll();
 }
 
-function renderAll(){rSwap();uSwap();rLP();rBk();rFl();rLog();uDep();uBuy();uBtns();rPool();rAssetsFull();rActivity();rReserves();rFaucet();rPosition();rSidebar();syncPooledLN();}
+function renderAll(){rSwap();uSwap();rLP();rBk();rFl();rLog();uDep();uBuy();uBtns();rPool();rAssetsFull();rActivity();rReserves();rFaucet();rPosition();rSidebar();syncPooledLN();checkFaucetCooldown();}
 
 // ── Wallet ──
 const SUPPORTED_CHAINS={1301:{hex:'0x515',name:'Unichain Sepolia',rpc:'https://sepolia.unichain.org',currency:{name:'Ether',symbol:'ETH',decimals:18},explorer:'https://sepolia.uniscan.xyz'}};
@@ -2437,6 +2447,7 @@ async function doBuyListedRwa(){
     toast('Approving USDC...');await(await usdc.approve(c.Hook,ethers.MaxUint256,gas)).wait();
     toast('Buying listed '+a.ticker+'...');await(await hk.buyListedRwa(addr,w,gas)).wait();
     await readBalances();await syncOnChainData();
+    const cost=amt*a.price;
     log('swap',`<strong>Bought</strong> ${fmt(amt,2)} ${a.ticker} from resale market for ${fmt(cost,2)} USDC`);
     toast('Bought '+fmt(amt,2)+' '+a.ticker);document.getElementById('resaleBuyAmt').value='';renderAll();
   }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');}else{console.error(e);toast('Buy failed: '+(e.reason||e.message));}}
