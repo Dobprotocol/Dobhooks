@@ -1173,10 +1173,10 @@
       <span class="grad">DobDex</span>
     </h1>
     <p class="hero-sub anim-target fade-up" style="transition-delay:0.35s;">
-      Zero-Slippage RWA Liquidity Infrastructure
+      LP-Priced RWA Exit Liquidity Infrastructure
     </p>
     <p class="hero-sub-tech anim-target fade-up" style="transition-delay:0.45s;">
-      Oracle-Pegged Swaps &middot; Permissionless Liquidity &middot; Multi-Chain
+      LP-Routed Exits &middot; Permissionless Liquidity &middot; Multi-Chain
     </p>
     <div class="hero-badges anim-target fade-up" style="transition-delay:0.55s;">
       <span class="hero-badge-item purple">Unichain + Reactive</span>
@@ -1194,7 +1194,7 @@
       <div class="hero-mockup">
         <div class="mockup-header">
           <span class="mockup-title">Sell RWA</span>
-          <span class="mockup-badge">Zero Slippage</span>
+          <span class="mockup-badge">LP-Priced Exit</span>
         </div>
         <div class="mockup-row">
           <span class="mockup-row-label">You Sell</span>
@@ -1303,7 +1303,7 @@
     <div style="text-align:center;margin-top:32px;" class="anim-target fade-up" style="transition-delay:0.9s;">
       <div class="arch-highlight">
         <code>Custom Accounting Hook (NoOp Pattern)</code>
-        <div class="arch-highlight-sub">beforeSwap + beforeSwapReturnDelta &mdash; skip AMM math, settle at exact oracle price</div>
+        <div class="arch-highlight-sub">beforeSwap + beforeSwapReturnDelta &mdash; skip AMM math, route exits through Liquidity Nodes</div>
       </div>
     </div>
   </div>
@@ -1413,7 +1413,7 @@
       Sell <span style="color:var(--green);">10 DCT</span> for dUSDC
     </h2>
     <p class="section-sub anim-target fade-up" style="transition-delay:0.2s;">
-      Watch the protocol execute a zero-slippage swap in real time.
+      Watch the protocol route a sell through Liquidity Nodes in real time.
     </p>
     <div class="swap-demo">
       <!-- Left: Swap Card -->
@@ -1443,7 +1443,7 @@
           </div>
         </div>
         <div class="swap-result" id="swapResult">
-          Received 1,000 dUSDC &mdash; Zero Slippage &#10003;
+          Received 1,000 dUSDC &mdash; Minted at Oracle Price &#10003;
         </div>
       </div>
       <!-- Right: Steps -->
@@ -1481,7 +1481,7 @@
             <div class="swap-step-num">5</div>
             <div class="swap-step-text">
               <h4>dUSDC Minted</h4>
-              <p><span class="mono" style="color:var(--green);">1,000 dUSDC</span> settled to user. Zero slippage.</p>
+              <p><span class="mono" style="color:var(--green);">1,000 dUSDC</span> minted to user at oracle price.</p>
             </div>
           </div>
         </div>
@@ -1722,7 +1722,7 @@
           DobPegHook.sol
         </div>
         <div class="contract-loc">366 lines</div>
-        <div class="contract-desc">Custom Accounting Hook. Intercepts swaps via beforeSwap + beforeSwapReturnDelta, settles at exact 1:1 oracle price. The core innovation.</div>
+        <div class="contract-desc">Custom Accounting Hook. Intercepts swaps via beforeSwap + beforeSwapReturnDelta, routes sells through Liquidity Nodes at LP-set discount rates. The core innovation.</div>
         <div class="contract-features">
           <span class="contract-feat purple">NoOp Pattern</span>
           <span class="contract-feat purple">Custom Accounting</span>
@@ -1966,7 +1966,7 @@
       Experience <span style="color:var(--accent-light);">DobDex</span>
     </h2>
     <p class="section-sub anim-target fade-up" style="transition-delay:0.2s;margin:0 auto 0;">
-      Connect your wallet and swap RWA tokens with zero slippage on testnet.
+      Connect your wallet and swap RWA tokens through Liquidity Nodes on testnet.
     </p>
     <div class="cta-links" style="margin-left:auto;margin-right:auto;">
       <a class="cta-link anim-target fade-up" style="transition-delay:0.3s;" href="index.html">

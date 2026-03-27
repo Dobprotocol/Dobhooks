@@ -893,7 +893,7 @@
       <div style="padding:16px;">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
           <h2 style="font-size:14px; font-weight:700; letter-spacing:-0.2px;">Sell RWA</h2>
-          <span style="font-size:10px; font-weight:600; padding:3px 8px; background:var(--blue-dim); border-radius:999px; color:var(--blue);">RWA &rarr; dUSDC</span>
+          <span style="font-size:10px; font-weight:600; padding:3px 8px; background:var(--blue-dim); border-radius:999px; color:var(--blue);">RWA &rarr; USDC</span>
         </div>
         <div class="tbox" style="margin-bottom:4px;">
           <div class="tbox-hd"><span>You deposit</span><span>Balance: <span class="mx" id="depositBal" onclick="maxDeposit()">0.00</span></span></div>
@@ -912,14 +912,16 @@
           <div class="tbox-hd"><span>You receive</span><span></span></div>
           <div class="tbox-body">
             <div style="flex:1;font-size:26px;font-weight:600;color:var(--text-0);font-variant-numeric:tabular-nums;" id="depositOut">0</div>
-            <div class="tkn"><div class="dot" style="background:var(--blue-dim);color:var(--blue);">D</div><span>dUSDC</span></div>
+            <div class="tkn"><div class="dot" style="background:var(--green-dim,rgba(64,192,87,0.12));color:var(--green);">$</div><span>USDC</span></div>
           </div>
           <div class="tbox-usd" id="depositRate"></div>
         </div>
         <div class="sw-info" id="depositDetail" style="display:none;">
           <div class="sw-row"><span>Oracle Price</span><span class="v" id="depositOraclePrice">—</span></div>
-          <div class="sw-row"><span>Route</span><span class="v">DobRwaVault (Mint at Oracle)</span></div>
-          <div class="sw-row"><span>Price Impact</span><span class="v" style="color:var(--green)">0%</span></div>
+          <div class="sw-row"><span>Route</span><span class="v" id="depositRoute">Vault &rarr; Hook &rarr; Liquidity Node</span></div>
+          <div class="sw-row" id="depositSwapFeeRow" style="display:none;"><span>Swap Fee</span><span class="v" id="depositSwapFeeVal">—</span></div>
+          <div class="sw-row" id="depositProtocolFeeRow" style="display:none;"><span>Protocol Fee</span><span class="v" id="depositProtocolFeeVal">—</span></div>
+          <div class="sw-row"><span>LP Discount</span><span class="v" style="color:var(--amber)" id="depositLpDiscount">—</span></div>
         </div>
         <button class="sw-btn" id="depositBtn" disabled>Select a token</button>
       </div>
@@ -1340,8 +1342,8 @@
     <!-- Redeem dUSDC → USDC -->
     <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:28px;">
       <div class="sw-card"><div class="sw-inner">
-        <div class="sw-top"><h2 style="font-size:14px;">Redeem dUSDC → USDC</h2><button class="sw-set">&#9881;</button></div>
-        <div class="sw-peg"><i></i> dUSDC &rarr; USDC &middot; Liquidity Node exit &middot; LP discount may apply</div>
+        <div class="sw-top"><h2 style="font-size:14px;">Swap dUSDC &harr; USDC</h2><button class="sw-set">&#9881;</button></div>
+        <div class="sw-peg"><i></i> dUSDC &harr; USDC &middot; Hook reserves &middot; Fees apply on sells</div>
         <div class="tbox" style="margin-bottom:4px;">
           <div class="tbox-hd"><span>You pay</span><span>Balance: <span class="mx" id="fromBal">0.00</span></span></div>
           <div class="tbox-body">
@@ -1360,9 +1362,9 @@
           <div class="tbox-usd" id="toUsd"></div>
         </div>
         <div class="sw-info" id="swapDetail" style="display:none;">
-          <div class="sw-row"><span>Rate</span><span class="v">1 dUSDC &cong; 1 USDC (LP discount may apply)</span></div>
-          <div class="sw-row"><span>Route</span><span class="v">DobPegHook &rarr; Liquidity Node</span></div>
-          <div class="sw-row"><span>LP Discount</span><span class="v" style="color:var(--amber)">Set by LP</span></div>
+          <div class="sw-row"><span>Rate</span><span class="v">LP-priced (discount + fees on sells)</span></div>
+          <div class="sw-row"><span>Route</span><span class="v">DobPegHook &rarr; Hook Reserves</span></div>
+          <div class="sw-row"><span>Direction</span><span class="v" style="color:var(--amber)">Buys 1:1 &middot; Sells via reserves + fees</span></div>
           <div class="sw-row" id="swapFeeRow" style="display:none;"><span>Swap Fee</span><span class="v" id="swapFeeVal" style="color:var(--amber)">0%</span></div>
           <div class="sw-row" id="protocolFeeRow" style="display:none;"><span>Protocol Fee</span><span class="v" id="protocolFeeVal" style="color:var(--text-3)">0%</span></div>
           <div class="sw-row" id="slippageRow" style="display:none;"><span>Slippage Tolerance</span><span class="v"><input type="number" id="slippageInput" value="1" min="0.1" max="50" step="0.1" style="width:50px;text-align:right;background:var(--bg-2);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:11px;color:var(--text-1);"/>%</span></div>
@@ -1389,7 +1391,7 @@
 
     <div class="kpi" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;">
       <div class="kpi-box"><div class="kpi-lbl">Pool Pair</div><div class="kpi-val" style="font-size:15px">dUSDC / USDC</div><div class="kpi-sub">Uniswap V4</div></div>
-      <div class="kpi-box"><div class="kpi-lbl">Hook USDC</div><div class="kpi-val" id="hookUsdc">$5,000,000</div><div class="kpi-sub">Reserve balance</div></div>
+      <div class="kpi-box"><div class="kpi-lbl">Hook USDC</div><div class="kpi-val" id="hookUsdc">$0</div><div class="kpi-sub">Reserve balance</div></div>
       <div class="kpi-box"><div class="kpi-lbl">Total Minted</div><div class="kpi-val" id="totalMinted">0</div><div class="kpi-sub">dUSDC</div></div>
       <div class="kpi-box"><div class="kpi-lbl">LP Count</div><div class="kpi-val" id="lpCount">0</div><div class="kpi-sub">Active LPs</div></div>
     </div>
@@ -1940,14 +1942,29 @@ function uDep(){
   document.getElementById('depositBal').textContent=fmt(bal,2);
   document.getElementById('depositUsd').textContent=amt>0?'~$'+fmt(amt*a.price,2):'';
   if(amt<=0){btn.disabled=true;btn.textContent='Enter an amount';btn.className='sw-btn';document.getElementById('depositOut').textContent='0';document.getElementById('depositRate').textContent='';det.style.display='none';return;}
-  const out=amt*a.price;
+  // Calculate output: RWA → dUSDC (oracle) → USDC (swap fee + protocol fee + LP discount)
+  const dUsdcOut=amt*a.price;
+  const swapFee=S.swapFeeBps>0?(dUsdcOut*S.swapFeeBps/10000):0;
+  const afterSwapFee=dUsdcOut-swapFee;
+  const pFee=S.protocolFeeBps>0?(afterSwapFee*S.protocolFeeBps/10000):0;
+  const afterFees=afterSwapFee-pFee;
+  // Estimate LP discount from first active backing for this asset
+  const lpBacking=S.backings?.find(b=>b.aid===a.id&&b.active);
+  const lpDiscBps=lpBacking?lpBacking.minDisc:0;
+  const lpDisc=lpDiscBps>0?(afterFees*lpDiscBps/10000):0;
+  const out=afterFees-lpDisc;
   document.getElementById('depositOut').textContent=fmt(out,2);
   document.getElementById('depositRate').textContent='~$'+fmt(out,2);
   document.getElementById('depositOraclePrice').textContent='1 '+a.ticker+' = '+fmt(a.price,2)+' dUSDC';
+  // Fee rows
+  const sfRow=document.getElementById('depositSwapFeeRow'),pfRow=document.getElementById('depositProtocolFeeRow');
+  if(S.swapFeeBps>0){sfRow.style.display='';document.getElementById('depositSwapFeeVal').textContent=(S.swapFeeBps/100).toFixed(1)+'% ('+fmt(swapFee,2)+' dUSDC)';}else{sfRow.style.display='none';}
+  if(S.protocolFeeBps>0){pfRow.style.display='';document.getElementById('depositProtocolFeeVal').textContent=(S.protocolFeeBps/100).toFixed(1)+'% ('+fmt(pFee,2)+' dUSDC)';}else{pfRow.style.display='none';}
+  document.getElementById('depositLpDiscount').textContent=lpDiscBps>0?(lpDiscBps/100).toFixed(1)+'% ('+fmt(lpDisc,2)+' USDC)':'~best LP rate';
   det.style.display='block';
   if(!S.on){btn.disabled=true;btn.textContent='Connect Wallet';btn.className='sw-btn';}
   else if(amt>bal){btn.disabled=true;btn.textContent='Insufficient '+a.ticker;btn.className='sw-btn';}
-  else{btn.disabled=false;btn.textContent='Deposit & Mint';btn.className='sw-btn go';}
+  else{btn.disabled=false;btn.textContent='Sell for USDC';btn.className='sw-btn go';}
 }
 function uBtns(){
   document.getElementById('lpRegBtn').disabled=!S.on;document.getElementById('newBackBtn').disabled=!S.on||!S.lpActive;
@@ -2100,7 +2117,7 @@ async function doPooledDeposit(){
     let tx=await usdc.approve(c.PooledLN,v);await tx.wait();
     const pln=new ethers.Contract(c.PooledLN,PLN_ABI,S.sig);
     tx=await pln.deposit(v);await tx.wait();
-    logAct('lp','Deposited '+amt+' USDC to Pooled LN');
+    log('lp','Deposited '+amt+' USDC to Pooled LN');
     document.getElementById('plnDepAmt').value='';
     await syncPooledLN();
   }catch(e){if(!isUserRejection(e))alert('Pooled deposit failed: '+e.message);}
@@ -2112,7 +2129,7 @@ async function doPooledWithdraw(){
   try{
     const pln=new ethers.Contract(c.PooledLN,PLN_ABI,S.sig);
     const tx=await pln.withdraw(v);await tx.wait();
-    logAct('lp','Withdrew '+sh+' shares from Pooled LN');
+    log('lp','Withdrew '+sh+' shares from Pooled LN');
     document.getElementById('plnWdShares').value='';
     await syncPooledLN();
   }catch(e){if(!isUserRejection(e))alert('Pooled withdraw failed: '+e.message);}
@@ -2123,7 +2140,7 @@ async function doPooledClaimRwa(tokenAddr,amount){
     const pln=new ethers.Contract(c.PooledLN,PLN_ABI,S.sig);
     const v=ethers.parseUnits(amount.toString(),18);
     const tx=await pln.withdrawRwa(tokenAddr,v);await tx.wait();
-    logAct('lp','Claimed RWA from Pooled LN');
+    log('lp','Claimed RWA from Pooled LN');
     await syncPooledLN();
   }catch(e){if(!isUserRejection(e))alert('Claim failed: '+e.message);}
 }
@@ -2481,7 +2498,7 @@ async function doBuyRwa(){
   }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');} else{console.error(e);toast('Buy failed: '+(e.reason||e.message));}}
 }
 
-// ── Deposit (RWA → dUSDC) ──
+// ── Sell RWA (RWA → Vault → dUSDC → Hook/LP → USDC) ──
 async function doDeposit(){
   const aid=document.getElementById('depositAsset').value,amt=parseFloat(document.getElementById('depositAmt').value)||0,a=A.find(x=>x.id===aid);
   if(!a||amt<=0||!S.on)return;
@@ -2494,15 +2511,33 @@ async function doDeposit(){
     const w=ethers.parseUnits(amt.toString(),18);
     const rwa=new ethers.Contract(addr,E20,S.sig);
     const vault=new ethers.Contract(c.Vault,VA,S.sig);
+    // Step 1: Deposit RWA → Vault → mint dUSDC
     toast('Approving '+a.ticker+'...');await(await rwa.approve(c.Vault,w,gas)).wait();
-    toast('Depositing...');const depTx=await(await vault.deposit(addr,w,gas)).wait();
-    const out=amt*a.price;S.minted+=out;
-    trackEvent('swaps',{txHash:depTx.hash,tokenId:aid,direction:'sell',amountIn:amt,amountOut:out,oraclePrice:a.price,blockNumber:depTx.blockNumber});
-    await readBalances();
-    await syncOnChainData();
-    log('deposit',`Deposited <strong>${fmt(amt,2)} ${a.ticker}</strong>`);log('mint',`Minted <strong>${fmt(out,2)} dUSDC</strong>`);
-    toast('Minted '+fmt(out,2)+' dUSDC');document.getElementById('depositAmt').value='';renderAll();
-  }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');} else{console.error(e);toast('Deposit failed: '+(e.reason||e.message));}}
+    toast('Depositing to vault...');const depTx=await(await vault.deposit(addr,w,gas)).wait();
+    const dUsdcMinted=amt*a.price;S.minted+=dUsdcMinted;
+    log('deposit',`Deposited <strong>${fmt(amt,2)} ${a.ticker}</strong> → minted <strong>${fmt(dUsdcMinted,2)} dUSDC</strong>`);
+    // Step 2: Swap dUSDC → USDC through Router (routes through Hook → LPs)
+    if(c.Router){
+      const dUsdcToken=new ethers.Contract(c.Vault,E20,S.sig);
+      const router=new ethers.Contract(c.Router,ROUTER_ABI,S.sig);
+      const dUsdcBal=await dUsdcToken.balanceOf(S.addr);
+      const swapAmt=dUsdcBal<ethers.parseUnits(dUsdcMinted.toString(),18)?dUsdcBal:ethers.parseUnits(dUsdcMinted.toString(),18);
+      // dUSDC→USDC: USDC is currency0, dUSDC is currency1 → zeroForOne=false
+      toast('Approving dUSDC...');await(await dUsdcToken.approve(c.Router,swapAmt,gas)).wait();
+      // Encode rwaToken in hookData so hook routes through LPs for this asset
+      const hookData=ethers.AbiCoder.defaultAbiCoder().encode(['address'],[addr]);
+      toast('Swapping dUSDC → USDC via LPs...');const swTx=await(await router.swap(false,swapAmt,hookData,gas)).wait();
+      const estOut=S.swapFeeBps>0?dUsdcMinted*(10000-S.swapFeeBps)/10000:dUsdcMinted;
+      trackEvent('swaps',{txHash:swTx.hash,tokenId:aid,direction:'sell',amountIn:amt,amountOut:estOut,oraclePrice:a.price,blockNumber:swTx.blockNumber});
+      log('swap',`Sold <strong>${fmt(dUsdcMinted,2)} dUSDC</strong> → <strong>USDC</strong> via Liquidity Node`);
+      toast('Sold '+fmt(amt,2)+' '+a.ticker+' for USDC');
+    } else {
+      trackEvent('swaps',{txHash:depTx.hash,tokenId:aid,direction:'sell',amountIn:amt,amountOut:dUsdcMinted,oraclePrice:a.price,blockNumber:depTx.blockNumber});
+      toast('Minted '+fmt(dUsdcMinted,2)+' dUSDC (no router — swap manually)');
+    }
+    await readBalances();await syncOnChainData();
+    document.getElementById('depositAmt').value='';renderAll();
+  }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');} else{console.error(e);toast('Sell failed: '+(e.reason||e.message));}}
 }
 
 // ── LP ──
@@ -2747,7 +2782,7 @@ function rPosition(){
   const actBk=S.backings.filter(b=>b.active);
   // Network overview
   document.getElementById('netLps').textContent=S.gLP||'0';
-  document.getElementById('netDeposited').textContent=usd(S.lpDeposited);
+  document.getElementById('netDeposited').textContent=usd(S.hook+S.hookLpUsdc);
   document.getElementById('netBacked').textContent=actBk.length;
   document.getElementById('netFills').textContent=S.lpFillCount;
   document.getElementById('netDistressed').textContent=A.filter(a=>a.liq.enabled).length;
