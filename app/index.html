@@ -927,6 +927,7 @@
           <div class="sw-row" id="depositSwapFeeRow" style="display:none;"><span title="Fee charged by the protocol on sell transactions">Swap Fee</span><span class="v" id="depositSwapFeeVal">—</span></div>
           <div class="sw-row" id="depositProtocolFeeRow" style="display:none;"><span title="Additional protocol fee on sell transactions">Protocol Fee</span><span class="v" id="depositProtocolFeeVal">—</span></div>
           <div class="sw-row"><span title="Discount set by the Liquidity Node providing exit capital. LPs earn this spread as profit.">LP Discount</span><span class="v" style="color:var(--amber)" id="depositLpDiscount">—</span></div>
+          <div class="sw-row"><span title="Maximum acceptable deviation from estimated output">Slippage</span><span class="v"><input type="number" id="sellSlipInput" value="5" min="0.5" max="50" step="0.5" style="width:46px;text-align:right;background:var(--bg-2);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:11px;color:var(--text-1);"/>%</span></div>
         </div>
         <button class="sw-btn" id="depositBtn" disabled>Select a token</button>
       </div>
@@ -1127,14 +1128,16 @@
         <div class="card">
           <div class="card-t">Deposit to Pooled LN</div>
           <div class="card-d">Deposit USDC into the shared Liquidity Node. You receive shares proportional to your contribution. Minimum <span id="plnMinDep">100</span> USDC.</div>
-          <div class="f"><label class="f-l">USDC Amount</label><input type="number" class="f-i" id="plnDepAmt" placeholder="100" min="0"/></div>
+          <div class="f"><label class="f-l">USDC Amount</label><input type="number" class="f-i" id="plnDepAmt" placeholder="100" min="0" oninput="uPlnDep()"/></div>
+          <div id="plnDepPreview" style="font-size:11px;color:var(--text-3);margin-bottom:8px;display:none;"></div>
           <button class="btn btn-b" id="plnDepBtn" disabled onclick="doPooledDeposit()">Deposit USDC</button>
           <div class="f-h" style="margin-top:8px;">Your shares represent proportional ownership of the pool's assets and future RWA earnings.</div>
         </div>
         <div class="card">
           <div class="card-t">Withdraw & Claim RWA</div>
           <div class="card-d">Withdraw USDC by burning shares, or claim distributed RWA tokens earned from fills.</div>
-          <div class="f"><label class="f-l">Shares to Withdraw</label><input type="number" class="f-i" id="plnWdShares" placeholder="0" min="0"/></div>
+          <div class="f"><label class="f-l">Shares to Withdraw</label><span style="font-size:10px;color:var(--text-3);margin-left:4px;" id="plnSharesBal"></span><input type="number" class="f-i" id="plnWdShares" placeholder="0" min="0" oninput="uPlnWd()"/></div>
+          <div id="plnWdPreview" style="font-size:11px;color:var(--text-3);margin-bottom:8px;display:none;"></div>
           <button class="btn btn-o btn-s" id="plnWdBtn" disabled onclick="doPooledWithdraw()" style="width:100%;margin-bottom:12px;">Withdraw USDC</button>
           <div style="border-top:1px solid var(--border-subtle);padding-top:12px;">
             <div style="font-size:11px;font-weight:600;margin-bottom:8px;">Claimable RWA Tokens</div>
@@ -1278,6 +1281,14 @@
       <div class="kpi-box"><div class="kpi-lbl">Total TVL</div><div class="kpi-val" id="atTvl">$0</div><div class="kpi-sub">Across all assets</div></div>
       <div class="kpi-box"><div class="kpi-lbl">Oracle Status</div><div class="kpi-val" id="atOracle" style="color:var(--green)">Live</div><div class="kpi-sub" id="atOracleSub">All feeds active</div></div>
       <div class="kpi-box"><div class="kpi-lbl">Distressed</div><div class="kpi-val" id="atDistressed" style="color:var(--red)">0</div><div class="kpi-sub">Assets in liquidation</div></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+      <span style="font-size:10px;color:var(--text-3);font-weight:600;">Sort:</span>
+      <button class="act-f on" data-sort="default" onclick="sortAssets('default')" style="font-size:10px;padding:4px 10px;">Default</button>
+      <button class="act-f" data-sort="price" onclick="sortAssets('price')" style="font-size:10px;padding:4px 10px;">Price</button>
+      <button class="act-f" data-sort="apy" onclick="sortAssets('apy')" style="font-size:10px;padding:4px 10px;">Yield</button>
+      <button class="act-f" data-sort="risk" onclick="sortAssets('risk')" style="font-size:10px;padding:4px 10px;">Risk</button>
+      <button class="act-f" data-sort="liq" onclick="sortAssets('liq')" style="font-size:10px;padding:4px 10px;">LP Liquidity</button>
     </div>
     <div class="assets-list" id="assetsFullGrid"></div>
   </div>
@@ -2005,12 +2016,13 @@ function rBk(){
         <div class="bk-m"><small>Min Discount</small><span>${(b.minDisc/100).toFixed(0)}%</span></div>
         <div class="bk-m"><small>Min Price</small><span>${b.minPrice>0?usd(b.minPrice):'Any'}</span></div>
         <div class="bk-m"><small>Exposure</small><span style="color:var(--accent)">${fmt(b.curExp,0)}/${fmt(b.maxExp,0)}</span></div>
+        ${b.earned>0?`<div class="bk-m"><small>Earned RWA</small><span style="color:var(--green)">${fmt(b.earned,4)} ${a.ticker}</span></div>`:''}
       </div>
       <div class="bk-bar"><div class="bk-bar-fill" style="width:${pct}%"></div></div>
       <div class="btn-g">
         <button class="btn btn-o btn-s" onclick="toggleE(${gi})">Update Rules</button>
         <button class="btn btn-o btn-s" onclick="toggleA(${gi})">Add USDC</button>
-        <button class="btn btn-r btn-s" onclick="stopBk(${gi})">Stop</button>
+        <button class="btn btn-r btn-s" onclick="if(confirm('Stop backing this asset? Allocated USDC will return to your available balance.'))stopBk(${gi})">Stop</button>
       </div>
       <div class="bk-edit" id="edit-${gi}"><div class="inner">
         <div class="f"><label class="f-l">Min Discount (%)</label><input type="number" class="f-i" id="eD-${gi}" value="${b.minDisc/100}" min="1" max="50"/></div>
@@ -2107,7 +2119,15 @@ function rAssetsFull(){
   else{oEl.textContent='Live';oEl.style.color='var(--green)';oSub.textContent='All feeds active';}
   const dEl=document.getElementById('atDistressed');
   dEl.textContent=distressedCount;dEl.style.color=distressedCount?'var(--red)':'var(--green)';
-  g.innerHTML=A.map(a=>{
+  // Sort controls highlight
+  document.querySelectorAll('[data-sort]').forEach(b=>{b.classList.toggle('on',b.dataset.sort===assetSort);});
+  const riskOrder={Low:0,Medium:1,High:2};
+  let sorted=[...A];
+  if(assetSort==='price')sorted.sort((a,b)=>b.price-a.price);
+  else if(assetSort==='apy')sorted.sort((a,b)=>parseFloat(b.apy)-parseFloat(a.apy));
+  else if(assetSort==='risk')sorted.sort((a,b)=>(riskOrder[a.risk]||1)-(riskOrder[b.risk]||1));
+  else if(assetSort==='liq')sorted.sort((a,b)=>(b.lpAvailUsdc||0)-(a.lpAvailUsdc||0));
+  g.innerHTML=sorted.map(a=>{
     const lps=S.backings.filter(b=>b.aid===a.id&&b.active);
     const liq=a.lpAvailUsdc||lps.reduce((s,b)=>s+b.alloc-b.used,0);
     const alloc=lps.reduce((s,b)=>s+b.alloc,0)||liq;
@@ -2162,6 +2182,7 @@ function rAssetsFull(){
         <div class="af-m"><small>TVL</small><span>${usd(a.tvl)}</span></div>
         <div class="af-m"><small>LP Liquidity</small><span style="color:var(--green)">${usd(liq)}</span></div>
         <div class="af-m"><small>Est. Yield</small><span style="color:var(--accent)">${a.apy}</span></div>
+        <div class="af-m"><small title="LP discount range for this asset. This is the exit cost sellers pay.">Exit Cost</small><span style="color:var(--amber)">${lps.length?lps.map(b=>(b.minDisc/100).toFixed(0)).sort((a,b)=>a-b).filter((v,i,s)=>i===0||i===s.length-1).join('-')+'%':'—'}</span></div>
       </div>
       <div class="af-detail">
         <div class="af-row"><span class="l">Tokenized Units</span><span class="v">${a.units}</span></div>
@@ -2200,7 +2221,9 @@ async function syncPooledLN(){
     try{document.getElementById('plnMinDep').textContent=parseFloat(ethers.formatUnits(minDep,18)).toFixed(0);}catch(e){}
     if(S.addr){
       const sh=await pln.shares(S.addr);
-      document.getElementById('plnShares').textContent=fmt(parseFloat(ethers.formatUnits(sh,18)),2);
+      const userShVal=parseFloat(ethers.formatUnits(sh,18));
+      document.getElementById('plnShares').textContent=fmt(userShVal,2);
+      const sbEl=document.getElementById('plnSharesBal');if(sbEl)sbEl.textContent='(You have '+fmt(userShVal,2)+')';
       const enableW=parseFloat(ethers.formatUnits(sh,18))>0;
       document.getElementById('plnWdBtn').disabled=!enableW;
       // Check RWA claimables
@@ -2310,7 +2333,7 @@ async function claimFaucet(id){
   const c=ADDR();const gas=await gasOverrides();
   try{
     const ethBal=await S.prov.getBalance(S.addr);
-    if(ethBal===0n){toast('You need ETH for gas. Get testnet ETH from a faucet first.');return;}
+    if(ethBal===0n){txToast('You need ETH for gas. Get testnet ETH:','');const a=document.querySelector('.toast:last-child');if(a)a.innerHTML+=' <a href="https://faucet.unichain.org/" target="_blank" style="color:var(--accent-light);text-decoration:underline;">Unichain Faucet</a>';return;}
     if(id==='usdc'){
       const usdc=new ethers.Contract(c.USDC,USDC_ABI,S.sig);
       toast('Claiming USDC...');await(await usdc.faucet(gas)).wait();
@@ -2394,9 +2417,36 @@ function rPortfolio(){
   `;
 }
 
+// ── Pooled LN Previews ──
+function uPlnDep(){
+  const amt=parseFloat(document.getElementById('plnDepAmt').value)||0;
+  const el=document.getElementById('plnDepPreview');
+  const sp=parseFloat((document.getElementById('plnPrice')?.textContent||'$1').replace('$',''))||1;
+  if(amt>0){el.style.display='block';el.textContent='You will receive ~'+fmt(amt/sp,2)+' shares at $'+fmt(sp,4)+'/share';}
+  else{el.style.display='none';}
+}
+function uPlnWd(){
+  const sh=parseFloat(document.getElementById('plnWdShares').value)||0;
+  const el=document.getElementById('plnWdPreview');
+  const sp=parseFloat((document.getElementById('plnPrice')?.textContent||'$1').replace('$',''))||1;
+  const userShares=parseFloat(document.getElementById('plnShares')?.textContent||'0');
+  const btn=document.getElementById('plnWdBtn');
+  if(sh>0){el.style.display='block';el.textContent='You will receive ~'+fmt(sh*sp,2)+' USDC';}
+  else{el.style.display='none';}
+  if(sh>userShares&&userShares>0){btn.disabled=true;btn.textContent='Exceeds your '+fmt(userShares,2)+' shares';}
+  else if(sh>0){btn.disabled=false;btn.textContent='Withdraw USDC';}
+}
+
+// ── Asset Sort/Filter ──
+let assetSort='default';
+function sortAssets(key){assetSort=key;rAssetsFull();}
+
 // ── Withdrawal Countdown ──
+let wdCountdownTimer=null;
+function startWdCountdown(){if(wdCountdownTimer)return;wdCountdownTimer=setInterval(rWdCountdown,1000);}
 function rWdCountdown(){
-  if(!S.wdPending||!S.wdTime)return;
+  if(!S.wdPending||!S.wdTime){if(wdCountdownTimer){clearInterval(wdCountdownTimer);wdCountdownTimer=null;}return;}
+  startWdCountdown();
   const elapsed=(Date.now()-S.wdTime)/1000;
   const remaining=Math.max(0,86400-elapsed);
   const h=Math.floor(remaining/3600);
@@ -2715,7 +2765,8 @@ async function doDeposit(){
       toast('Approving dUSDC...');await(await dUsdcToken.approve(c.Router,swapAmt,gas)).wait();
       // Encode rwaToken + minAmountOut in hookData for LP routing + slippage protection
       const estUsdc=S.swapFeeBps>0?dUsdcMinted*(10000-S.swapFeeBps)/10000:dUsdcMinted;
-      const minOut=estUsdc*0.95; // 5% slippage tolerance for sell flow (LP discount varies)
+      const sellSlip=parseFloat(document.getElementById('sellSlipInput').value)||5;
+      const minOut=estUsdc*(100-sellSlip)/100;
       const minOutWei=ethers.parseUnits(minOut.toFixed(18),18);
       const hookData=ethers.AbiCoder.defaultAbiCoder().encode(['address','uint256'],[addr,minOutWei]);
       toast('Swapping dUSDC → USDC via LPs...');const swTx=await(await router.swap(false,swapAmt,hookData,gas)).wait();
