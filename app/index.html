@@ -856,6 +856,7 @@
     <button class="tab" data-p="activity">Activity</button>
     <button class="tab" data-p="faucet">Get Tokens</button>
     <button class="tab" data-p="pool">dUSDC</button>
+    <a href="https://docs.dobprotocol.com/dex/overview" target="_blank" class="tab" style="color:var(--text-3);text-decoration:none;font-size:11px;">Docs &#8599;</a>
   </div>
 </div>
 <div class="mob-menu" id="mobMenu">
@@ -918,11 +919,11 @@
           <div class="tbox-usd" id="depositRate"></div>
         </div>
         <div class="sw-info" id="depositDetail" style="display:none;">
-          <div class="sw-row"><span>Oracle Price</span><span class="v" id="depositOraclePrice">—</span></div>
-          <div class="sw-row"><span>Route</span><span class="v" id="depositRoute">Vault &rarr; Hook &rarr; Liquidity Node</span></div>
-          <div class="sw-row" id="depositSwapFeeRow" style="display:none;"><span>Swap Fee</span><span class="v" id="depositSwapFeeVal">—</span></div>
-          <div class="sw-row" id="depositProtocolFeeRow" style="display:none;"><span>Protocol Fee</span><span class="v" id="depositProtocolFeeVal">—</span></div>
-          <div class="sw-row"><span>LP Discount</span><span class="v" style="color:var(--amber)" id="depositLpDiscount">—</span></div>
+          <div class="sw-row"><span title="Price set by AI validator agents via DobValidatorRegistry">Oracle Price</span><span class="v" id="depositOraclePrice">—</span></div>
+          <div class="sw-row"><span title="RWA deposited to vault, dUSDC minted, then swapped to USDC through Liquidity Nodes">Route</span><span class="v" id="depositRoute">Vault &rarr; Hook &rarr; Liquidity Node</span></div>
+          <div class="sw-row" id="depositSwapFeeRow" style="display:none;"><span title="Fee charged by the protocol on sell transactions">Swap Fee</span><span class="v" id="depositSwapFeeVal">—</span></div>
+          <div class="sw-row" id="depositProtocolFeeRow" style="display:none;"><span title="Additional protocol fee on sell transactions">Protocol Fee</span><span class="v" id="depositProtocolFeeVal">—</span></div>
+          <div class="sw-row"><span title="Discount set by the Liquidity Node providing exit capital. LPs earn this spread as profit.">LP Discount</span><span class="v" style="color:var(--amber)" id="depositLpDiscount">—</span></div>
         </div>
         <button class="sw-btn" id="depositBtn" disabled>Select a token</button>
       </div>
@@ -1971,6 +1972,9 @@ function uDep(){
   document.getElementById('depositLpDiscount').textContent=lpDiscBps>0?(lpDiscBps/100).toFixed(1)+'% ('+fmt(lpDisc,2)+' USDC)':'~best LP rate';
   det.style.display='block';
   if(!S.on){btn.disabled=true;btn.textContent='Connect Wallet';btn.className='sw-btn';}
+  else if(S.hookPaused){btn.disabled=true;btn.textContent='Protocol paused';btn.className='sw-btn';}
+  else if(a.oracle.stale){btn.disabled=true;btn.textContent='Oracle stale — price outdated';btn.className='sw-btn';}
+  else if(a.lpOnly&&(a.lpAvailUsdc||0)<=0){btn.disabled=true;btn.textContent='No LP liquidity for '+a.ticker;btn.className='sw-btn';}
   else if(amt>bal){btn.disabled=true;btn.textContent='Insufficient '+a.ticker;btn.className='sw-btn';}
   else{btn.disabled=false;btn.textContent='Sell for USDC';btn.className='sw-btn go';}
 }
@@ -2358,7 +2362,7 @@ async function doSwap(){
     trackEvent('swaps',{txHash:swTx.hash,tokenId:'dUSDC',direction:isDobToUsdc?'sell':'buy',amountIn:amt,amountOut:actualOut,oraclePrice:1,blockNumber:swTx.blockNumber});
     await readBalances();await syncOnChainData();
     log('swap',`<strong>NoOp</strong>: ${fmt(amt,2)} ${isDobToUsdc?'dUSDC &rarr; USDC':'USDC &rarr; dUSDC'}`);
-    toast('Swapped '+fmt(amt,2));document.getElementById('swapInput').value='';renderAll();
+    txToast('Swapped '+fmt(amt,2),swTx.hash);document.getElementById('swapInput').value='';renderAll();
   }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');} else{console.error(e);toast('Swap failed: '+(e.reason||e.shortMessage||e.message));}}
 }
 
@@ -2452,13 +2456,15 @@ async function doBuyListedRwa(){
     const w=ethers.parseUnits(amt.toString(),18);
     const usdc=new ethers.Contract(c.USDC,USDC_ABI,S.sig);
     const hk=new ethers.Contract(c.Hook,HOOK_ABI,S.sig);
-    // Approve max to avoid JS float vs Solidity integer rounding mismatch
-    toast('Approving USDC...');await(await usdc.approve(c.Hook,ethers.MaxUint256,gas)).wait();
+    // Approve exact cost + fee to avoid unlimited exposure
+    const cost=amt*a.price;const feeBps=S.swapFeeBps||0;const fee=(cost*feeBps)/10000;
+    const approveAmt=ethers.parseUnits((cost+fee+1).toFixed(18),18);
+    toast('Approving USDC...');await(await usdc.approve(c.Hook,approveAmt,gas)).wait();
     toast('Buying listed '+a.ticker+'...');await(await hk.buyListedRwa(addr,w,gas)).wait();
     await readBalances();await syncOnChainData();
     const cost=amt*a.price;
     log('swap',`<strong>Bought</strong> ${fmt(amt,2)} ${a.ticker} from resale market for ${fmt(cost,2)} USDC`);
-    toast('Bought '+fmt(amt,2)+' '+a.ticker);document.getElementById('resaleBuyAmt').value='';renderAll();
+    txToast('Bought '+fmt(amt,2)+' '+a.ticker,undefined);document.getElementById('resaleBuyAmt').value='';renderAll();
   }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');}else{console.error(e);toast('Buy failed: '+(e.reason||e.message));}}
 }
 async function rMyListings(){
@@ -2486,12 +2492,14 @@ function uBuy(){
   document.getElementById('buyUsd').textContent=amt>0?'~$'+fmt(amt,2):'';
   if(amt<=0){btn.disabled=true;btn.textContent='Enter an amount';btn.className='sw-btn';document.getElementById('buyOut').textContent='0';document.getElementById('buyRate').textContent='';det.style.display='none';return;}
   if(a.price<=0){btn.disabled=true;btn.textContent='Oracle price unavailable';btn.className='sw-btn';document.getElementById('buyOut').textContent='—';det.style.display='none';return;}
+  if(a.oracle.stale){btn.disabled=true;btn.textContent='Oracle stale — price outdated';btn.className='sw-btn';document.getElementById('buyOut').textContent='—';det.style.display='none';return;}
   const out=amt/a.price;
   document.getElementById('buyOut').textContent=fmt(out,4)+' '+a.ticker;
   document.getElementById('buyRate').textContent='~$'+fmt(amt,2);
   document.getElementById('buyOraclePrice').textContent='1 '+a.ticker+' = '+fmt(a.price,2)+' USDC';
   det.style.display='block';
   if(!S.on){btn.disabled=true;btn.textContent='Connect Wallet';btn.className='sw-btn';}
+  else if(S.hookPaused){btn.disabled=true;btn.textContent='Protocol paused';btn.className='sw-btn';}
   else if(amt>S.usdc){btn.disabled=true;btn.textContent='Insufficient USDC';btn.className='sw-btn';}
   else{btn.disabled=false;btn.textContent='Buy '+a.ticker;btn.className='sw-btn go';}
 }
@@ -2553,7 +2561,7 @@ async function doDeposit(){
       const estOut=S.swapFeeBps>0?dUsdcMinted*(10000-S.swapFeeBps)/10000:dUsdcMinted;
       trackEvent('swaps',{txHash:swTx.hash,tokenId:aid,direction:'sell',amountIn:amt,amountOut:estOut,oraclePrice:a.price,blockNumber:swTx.blockNumber});
       log('swap',`Sold <strong>${fmt(dUsdcMinted,2)} dUSDC</strong> → <strong>USDC</strong> via Liquidity Node`);
-      toast('Sold '+fmt(amt,2)+' '+a.ticker+' for USDC');
+      txToast('Sold '+fmt(amt,2)+' '+a.ticker+' for USDC',swTx.hash);
     } else {
       trackEvent('swaps',{txHash:depTx.hash,tokenId:aid,direction:'sell',amountIn:amt,amountOut:dUsdcMinted,oraclePrice:a.price,blockNumber:depTx.blockNumber});
       toast('Minted '+fmt(dUsdcMinted,2)+' dUSDC (no router — swap manually)');
@@ -2816,6 +2824,7 @@ function rPosition(){
 }
 function log(t,m){S.logs.unshift({t,m,time:now()});if(S.logs.length>50)S.logs.pop();rLog();}
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3000);}
+function txToast(m,hash){const ex=getChain().explorer;const t=document.createElement('div');t.className='toast';t.innerHTML=m+(hash&&ex?' <a href="'+ex+'/tx/'+hash+'" target="_blank" style="color:var(--accent-light);text-decoration:underline;margin-left:4px;">View tx</a>':'');document.body.appendChild(t);setTimeout(()=>t.remove(),5000);}
 function trackEvent(endpoint,body){fetch('/api/'+endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,chainId:chainId,wallet:S.addr})}).catch(()=>{});}
 
 document.getElementById('walletBtn').addEventListener('click',connectWallet);
