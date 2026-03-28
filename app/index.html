@@ -963,7 +963,7 @@
         </div>
         <div class="sw-info" id="buyDetail" style="display:none;">
           <div class="sw-row"><span>Oracle Price</span><span class="v" id="buyOraclePrice">—</span></div>
-          <div class="sw-row"><span>Route</span><span class="v">DobPegHook (NoOp)</span></div>
+          <div class="sw-row"><span title="Buys are direct at oracle price — no LP discount or fees">Route</span><span class="v">Direct at Oracle Price</span></div>
           <div class="sw-row"><span>Price Impact</span><span class="v" style="color:var(--green)">0%</span></div>
         </div>
         <button class="sw-btn" id="buyBtn" disabled>Select a token</button>
@@ -2622,7 +2622,6 @@ async function doBuyListedRwa(){
     toast('Approving USDC...');await(await usdc.approve(c.Hook,approveAmt,gas)).wait();
     toast('Buying listed '+a.ticker+'...');await(await hk.buyListedRwa(addr,w,gas)).wait();
     await readBalances();await syncOnChainData();
-    const cost=amt*a.price;
     log('swap',`<strong>Bought</strong> ${fmt(amt,2)} ${a.ticker} from resale market for ${fmt(cost,2)} USDC`);
     txToast('Bought '+fmt(amt,2)+' '+a.ticker,undefined);document.getElementById('resaleBuyAmt').value='';renderAll();
   }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');}else{console.error(e);toast('Buy failed: '+(e.reason||e.message));}}
@@ -2724,7 +2723,7 @@ async function doDeposit(){
       txToast('Sold '+fmt(amt,2)+' '+a.ticker+' for USDC',swTx.hash);
     } else {
       trackEvent('swaps',{txHash:depTx.hash,tokenId:aid,direction:'sell',amountIn:amt,amountOut:dUsdcMinted,oraclePrice:a.price,blockNumber:depTx.blockNumber});
-      toast('Minted '+fmt(dUsdcMinted,2)+' dUSDC (no router — swap manually)');
+      toast('Minted '+fmt(dUsdcMinted,2)+' dUSDC. Swap to USDC on the dUSDC tab.');
     }
     await readBalances();await syncOnChainData();
     document.getElementById('depositAmt').value='';renderAll();
