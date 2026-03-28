@@ -2124,7 +2124,7 @@ function rAssetsFull(){
   const riskOrder={Low:0,Medium:1,High:2};
   let sorted=[...A];
   if(assetSort==='price')sorted.sort((a,b)=>b.price-a.price);
-  else if(assetSort==='apy')sorted.sort((a,b)=>parseFloat(b.apy)-parseFloat(a.apy));
+  else if(assetSort==='apy')sorted.sort((a,b)=>(parseFloat(b.apy)||0)-(parseFloat(a.apy)||0));
   else if(assetSort==='risk')sorted.sort((a,b)=>(riskOrder[a.risk]||1)-(riskOrder[b.risk]||1));
   else if(assetSort==='liq')sorted.sort((a,b)=>(b.lpAvailUsdc||0)-(a.lpAvailUsdc||0));
   g.innerHTML=sorted.map(a=>{
@@ -2182,7 +2182,7 @@ function rAssetsFull(){
         <div class="af-m"><small>TVL</small><span>${usd(a.tvl)}</span></div>
         <div class="af-m"><small>LP Liquidity</small><span style="color:var(--green)">${usd(liq)}</span></div>
         <div class="af-m"><small>Est. Yield</small><span style="color:var(--accent)">${a.apy}</span></div>
-        <div class="af-m"><small title="LP discount range for this asset. This is the exit cost sellers pay.">Exit Cost</small><span style="color:var(--amber)">${lps.length?lps.map(b=>(b.minDisc/100).toFixed(0)).sort((a,b)=>a-b).filter((v,i,s)=>i===0||i===s.length-1).join('-')+'%':'—'}</span></div>
+        <div class="af-m"><small title="LP discount range for this asset. This is the exit cost sellers pay.">Exit Cost</small><span style="color:var(--amber)">${lps.length?(()=>{const ds=[...new Set(lps.map(b=>(b.minDisc/100).toFixed(0)))].sort((a,b)=>a-b);return ds.length>1?ds[0]+'-'+ds[ds.length-1]+'%':ds[0]+'%';})():'—'}</span></div>
       </div>
       <div class="af-detail">
         <div class="af-row"><span class="l">Tokenized Units</span><span class="v">${a.units}</span></div>
@@ -2672,10 +2672,10 @@ async function doBuyListedRwa(){
     const cost=amt*a.price;const feeBps=S.swapFeeBps||0;const fee=(cost*feeBps)/10000;
     const approveAmt=ethers.parseUnits((cost+fee+1).toFixed(18),18);
     toast('Approving USDC...');await(await usdc.approve(c.Hook,approveAmt,gas)).wait();
-    toast('Buying listed '+a.ticker+'...');await(await hk.buyListedRwa(addr,w,gas)).wait();
+    toast('Buying listed '+a.ticker+'...');const buyRx=await(await hk.buyListedRwa(addr,w,gas)).wait();
     await readBalances();await syncOnChainData();
     log('swap',`<strong>Bought</strong> ${fmt(amt,2)} ${a.ticker} from resale market for ${fmt(cost,2)} USDC`);
-    txToast('Bought '+fmt(amt,2)+' '+a.ticker,undefined);document.getElementById('resaleBuyAmt').value='';renderAll();
+    txToast('Bought '+fmt(amt,2)+' '+a.ticker,buyRx.hash);document.getElementById('resaleBuyAmt').value='';renderAll();
   }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');}else{console.error(e);toast('Buy failed: '+(e.reason||e.message));}}
 }
 async function rMyListings(){
@@ -3055,7 +3055,7 @@ document.getElementById('wdExecBtn').addEventListener('click',wdExec);
 document.getElementById('hookDepBtn').addEventListener('click',hookDeposit);
 document.getElementById('hookWdBtn').addEventListener('click',hookWithdraw);
 document.getElementById('newDiscSlider').addEventListener('input',function(){document.getElementById('newDiscVal').textContent=this.value+'%';});
-document.querySelectorAll('.act-f').forEach(f=>f.addEventListener('click',function(){document.querySelectorAll('.act-f').forEach(x=>x.classList.remove('on'));this.classList.add('on');actFilter=this.dataset.f;rActivity();}));
+document.querySelectorAll('#actFilters .act-f').forEach(f=>f.addEventListener('click',function(){document.querySelectorAll('#actFilters .act-f').forEach(x=>x.classList.remove('on'));this.classList.add('on');actFilter=this.dataset.f;rActivity();}));
 
 // Hamburger menu
 document.getElementById('hamburgerBtn').addEventListener('click',()=>{
