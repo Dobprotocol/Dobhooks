@@ -1073,8 +1073,8 @@
       <div class="kpi" style="grid-template-columns:repeat(5,1fr); margin-bottom:16px;">
         <div class="kpi-box"><div class="kpi-lbl">Active LPs</div><div class="kpi-val" id="netLps">0</div><div class="kpi-sub">Registered nodes</div></div>
         <div class="kpi-box"><div class="kpi-lbl">Total Deposited</div><div class="kpi-val" id="netDeposited">$0</div><div class="kpi-sub">USDC in protocol</div></div>
-        <div class="kpi-box"><div class="kpi-lbl">Assets Backed</div><div class="kpi-val" id="netBacked">0</div><div class="kpi-sub">With active coverage</div></div>
-        <div class="kpi-box"><div class="kpi-lbl">Total Fills</div><div class="kpi-val" id="netFills">0</div><div class="kpi-sub">Liquidation events</div></div>
+        <div class="kpi-box"><div class="kpi-lbl">Your Backings</div><div class="kpi-val" id="netBacked">0</div><div class="kpi-sub">Assets you back</div></div>
+        <div class="kpi-box"><div class="kpi-lbl">Your Fills</div><div class="kpi-val" id="netFills">0</div><div class="kpi-sub">Fills received</div></div>
         <div class="kpi-box"><div class="kpi-lbl">Distressed</div><div class="kpi-val" id="netDistressed" style="color:var(--red)">0</div><div class="kpi-sub">Pending liquidation</div></div>
       </div>
 
@@ -1502,7 +1502,7 @@
     <h2 style="font-size:20px;font-weight:900;letter-spacing:-0.5px;margin-bottom:8px;">Welcome to DobDex</h2>
     <p style="font-size:12px;color:var(--text-3);line-height:1.6;margin-bottom:24px;">The LP-priced exit liquidity layer for tokenized real-world assets. Sell RWA tokens for USDC through Liquidity Nodes, or provide liquidity and earn discounted RWA.</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">
-      <div onclick="closeOnboard();go('swap')" style="cursor:pointer;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 12px;transition:border-color 0.15s;">
+      <div onclick="closeOnboard();go('swap');swapMode('buy')" style="cursor:pointer;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 12px;transition:border-color 0.15s;">
         <div style="font-size:20px;margin-bottom:6px;">&#128200;</div>
         <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Investor</div>
         <div style="font-size:10px;color:var(--text-3);line-height:1.4;">Buy RWA tokens for yield. Sell anytime through LPs.</div>
@@ -2221,10 +2221,11 @@ async function doPooledDeposit(){
   const v=ethers.parseUnits(amt,18);
   try{
     const usdc=new ethers.Contract(c.USDC,USDC_ABI,S.sig);
-    let tx=await usdc.approve(c.PooledLN,v);await tx.wait();
+    toast('Approving USDC...');let tx=await usdc.approve(c.PooledLN,v);await tx.wait();
     const pln=new ethers.Contract(c.PooledLN,PLN_ABI,S.sig);
-    tx=await pln.deposit(v);await tx.wait();
+    toast('Depositing to Pooled LN...');tx=await pln.deposit(v);await tx.wait();
     log('lp','Deposited '+amt+' USDC to Pooled LN');
+    txToast('Deposited '+amt+' USDC to Pooled LN',tx.hash);
     document.getElementById('plnDepAmt').value='';
     await syncPooledLN();
   }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');}else{console.error(e);toast('Pooled deposit failed: '+(e.reason||e.message));}}
@@ -2235,8 +2236,9 @@ async function doPooledWithdraw(){
   const v=ethers.parseUnits(sh,18);
   try{
     const pln=new ethers.Contract(c.PooledLN,PLN_ABI,S.sig);
-    const tx=await pln.withdraw(v);await tx.wait();
+    toast('Withdrawing from Pooled LN...');const tx=await pln.withdraw(v);await tx.wait();
     log('lp','Withdrew '+sh+' shares from Pooled LN');
+    txToast('Withdrew '+sh+' shares from Pooled LN',tx.hash);
     document.getElementById('plnWdShares').value='';
     await syncPooledLN();
   }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');}else{console.error(e);toast('Pooled withdraw failed: '+(e.reason||e.message));}}
@@ -2246,8 +2248,8 @@ async function doPooledClaimRwa(tokenAddr,amount){
   try{
     const pln=new ethers.Contract(c.PooledLN,PLN_ABI,S.sig);
     const v=ethers.parseUnits(amount.toString(),18);
-    const tx=await pln.withdrawRwa(tokenAddr,v);await tx.wait();
-    log('lp','Claimed RWA from Pooled LN');
+    toast('Claiming RWA tokens...');const tx=await pln.withdrawRwa(tokenAddr,v);await tx.wait();
+    log('lp','Claimed '+amount+' RWA from Pooled LN');
     await syncPooledLN();
   }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');}else{console.error(e);toast('Claim failed: '+(e.reason||e.message));}}
 }
@@ -2681,7 +2683,7 @@ async function doBuyRwa(){
     trackEvent('swaps',{txHash:buyTx.hash,tokenId:aid,direction:'buy',amountIn:amt,amountOut:out,oraclePrice:a.price,blockNumber:buyTx.blockNumber});
     await readBalances();await syncOnChainData();
     log('swap',`<strong>Buy RWA</strong>: ${fmt(amt,2)} USDC &rarr; ${fmt(out,4)} ${a.ticker}`);
-    toast('Bought '+fmt(out,4)+' '+a.ticker);document.getElementById('buyAmt').value='';renderAll();
+    txToast('Bought '+fmt(out,4)+' '+a.ticker,buyTx.hash);document.getElementById('buyAmt').value='';renderAll();
   }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');} else{console.error(e);toast('Buy failed: '+(e.reason||e.message));}}
 }
 
