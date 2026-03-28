@@ -853,6 +853,7 @@
     <button class="tab on" data-p="swap">Swap</button>
     <button class="tab" data-p="node">Liquidity Node</button>
     <button class="tab" data-p="assets">Assets</button>
+    <button class="tab" data-p="portfolio">Portfolio</button>
     <button class="tab" data-p="activity">Activity</button>
     <button class="tab" data-p="faucet">Get Tokens</button>
     <button class="tab" data-p="pool">dUSDC</button>
@@ -863,6 +864,7 @@
   <button class="on" data-p="swap">Swap</button>
   <button data-p="node">Liquidity Node</button>
   <button data-p="assets">Assets</button>
+  <button data-p="portfolio">Portfolio</button>
   <button data-p="activity">Activity</button>
   <button data-p="faucet">Get Tokens</button>
   <button data-p="pool">dUSDC</button>
@@ -876,6 +878,7 @@
 <div id="pg-swap" class="pg active">
   <div class="sw-wrap">
     <div style="width:100%; max-width:420px;">
+      <p style="font-size:11px;color:var(--text-3);margin-bottom:12px;line-height:1.5;">Sell RWA tokens for USDC through Liquidity Nodes, buy RWA at oracle price, or trade on the peer-to-peer Resale Market.</p>
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
         <div class="sec" style="margin:0;"><h3>Swap RWA</h3></div>
         <div style="display:flex; align-items:center; gap:6px; padding:4px 10px; border-radius:var(--r-sm); background:var(--bg-2); font-size:10px; color:var(--text-3); font-weight:500;">
@@ -1267,7 +1270,7 @@
 <div id="pg-assets" class="pg">
   <div class="assets-pg">
     <div class="assets-hero">
-      <div><h1>Platform Assets</h1><div class="sub">Oracle-verified RWA tokens available on dobdex</div></div>
+      <div><h1>Platform Assets</h1><div class="sub">Oracle-verified RWA tokens available on DobDex. Each asset is priced by AI validator agents and backed by Liquidity Nodes.</div></div>
       <span class="pill ok" id="assetCountBadge"><i></i> 10 Assets Live</span>
     </div>
     <div class="assets-stats" id="assetsStats">
@@ -1277,6 +1280,56 @@
       <div class="kpi-box"><div class="kpi-lbl">Distressed</div><div class="kpi-val" id="atDistressed" style="color:var(--red)">0</div><div class="kpi-sub">Assets in liquidation</div></div>
     </div>
     <div class="assets-list" id="assetsFullGrid"></div>
+  </div>
+</div>
+
+<!-- ═══ PORTFOLIO ═══ -->
+<div id="pg-portfolio" class="pg">
+  <div style="max-width:900px; margin:0 auto; padding:28px 24px 60px;">
+    <h1 style="font-size:22px; font-weight:900; letter-spacing:-0.5px; margin-bottom:6px;">Portfolio</h1>
+    <p style="font-size:11px;color:var(--text-3);margin-bottom:24px;line-height:1.5;">Your positions across the protocol. Connect your wallet to view holdings, LP positions, and claimable tokens.</p>
+    <div id="portfolioContent">
+      <div class="act-empty"><span class="icon">&#128176;</span><p>Connect wallet to view portfolio</p></div>
+    </div>
+
+    <!-- Glossary -->
+    <div style="margin-top:40px;border-top:1px solid var(--border);padding-top:24px;">
+      <h2 style="font-size:16px;font-weight:800;margin-bottom:16px;">Glossary</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;" id="glossaryGrid">
+        <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-1);margin-bottom:4px;">Oracle Price</div>
+          <div style="font-size:11px;color:var(--text-3);line-height:1.5;">The USD price of an RWA token, set by AI validator agents via DobValidatorRegistry. Used for vault deposits/withdrawals. NOT the swap rate.</div>
+        </div>
+        <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-1);margin-bottom:4px;">LP Discount</div>
+          <div style="font-size:11px;color:var(--text-3);line-height:1.5;">The spread charged by Liquidity Nodes when you sell. LPs set their own discount rate (minPenaltyBps). This is how LPs profit from providing exit liquidity.</div>
+        </div>
+        <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-1);margin-bottom:4px;">dUSDC</div>
+          <div style="font-size:11px;color:var(--text-3);line-height:1.5;">The protocol's intermediate stablecoin. Minted 1:1 at oracle price when you deposit RWA tokens into the vault. Burned when withdrawing.</div>
+        </div>
+        <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-1);margin-bottom:4px;">Liquidity Node</div>
+          <div style="font-size:11px;color:var(--text-3);line-height:1.5;">An LP that deposits USDC and backs specific RWA assets. When sellers exit, LPs provide the USDC and receive discounted RWA tokens in return.</div>
+        </div>
+        <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-1);margin-bottom:4px;">Pooled LN</div>
+          <div style="font-size:11px;color:var(--text-3);line-height:1.5;">A shared Liquidity Node managed by Dobprotocol. Anyone can deposit USDC and earn a proportional share of RWA tokens from fills. Easier than running your own LP.</div>
+        </div>
+        <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-1);margin-bottom:4px;">Liquidation</div>
+          <div style="font-size:11px;color:var(--text-3);line-height:1.5;">When an asset is distressed, Dobprotocol activates liquidation mode with a penalty rate. LPs who back that asset participate in fills at the mandated discount.</div>
+        </div>
+        <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-1);margin-bottom:4px;">Slippage</div>
+          <div style="font-size:11px;color:var(--text-3);line-height:1.5;">The difference between expected and actual output. On sells, slippage comes from LP discount variability. Set a tolerance to protect against unexpected price changes.</div>
+        </div>
+        <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-1);margin-bottom:4px;">APR / Yield</div>
+          <div style="font-size:11px;color:var(--text-3);line-height:1.5;">RWA tokens generate periodic yield from the underlying real-world asset (rent, energy revenue, etc). Distributed via Token Studio's DistributionPool contracts.</div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1337,7 +1390,8 @@
 <!-- ═══ dUSDC ═══ -->
 <div id="pg-pool" class="pg">
   <div class="pool">
-    <div class="ln-top" style="margin-bottom:20px"><h1 style="font-size:20px">dUSDC</h1><span class="pill ok"><i></i> Live</span></div>
+    <div class="ln-top" style="margin-bottom:8px"><h1 style="font-size:20px">dUSDC</h1><span class="pill ok"><i></i> Live</span></div>
+    <p style="font-size:11px;color:var(--text-3);margin-bottom:20px;line-height:1.5;max-width:500px;">dUSDC is minted when you deposit RWA into the vault. Swap it for USDC via Hook reserves, or deposit USDC into the Hook LP pool to earn a share of protocol fees.</p>
 
     <!-- Redeem dUSDC → USDC -->
     <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:28px;">
@@ -1441,6 +1495,36 @@
 -->
 
 <footer>
+<!-- ═══ ONBOARDING MODAL ═══ -->
+<div id="onboardModal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.7);backdrop-filter:blur(12px);place-items:center;" onclick="if(event.target===this)closeOnboard()">
+  <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r-xl);max-width:480px;width:90%;padding:32px;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,0.5);">
+    <div style="font-size:32px;margin-bottom:12px;">&#127968;</div>
+    <h2 style="font-size:20px;font-weight:900;letter-spacing:-0.5px;margin-bottom:8px;">Welcome to DobDex</h2>
+    <p style="font-size:12px;color:var(--text-3);line-height:1.6;margin-bottom:24px;">The LP-priced exit liquidity layer for tokenized real-world assets. Sell RWA tokens for USDC through Liquidity Nodes, or provide liquidity and earn discounted RWA.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">
+      <div onclick="closeOnboard();go('swap')" style="cursor:pointer;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 12px;transition:border-color 0.15s;">
+        <div style="font-size:20px;margin-bottom:6px;">&#128200;</div>
+        <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Investor</div>
+        <div style="font-size:10px;color:var(--text-3);line-height:1.4;">Buy RWA tokens for yield. Sell anytime through LPs.</div>
+      </div>
+      <div onclick="closeOnboard();go('node')" style="cursor:pointer;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 12px;transition:border-color 0.15s;">
+        <div style="font-size:20px;margin-bottom:6px;">&#128176;</div>
+        <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Liquidity Provider</div>
+        <div style="font-size:10px;color:var(--text-3);line-height:1.4;">Deposit USDC. Earn discounted RWA from sell fills.</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:16px;">
+      <button onclick="closeOnboard();go('faucet')" style="flex:1;padding:10px;border-radius:var(--r-md);border:1px solid var(--accent);background:var(--accent);color:white;font-size:12px;font-weight:700;cursor:pointer;">Get Test Tokens</button>
+      <button onclick="closeOnboard()" style="flex:1;padding:10px;border-radius:var(--r-md);border:1px solid var(--border);background:transparent;color:var(--text-2);font-size:12px;font-weight:600;cursor:pointer;">Skip</button>
+    </div>
+    <div style="font-size:10px;color:var(--text-3);">
+      <a href="protocol.html" style="color:var(--accent-light);text-decoration:none;">How it works</a> &middot;
+      <a href="https://docs.dobprotocol.com/dex/overview" target="_blank" style="color:var(--accent-light);text-decoration:none;">Documentation</a> &middot;
+      <a href="simulate.html" style="color:var(--accent-light);text-decoration:none;">Try Simulator</a>
+    </div>
+  </div>
+</div>
+
   <div class="flogo">
     <svg viewBox="0 0 89 89" fill="none"><circle cx="44.9" cy="44" r="44" fill="#597CE9"/><path d="M35.5 54.1C33.1 51.5 31.9 48.2 31.9 44C31.9 39.8 33.1 36.5 35.5 33.9C36.9 32.4 38.6 31.3 40.6 30.7V22C38 22.4 35.6 23.2 33.4 24.5C30.1 26.4 27.5 29 25.7 32.3C23.9 35.7 23 39.6 23 44.1C23 48.6 23.9 52.5 25.7 55.8C27.5 59.2 30.1 61.7 33.4 63.6C35.6 64.8 38 65.6 40.6 66V57.3C38.6 56.7 36.9 55.6 35.5 54.1Z" fill="#F9FAFE"/><path d="M64.1 32.3C62.2 29 59.7 26.4 56.4 24.5C54.2 23.2 51.8 22.4 49.2 22V30.7C51.2 31.4 52.9 32.4 54.3 34C56.7 36.6 57.9 39.9 57.9 44.1C57.9 48.3 56.7 51.5 54.3 54.1C52.9 55.6 51.2 56.7 49.2 57.3V66C51.8 65.6 54.2 64.8 56.4 63.6C59.7 61.7 62.2 59.1 64.1 55.8C65.9 52.5 66.9 48.6 66.9 44.1C66.9 39.6 65.9 35.7 64.1 32.3Z" fill="#F9FAFE"/><circle cx="44.9" cy="44" r="5.5" fill="#F9FAFE"/></svg>
     <span><em>dob</em>dex</span> &middot; <a href="landing.html">About</a>
@@ -1456,6 +1540,15 @@ function toggleTheme(){
   localStorage.setItem('dobdex-theme',isLight?'light':'dark');
 }
 (function(){const t=localStorage.getItem('dobdex-theme');if(t==='light'){document.body.classList.add('light');document.addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('themeBtn');if(b)b.innerHTML='&#9728;';});}})();
+
+// ── Onboarding ──
+function showOnboard(){document.getElementById('onboardModal').style.display='grid';}
+function closeOnboard(){document.getElementById('onboardModal').style.display='none';localStorage.setItem('dobdex-onboarded','1');}
+(function(){if(!localStorage.getItem('dobdex-onboarded'))document.addEventListener('DOMContentLoaded',()=>setTimeout(showOnboard,800));})();
+
+// ── Persistent activity logs ──
+function saveLogs(){try{localStorage.setItem('dobdex-logs',JSON.stringify(S.logs.slice(0,100)));}catch(e){}}
+function loadLogs(){try{const d=localStorage.getItem('dobdex-logs');if(d){const logs=JSON.parse(d);if(Array.isArray(logs))return logs;}}catch(e){}return[];}
 
 function toggleNetMenu(){
   const m=document.getElementById('netMenu');
@@ -1482,56 +1575,56 @@ document.addEventListener('click',e=>{
 const A=[
   {id:'dct',name:'Datacenter Token',ticker:'DCT',icon:'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=80&h=80&fit=crop',
    desc:'Fractional ownership of Tier IV datacenter infrastructure in Virginia, USA. 99.995% uptime SLA.',
-   price:0,pf:'—',apy:'8.5%',units:'—',tvl:0,
+   price:0,pf:'—',apy:'8.5%',risk:'Low',units:'—',tvl:0,
    oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
    liq:{enabled:false,penaltyBps:0,cap:0,liquidated:0}},
   {id:'sft',name:'Solar Farm Token',ticker:'SFT',icon:'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=80&h=80&fit=crop',
    desc:'25MW solar farm in Andalucia, Spain. 20-year PPA with local utility. EPC by SunPower.',
-   price:0,pf:'—',apy:'7.2%',units:'—',tvl:0,
+   price:0,pf:'—',apy:'7.2%',risk:'Medium',units:'—',tvl:0,
    oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
    liq:{enabled:false,penaltyBps:0,cap:0,liquidated:0}},
   {id:'ret',name:'Real Estate Token',ticker:'RET',icon:'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=80&h=80&fit=crop',
    desc:'Class A commercial office building in Miami Financial District. 95% occupancy, 10-year leases.',
-   price:0,pf:'—',apy:'6.0%',units:'—',tvl:0,
+   price:0,pf:'—',apy:'6.0%',risk:'Low',units:'—',tvl:0,
    oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
    liq:{enabled:false,penaltyBps:0,cap:0,liquidated:0}},
   {id:'pwg',name:'Power Grid Token',ticker:'PWG',icon:'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=80&h=80&fit=crop',
    desc:'High-voltage transmission infrastructure across Texas ERCOT grid. Regulated utility returns.',
-   price:0,pf:'—',apy:'5.8%',units:'—',tvl:0,
+   price:0,pf:'—',apy:'5.8%',risk:'Low',units:'—',tvl:0,
    oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
    liq:{enabled:false,penaltyBps:0,cap:0,liquidated:0}},
   {id:'wft',name:'Wind Farm Token',ticker:'WFT',icon:'https://images.unsplash.com/photo-1532601224476-15c79f2f7a51?w=80&h=80&fit=crop',
    desc:'Offshore wind farm in the North Sea, 150MW capacity. 25-year concession from Danish Energy Agency.',
-   price:0,pf:'—',apy:'6.5%',units:'—',tvl:0,
+   price:0,pf:'—',apy:'6.5%',risk:'Medium',units:'—',tvl:0,
    oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
    liq:{enabled:false,penaltyBps:0,cap:0,liquidated:0}},
   {id:'glt',name:'Gold Reserve Token',ticker:'GLT',icon:'https://images.unsplash.com/photo-1610375461246-83df859d849d?w=80&h=80&fit=crop',
    desc:'Tokenized gold reserves held in LBMA-certified vaults in Zurich. Fully audited quarterly.',
-   price:0,pf:'—',apy:'3.2%',units:'—',tvl:0,
+   price:0,pf:'—',apy:'3.2%',risk:'Low',units:'—',tvl:0,
    oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
    liq:{enabled:false,penaltyBps:0,cap:0,liquidated:0}},
   {id:'evt',name:'EV Fleet Token',ticker:'EVT',icon:'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=80&h=80&fit=crop',
    desc:'Fleet of 500 Tesla Semi trucks leased to Amazon Logistics. 5-year master lease agreement.',
-   price:0,pf:'—',apy:'9.0%',units:'—',tvl:0,
+   price:0,pf:'—',apy:'9.0%',risk:'High',units:'—',tvl:0,
    oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
    liq:{enabled:false,penaltyBps:0,cap:0,liquidated:0}},
   {id:'tbt',name:'Treasury Bond Token',ticker:'TBT',icon:'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=80&h=80&fit=crop',
    desc:'Tokenized US Treasury Bonds (10-year). Backed 1:1 by T-bills held at State Street custodian.',
-   price:0,pf:'—',apy:'4.3%',units:'—',tvl:0,
+   price:0,pf:'—',apy:'4.3%',risk:'Low',units:'—',tvl:0,
    oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
    liq:{enabled:false,penaltyBps:0,cap:0,liquidated:0}},
   {id:'flt',name:'Farmland Token',ticker:'FLT',icon:'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=80&h=80&fit=crop',
    desc:'2,000-acre irrigated farmland in Iowa. Row crops (corn/soy) with 15-year operator lease.',
-   price:0,pf:'—',apy:'5.5%',units:'—',tvl:0,
+   price:0,pf:'—',apy:'5.5%',risk:'Low',units:'—',tvl:0,
    oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
    liq:{enabled:false,penaltyBps:0,cap:0,liquidated:0}},
   {id:'sct',name:'Shipping Container Token',ticker:'SCT',icon:'https://images.unsplash.com/photo-1524522173746-f628baad3644?w=80&h=80&fit=crop',
    desc:'Fleet of 10,000 dry containers leased to Maersk and MSC. 3-year rolling lease contracts.',
-   price:0,pf:'—',apy:'7.8%',units:'—',tvl:0,
+   price:0,pf:'—',apy:'7.8%',risk:'Medium',units:'—',tvl:0,
    oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
    liq:{enabled:false,penaltyBps:0,cap:0,liquidated:0}}
 ];
-const S={on:false,addr:'',short:'',prov:null,sig:null,dob:0,usdc:0,hook:0,minted:0,dir:'d2u',logs:[],
+const S={on:false,addr:'',short:'',prov:null,sig:null,dob:0,usdc:0,hook:0,minted:0,dir:'d2u',logs:loadLogs(),
   lpActive:false,lpDeposited:0,lpAvailable:0,lpEarned:0,lpFillCount:0,
   backings:[],fills:[],reserveHolds:[],faucetBals:{},wdPending:false,wdAmount:0,wdTime:null,gLP:0,
   swapFeeBps:0,protocolFeeBps:0,hookPaused:false,hookLpUsdc:0,hookLpShares:0,hookSharePrice:0,hookMyShares:0};
@@ -2027,6 +2120,7 @@ function rAssetsFull(){
       <div class="af-top">
         <div class="af-id"><img class="af-ico" src="${a.icon}" alt="${a.ticker}"/><div><div class="af-nm">${a.name}</div><div class="af-tk">${a.ticker}</div></div></div>
         <div style="display:flex;gap:6px;align-items:center;">
+          <div class="af-badge" style="background:${a.risk==='Low'?'var(--green-dim);color:var(--green)':a.risk==='High'?'var(--red-dim);color:var(--red)':'var(--amber-dim);color:var(--amber)'};font-size:9px;" title="Risk level based on asset type and volatility">${a.risk} Risk</div>
           ${a.lpOnly?'<div class="af-badge" style="background:var(--amber-dim,rgba(255,193,7,0.12));color:var(--amber,#FFC107);font-size:9px;">LP-Only</div>':''}
           ${a.resaleTotal>0?`<div class="af-badge" style="background:var(--accent-dim);color:var(--accent-light);font-size:9px;">${fmt(a.resaleTotal,0)} Listed</div>`:''}
           <div class="af-badge" style="background:${lps.length?'var(--green-dim);color:var(--green)':'var(--accent-dim);color:var(--accent-light)'}">${lps.length?lps.length+' LP'+(lps.length>1?'s':''):'No LPs'}</div>
@@ -2246,7 +2340,73 @@ async function claimFaucet(id){
   renderAll();
 }
 
-function renderAll(){rSwap();uSwap();rLP();rBk();rFl();rLog();uDep();uBuy();uBtns();rPool();rAssetsFull();rActivity();rReserves();rFaucet();rPosition();rSidebar();syncPooledLN();checkFaucetCooldown();}
+function renderAll(){rSwap();uSwap();rLP();rBk();rFl();rLog();uDep();uBuy();uBtns();rPool();rAssetsFull();rActivity();rReserves();rFaucet();rPosition();rSidebar();rPortfolio();rWdCountdown();syncPooledLN();checkFaucetCooldown();}
+
+// ── Portfolio ──
+function rPortfolio(){
+  const el=document.getElementById('portfolioContent');if(!el)return;
+  if(!S.on){el.innerHTML='<div class="act-empty"><span class="icon">&#128176;</span><p>Connect wallet to view portfolio</p></div>';return;}
+  const rwaHoldings=A.filter(a=>(S.faucetBals?.[a.id]||0)>0).map(a=>{const bal=S.faucetBals[a.id];return{ticker:a.ticker,icon:a.icon,bal,value:bal*a.price,apy:a.apy,price:a.price,risk:a.risk||'Medium'};});
+  const totalRwaValue=rwaHoldings.reduce((s,h)=>s+h.value,0);
+  const actBk=S.backings.filter(b=>b.active);
+  const totalEarned=actBk.reduce((s,b)=>s+b.earned,0);
+  const plnShares=parseFloat(document.getElementById('plnShares')?.textContent||'0');
+  const plnPrice=parseFloat((document.getElementById('plnPrice')?.textContent||'$1').replace('$',''));
+  const plnValue=plnShares*plnPrice;
+  const totalValue=totalRwaValue+S.dob+S.usdc+S.lpDeposited+plnValue;
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:24px;">
+      <div class="kpi-box"><div class="kpi-lbl">Total Value</div><div class="kpi-val" style="color:var(--accent)">${usd(totalValue)}</div></div>
+      <div class="kpi-box"><div class="kpi-lbl">USDC</div><div class="kpi-val">${usd(S.usdc)}</div></div>
+      <div class="kpi-box"><div class="kpi-lbl">dUSDC</div><div class="kpi-val">${usd(S.dob)}</div></div>
+      <div class="kpi-box"><div class="kpi-lbl">RWA Holdings</div><div class="kpi-val">${usd(totalRwaValue)}</div></div>
+      <div class="kpi-box"><div class="kpi-lbl">LP Deposited</div><div class="kpi-val">${usd(S.lpDeposited)}</div></div>
+      <div class="kpi-box"><div class="kpi-lbl">Pooled LN</div><div class="kpi-val">${usd(plnValue)}</div></div>
+    </div>
+    ${rwaHoldings.length?`<h3 style="font-size:14px;font-weight:800;margin-bottom:12px;">RWA Holdings</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:24px;">
+      ${rwaHoldings.map(h=>`<div style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <img src="${h.icon}" style="width:28px;height:28px;border-radius:6px;object-fit:cover;"/>
+          <div><div style="font-size:12px;font-weight:700;">${h.ticker}</div><div style="font-size:10px;color:var(--text-3);">Est. Yield: ${h.apy}</div></div>
+          <span style="margin-left:auto;font-size:9px;padding:2px 6px;border-radius:999px;background:${h.risk==='Low'?'var(--green-dim)':h.risk==='High'?'var(--red-dim)':'var(--amber-dim)'};color:${h.risk==='Low'?'var(--green)':h.risk==='High'?'var(--red)':'var(--amber)'};font-weight:700;">${h.risk}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;"><span style="color:var(--text-3);">Balance</span><span style="font-weight:700;">${fmt(h.bal,2)} ${h.ticker}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-top:2px;"><span style="color:var(--text-3);">Value</span><span style="font-weight:700;color:var(--green);">${usd(h.value)}</span></div>
+      </div>`).join('')}
+    </div>`:''}
+    ${actBk.length?`<h3 style="font-size:14px;font-weight:800;margin-bottom:12px;">LP Backings</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:24px;">
+      ${actBk.map(b=>{const a=A.find(x=>x.id===b.aid);return`<div style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;">
+        <div style="font-size:12px;font-weight:700;margin-bottom:6px;">${a?a.ticker:b.aid}</div>
+        <div style="font-size:11px;display:flex;justify-content:space-between;"><span style="color:var(--text-3);">Allocated</span><span>${usd(b.alloc)}</span></div>
+        <div style="font-size:11px;display:flex;justify-content:space-between;"><span style="color:var(--text-3);">Used</span><span>${usd(b.used)}</span></div>
+        <div style="font-size:11px;display:flex;justify-content:space-between;"><span style="color:var(--text-3);">Discount</span><span>${(b.minDisc/100).toFixed(0)}%</span></div>
+        <div style="font-size:11px;display:flex;justify-content:space-between;"><span style="color:var(--text-3);">Earned RWA</span><span style="color:var(--accent)">${fmt(b.earned,4)}</span></div>
+      </div>`;}).join('')}
+    </div>`:''}
+    ${S.wdPending?`<div style="background:var(--amber-dim,rgba(255,193,7,0.08));border:1px solid var(--amber);border-radius:var(--r-lg);padding:14px;margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:700;color:var(--amber);margin-bottom:4px;">Pending Withdrawal</div>
+      <div style="font-size:11px;color:var(--text-2);">${usd(S.wdAmount)} USDC &middot; <span id="portfolioWdTimer"></span></div>
+    </div>`:''}
+  `;
+}
+
+// ── Withdrawal Countdown ──
+function rWdCountdown(){
+  if(!S.wdPending||!S.wdTime)return;
+  const elapsed=(Date.now()-S.wdTime)/1000;
+  const remaining=Math.max(0,86400-elapsed);
+  const h=Math.floor(remaining/3600);
+  const m=Math.floor((remaining%3600)/60);
+  const msg=remaining<=0?'Ready to execute':''+h+'h '+m+'m remaining';
+  // Update in Claims section
+  const wdInfo=document.getElementById('wdReqBtn');
+  if(wdInfo&&S.wdPending){wdInfo.textContent=remaining<=0?'Execute Now (ready)':'Requested ('+h+'h '+m+'m left)';}
+  // Update in Portfolio
+  const pt=document.getElementById('portfolioWdTimer');
+  if(pt)pt.textContent=msg;
+}
 
 // ── Wallet ──
 const SUPPORTED_CHAINS={1301:{hex:'0x515',name:'Unichain Sepolia',rpc:'https://sepolia.unichain.org',currency:{name:'Ether',symbol:'ETH',decimals:18},explorer:'https://sepolia.uniscan.xyz'}};
@@ -2822,7 +2982,7 @@ function rPosition(){
   if(b2){if(S.lpActive){b2.innerHTML='<i></i> Active LP';b2.className='pill ok';}else{b2.innerHTML='<i></i> Not Registered';b2.className='pill off';}}
   const ob=document.getElementById('openBackModal');if(ob)ob.disabled=!S.on||!S.lpActive;
 }
-function log(t,m){S.logs.unshift({t,m,time:now()});if(S.logs.length>50)S.logs.pop();rLog();}
+function log(t,m){S.logs.unshift({t,m,time:now()});if(S.logs.length>100)S.logs.pop();rLog();saveLogs();}
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),3000);}
 function txToast(m,hash){const ex=getChain().explorer;const t=document.createElement('div');t.className='toast';t.innerHTML=m+(hash&&ex?' <a href="'+ex+'/tx/'+hash+'" target="_blank" style="color:var(--accent-light);text-decoration:underline;margin-left:4px;">View tx</a>':'');document.body.appendChild(t);setTimeout(()=>t.remove(),5000);}
 function trackEvent(endpoint,body){fetch('/api/'+endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,chainId:chainId,wallet:S.addr})}).catch(()=>{});}
