@@ -154,10 +154,28 @@ DOBVALIDATOR_ORACLE_PROMPT.md  # Oracle integration guide for DOBVALIDATOR
 - `simulate.html` — Interactive protocol simulator with 8 scenario walkthroughs
 - `deck.html` — Pitch deck
 - `demo.html` — Audio-narrated demo walkthrough
-- Design system: dark/light theme toggle, Inter font, accent=#975AFF, blue=#597CE9, green=#40C057
+- Design system:
+  - **Light theme default** (dark mode available via toggle)
+  - Brand identity: Dobprotocol blue `#597CE9` as primary accent (matching dobprotocol.com and tokenize.dobprotocol.com)
+  - Gradients: `--grad-primary: linear-gradient(135deg, #597CE9, #3E54D3)`, `--grad-hero: linear-gradient(135deg, #2F46A8, #4560D1, #597CE9)`
+  - Secondary colors: purple `#975AFF`, green `#40C057`, red `#F55252`, amber `#F7A617`, cyan `#34c4cf`
+  - Font: Inter (system-ui fallback)
+  - Dark backgrounds: navy-tinted `#0a0e1a` (not neutral gray)
+  - Light backgrounds: off-white `#F9FAFE`, cards `#fff`, inputs `#F5F7FD`
+  - Borders: blue-tinted `rgba(89,124,233,0.08-0.12)` in light, `rgba(89,124,233,0.06-0.10)` in dark
+  - Buttons: pill-shaped (`border-radius: 1.5em`), gradient CTAs with blue glow shadow
+  - Cards: rounded `20px`, subtle shadows, blue-tinted hover borders
+  - Section hero banners: gradient backgrounds with decorative semi-transparent circles (Figma pattern)
+  - KPI boxes: persistent gradient top bar, hover elevation
+  - Asset cards: compact summary row + expandable detail panel (click/View to expand)
+  - LP backing cards: compact summary + expandable details
+  - Info panels ("How it works"): collapsible accordion pattern
+  - Tables: colored headers with rounded corners, accent-dim hover rows
+  - Reference Figma: `Dober-MVP/Transform Explore to Home.make`
 - All pages use `zoom: 1.5` for default readability
 - Onboarding modal on first visit (role picker: Investor → Buy tab, LP → Liquidity Node tab)
 - Docs link in nav bar → docs.dobprotocol.com/dex/overview
+- Footer: 3-column grid with Protocol links (Docs, Protocol, Pitch, Demo), Ecosystem links (Token Studio, Validator, Main Site), branding tagline
 
 ## Strategic Infrastructure
 
