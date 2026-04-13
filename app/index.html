@@ -125,7 +125,9 @@
     body.light .ac { border-color: #E8ECF8; box-shadow: 0 2px 8px rgba(25,42,70,0.05); }
     body.light .ac:hover { box-shadow: 0 12px 32px rgba(25,42,70,0.12); border-color: rgba(89,124,233,0.2); }
     body.light .asset-full { border-color: #E8ECF8; box-shadow: 0 2px 8px rgba(25,42,70,0.05); }
-    body.light .asset-full:hover { box-shadow: 0 12px 32px rgba(25,42,70,0.12); border-color: rgba(89,124,233,0.2); }
+    body.light .asset-full:hover { box-shadow: 0 8px 24px rgba(25,42,70,0.10); border-color: rgba(89,124,233,0.15); }
+    body.light .af-summary:hover { background: #F5F7FD; }
+    body.light .af-expand { border-top-color: #E8ECF8; }
     /* Light hero banners — more vivid with shadow */
     body.light .section-hero, body.light .assets-hero, body.light .act-top { box-shadow: 0 8px 32px rgba(47,70,168,0.18); }
     /* Light activity items */
@@ -544,31 +546,50 @@
     .assets-stats .kpi-box { border-top: none; }
     .asset-full {
       background: var(--bg-1); border: 1px solid var(--border-subtle);
-      border-radius: var(--r-xl); padding: 24px; position: relative;
-      transition: all 0.25s var(--ease); overflow: hidden;
+      border-radius: var(--r-xl); overflow: hidden;
+      transition: all 0.25s var(--ease);
     }
-    .asset-full:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: 0 12px 32px rgba(10,14,26,0.4); }
-    .asset-full::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-      background: var(--grad-primary);
-      opacity: 0; transition: opacity 0.25s;
+    .asset-full:hover { border-color: var(--border-hover); box-shadow: 0 8px 24px rgba(10,14,26,0.15); }
+    /* Compact summary row — always visible */
+    .af-summary {
+      display: flex; align-items: center; gap: 16px; padding: 18px 22px;
+      cursor: pointer; transition: background 0.15s;
     }
-    .asset-full:hover::before { opacity: 1; }
+    .af-summary:hover { background: var(--bg-2); }
+    .af-id { display: flex; align-items: center; gap: 12px; min-width: 200px; }
+    .af-ico { width: 44px; height: 44px; border-radius: var(--r-sm); object-fit: cover; }
+    .af-nm { font-size: 14px; font-weight: 700; letter-spacing: -0.2px; }
+    .af-tk { font-size: 10px; color: var(--text-3); font-weight: 500; margin-top: 1px; }
+    .af-badge { padding: 3px 10px; border-radius: 999px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+    .af-stats { display: flex; gap: 24px; flex: 1; align-items: center; justify-content: flex-end; }
+    .af-stat { text-align: right; }
+    .af-stat small { display: block; font-size: 9px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.3px; font-weight: 600; margin-bottom: 2px; }
+    .af-stat span { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .af-view-btn {
+      padding: 7px 20px; border-radius: 1.5em; border: none;
+      background: var(--grad-primary); color: #fff;
+      font-family: var(--font); font-size: 11px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s var(--ease);
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .af-view-btn:hover { filter: brightness(1.1); box-shadow: 0 4px 12px rgba(89,124,233,0.3); }
+    /* Expandable detail panel — hidden by default */
+    .af-expand {
+      display: none; padding: 0 22px 20px; border-top: 1px solid var(--border-subtle);
+      animation: fadeUp 0.2s var(--ease);
+    }
+    .af-expand.open { display: block; }
+    .af-expand-inner { padding-top: 16px; }
     .af-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-    .af-id { display: flex; align-items: center; gap: 14px; }
-    .af-ico { width: 52px; height: 52px; border-radius: var(--r-md); object-fit: cover; }
-    .af-nm { font-size: 16px; font-weight: 800; letter-spacing: -0.3px; }
-    .af-tk { font-size: 11px; color: var(--text-3); font-weight: 500; margin-top: 2px; }
-    .af-badge { padding: 5px 12px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
-    .af-metrics { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
-    .af-m { background: var(--bg-2); border-radius: var(--r-sm); padding: 12px 16px; flex: 1; min-width: 100px; }
+    .af-metrics { display: grid; grid-template-columns: repeat(5,1fr); gap: 8px; margin-bottom: 16px; }
+    .af-m { background: var(--bg-2); border-radius: var(--r-sm); padding: 12px 14px; }
     .af-m small { display: block; font-size: 9px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600; margin-bottom: 4px; }
-    .af-m span { font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; display: block; }
-    .af-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .af-row { display: flex; justify-content: space-between; font-size: 11px; padding: 6px 10px; background: var(--bg-2); border-radius: var(--r-xs); }
+    .af-m span { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; display: block; }
+    .af-detail { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .af-row { display: flex; justify-content: space-between; font-size: 11px; padding: 8px 12px; background: var(--bg-2); border-radius: var(--r-xs); }
     .af-row .l { color: var(--text-3); }
     .af-row .v { font-weight: 600; font-variant-numeric: tabular-nums; }
-    .assets-list { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    .assets-list { display: flex; flex-direction: column; gap: 10px; }
     .af-oracle { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: var(--r-sm); background: var(--bg-2); border: 1px solid var(--border-subtle); margin-bottom: 12px; font-size: 10px; }
     .af-oracle .oracle-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
     .af-oracle .oracle-dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
@@ -585,7 +606,7 @@
     .af-liq i { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
     .af-liq.healthy i { background: var(--green); box-shadow: 0 0 5px var(--green); }
     .af-liq.distressed i { background: var(--red); box-shadow: 0 0 5px var(--red); animation: blink 1.5s infinite; }
-    @media (max-width: 960px) { .assets-list { grid-template-columns: 1fr; } .af-metrics { flex-direction: column; } .assets-stats { grid-template-columns: repeat(2,1fr); } }
+    @media (max-width: 960px) { .af-summary { flex-wrap: wrap; } .af-stats { gap: 16px; } .af-metrics { grid-template-columns: repeat(2,1fr); } .af-detail { grid-template-columns: 1fr; } .assets-stats { grid-template-columns: repeat(2,1fr); } }
 
     /* ═══ ACTIVITY PAGE ═══ */
     .activity-pg { max-width: 1060px; margin: 0 auto; padding: 28px 24px 60px; }
@@ -865,7 +886,7 @@
       .a-grid { grid-template-columns: 1fr 1fr; }
       .af-metrics { grid-template-columns: 1fr 1fr; }
       .af-detail { grid-template-columns: 1fr; }
-      .assets-list { grid-template-columns: 1fr; }
+      .af-stats { display: none; }
       .assets-stats { grid-template-columns: 1fr 1fr; }
       #faucetGrid { grid-template-columns: 1fr !important; }
       .theme-btn { width: 28px; height: 28px; font-size: 12px; }
@@ -2254,62 +2275,72 @@ function rAssetsFull(){
     const o=a.oracle,l=a.liq;
     const liqPct=l.enabled?(l.penaltyBps/100).toFixed(0)+'%':'—';
     const liqCapPct=l.enabled&&l.cap>0?((l.liquidated/l.cap)*100).toFixed(1):'0.0';
+    const exitCost=lps.length?(()=>{const ds=[...new Set(lps.map(b=>(b.minDisc/100).toFixed(0)))].sort((a,b)=>a-b);return ds.length>1?ds[0]+'-'+ds[ds.length-1]+'%':ds[0]+'%';})():'—';
+    const uid='af-'+a.id;
     return `<div class="asset-full">
-      <div class="af-top">
+      <div class="af-summary" onclick="document.getElementById('${uid}').classList.toggle('open')">
         <div class="af-id"><img class="af-ico" src="${a.icon}" alt="${a.ticker}"/><div><div class="af-nm">${a.name}</div><div class="af-tk">${a.ticker}</div></div></div>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <div class="af-badge" style="background:${a.risk==='Low'?'var(--green-dim);color:var(--green)':a.risk==='High'?'var(--red-dim);color:var(--red)':'var(--amber-dim);color:var(--amber)'};font-size:9px;" title="Risk level based on asset type and volatility">${a.risk} Risk</div>
-          ${a.lpOnly?'<div class="af-badge" style="background:var(--amber-dim,rgba(255,193,7,0.12));color:var(--amber,#FFC107);font-size:9px;">LP-Only</div>':''}
-          ${a.resaleTotal>0?`<div class="af-badge" style="background:var(--accent-dim);color:var(--accent-light);font-size:9px;">${fmt(a.resaleTotal,0)} Listed</div>`:''}
-          <div class="af-badge" style="background:${lps.length?'var(--green-dim);color:var(--green)':'var(--accent-dim);color:var(--accent-light)'}">${lps.length?lps.length+' LP'+(lps.length>1?'s':''):'No LPs'}</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+          <div class="af-badge" style="background:${a.risk==='Low'?'var(--green-dim);color:var(--green)':a.risk==='High'?'var(--red-dim);color:var(--red)':'var(--amber-dim);color:var(--amber)'}">${a.risk} Risk</div>
+          <div class="af-badge" style="background:${lps.length?'var(--green-dim);color:var(--green)':'var(--accent-dim);color:var(--accent)'}">${lps.length?lps.length+' LP'+(lps.length>1?'s':''):'No LPs'}</div>
         </div>
-      </div>
-      <div style="font-size:11px;color:var(--text-3);margin-bottom:12px;line-height:1.4;">${a.desc}</div>
-      <div class="af-oracle">
-        <span class="oracle-dot ${o.stale?'stale':'live'}"></span>
-        <span class="oracle-src">${o.source}</span>
-        <span class="oracle-conf ${o.confidence}">${o.confidence}</span>
-        <span class="oracle-age">${o.stale?'STALE':'Updated '+o.updatedAgo+' ago'}</span>
-      </div>
-      ${a.certificate?`<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);margin-bottom:8px;padding:6px 10px;background:var(--green-dim);border-radius:var(--r-xs);">
-        <span style="font-weight:700;">&#10003; Validated</span> <span style="color:var(--text-3);">${a.certificate.certificationLevel||''}</span>
-        <span style="margin-left:auto;color:var(--text-3);">Score: ${a.certificate.overallScore||a.overallScore||'—'}</span>
-      </div>`:''}
-      ${a.fromTokenize?`<a href="https://tokenize.dobprotocol.com/pools/${a.poolAddress||''}" target="_blank" style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--blue);margin-bottom:8px;padding:6px 10px;background:var(--blue-dim);border-radius:var(--r-xs);text-decoration:none;transition:opacity 0.15s;">
-        <span style="font-weight:700;">View on Token Studio</span>
-        <span style="margin-left:auto;font-size:9px;">tokenize.dobprotocol.com &#8599;</span>
-      </a>`:''}
-      <div style="padding:10px 12px;border-radius:var(--r-sm);background:var(--bg-2);margin-bottom:12px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-          <div style="font-size:9px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.4px;font-weight:600;">Oracle History (30d)</div>
-          <div style="font-size:10px;color:var(--text-3);font-variant-numeric:tabular-nums;">${a.pf}</div>
+        <div class="af-stats">
+          <div class="af-stat"><small>Price</small><span>${a.pf}</span></div>
+          <div class="af-stat"><small>Yield</small><span style="color:var(--accent)">${a.apy}</span></div>
+          <div class="af-stat"><small>LP Liquidity</small><span style="color:var(--green)">${usd(liq)}</span></div>
+          <div class="af-stat"><small>Exit Cost</small><span style="color:var(--amber)">${exitCost}</span></div>
         </div>
-        ${sparkline(o.history,280,40,l.enabled?'var(--red)':'var(--green)')}
+        <button class="af-view-btn" onclick="event.stopPropagation();document.getElementById('${uid}').classList.toggle('open')">View</button>
       </div>
-      <div class="af-liq ${l.enabled?'distressed':'healthy'}">
-        <i></i>
-        ${l.enabled?'Liquidation Active &middot; Penalty '+liqPct+' &middot; Cap '+liqCapPct+'% used':'Healthy &middot; No liquidation'}
-      </div>
-      ${S.on?`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:var(--r-sm);background:var(--bg-2);margin-bottom:12px;">
-        <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.4px;font-weight:600;">Your Balance</div>
-        <div style="text-align:right;"><span style="font-size:14px;font-weight:700;color:var(--text-1);font-variant-numeric:tabular-nums;">${fmt(S.faucetBals?.[a.id]||0,2)} ${a.ticker}</span>
-        ${(S.faucetBals?.[a.id]||0)>0?`<div style="font-size:10px;color:var(--text-3);">${usd((S.faucetBals?.[a.id]||0)*a.price)}</div>`:''}</div>
-      </div>`:''}
-      <div class="af-metrics">
-        <div class="af-m"><small>Oracle Price</small><span style="color:var(--amber)">${a.pf}</span></div>
-        <div class="af-m"><small>TVL</small><span>${usd(a.tvl)}</span></div>
-        <div class="af-m"><small>LP Liquidity</small><span style="color:var(--green)">${usd(liq)}</span></div>
-        <div class="af-m"><small>Est. Yield</small><span style="color:var(--accent)">${a.apy}</span></div>
-        <div class="af-m"><small title="LP discount range for this asset. This is the exit cost sellers pay.">Exit Cost</small><span style="color:var(--amber)">${lps.length?(()=>{const ds=[...new Set(lps.map(b=>(b.minDisc/100).toFixed(0)))].sort((a,b)=>a-b);return ds.length>1?ds[0]+'-'+ds[ds.length-1]+'%':ds[0]+'%';})():'—'}</span></div>
-      </div>
-      <div class="af-detail">
-        <div class="af-row"><span class="l">Tokenized Units</span><span class="v">${a.units}</span></div>
-        <div class="af-row"><span class="l">LP Allocated</span><span class="v">${usd(alloc)}</span></div>
-        <div class="af-row"><span class="l">LP Utilization</span><span class="v">${pct}%</span></div>
-        ${l.enabled?`<div class="af-row"><span class="l">Penalty (Risk)</span><span class="v" style="color:var(--red)">${liqPct}</span></div>
-        <div class="af-row"><span class="l">Liq. Cap</span><span class="v">${usd(l.cap)}</span></div>
-        <div class="af-row"><span class="l">Liquidated</span><span class="v" style="color:var(--red)">${usd(l.liquidated)}</span></div>`
-        :`<div class="af-row"><span class="l">Status</span><span class="v" style="color:var(--green)">Active</span></div>`}
+      <div class="af-expand" id="${uid}">
+        <div class="af-expand-inner">
+          <div style="font-size:12px;color:var(--text-2);margin-bottom:14px;line-height:1.5;">${a.desc}</div>
+          <div class="af-oracle">
+            <span class="oracle-dot ${o.stale?'stale':'live'}"></span>
+            <span class="oracle-src">${o.source}</span>
+            <span class="oracle-conf ${o.confidence}">${o.confidence}</span>
+            <span class="oracle-age">${o.stale?'STALE':'Updated '+o.updatedAgo+' ago'}</span>
+          </div>
+          ${a.certificate?`<div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--green);margin-bottom:10px;padding:8px 12px;background:var(--green-dim);border-radius:var(--r-sm);">
+            <span style="font-weight:700;">&#10003; Validated</span> <span style="color:var(--text-3);">${a.certificate.certificationLevel||''}</span>
+            <span style="margin-left:auto;color:var(--text-3);">Score: ${a.certificate.overallScore||a.overallScore||'—'}</span>
+          </div>`:''}
+          ${a.fromTokenize?`<a href="https://tokenize.dobprotocol.com/pools/${a.poolAddress||''}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;font-size:10px;color:var(--accent);margin-bottom:10px;padding:8px 12px;background:var(--accent-dim);border-radius:var(--r-sm);text-decoration:none;">
+            <span style="font-weight:700;">View on Token Studio &#8599;</span>
+          </a>`:''}
+          <div style="padding:12px 14px;border-radius:var(--r-sm);background:var(--bg-2);margin-bottom:14px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <div style="font-size:9px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.4px;font-weight:600;">Oracle History (30d)</div>
+              <div style="font-size:11px;color:var(--text-1);font-weight:600;font-variant-numeric:tabular-nums;">${a.pf}</div>
+            </div>
+            ${sparkline(o.history,280,40,l.enabled?'var(--red)':'var(--green)')}
+          </div>
+          <div class="af-liq ${l.enabled?'distressed':'healthy'}">
+            <i></i>
+            ${l.enabled?'Liquidation Active &middot; Penalty '+liqPct+' &middot; Cap '+liqCapPct+'% used':'Healthy &middot; No liquidation'}
+          </div>
+          ${S.on?`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:var(--r-sm);background:var(--bg-2);margin-bottom:14px;">
+            <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.4px;font-weight:600;">Your Balance</div>
+            <div style="text-align:right;"><span style="font-size:14px;font-weight:700;color:var(--text-1);font-variant-numeric:tabular-nums;">${fmt(S.faucetBals?.[a.id]||0,2)} ${a.ticker}</span>
+            ${(S.faucetBals?.[a.id]||0)>0?`<div style="font-size:10px;color:var(--text-3);">${usd((S.faucetBals?.[a.id]||0)*a.price)}</div>`:''}</div>
+          </div>`:''}
+          <div class="af-metrics">
+            <div class="af-m"><small>Oracle Price</small><span style="color:var(--amber)">${a.pf}</span></div>
+            <div class="af-m"><small>TVL</small><span>${usd(a.tvl)}</span></div>
+            <div class="af-m"><small>LP Liquidity</small><span style="color:var(--green)">${usd(liq)}</span></div>
+            <div class="af-m"><small>Est. Yield</small><span style="color:var(--accent)">${a.apy}</span></div>
+            <div class="af-m"><small>Exit Cost</small><span style="color:var(--amber)">${exitCost}</span></div>
+          </div>
+          <div class="af-detail">
+            <div class="af-row"><span class="l">Tokenized Units</span><span class="v">${a.units}</span></div>
+            <div class="af-row"><span class="l">LP Allocated</span><span class="v">${usd(alloc)}</span></div>
+            <div class="af-row"><span class="l">LP Utilization</span><span class="v">${pct}%</span></div>
+            ${l.enabled?`<div class="af-row"><span class="l">Penalty (Risk)</span><span class="v" style="color:var(--red)">${liqPct}</span></div>
+            <div class="af-row"><span class="l">Liq. Cap</span><span class="v">${usd(l.cap)}</span></div>
+            <div class="af-row"><span class="l">Liquidated</span><span class="v" style="color:var(--red)">${usd(l.liquidated)}</span></div>`
+            :`<div class="af-row"><span class="l">Status</span><span class="v" style="color:var(--green)">Active</span></div>`}
+          </div>
+        </div>
       </div>
     </div>`;
   }).join('');
