@@ -88,21 +88,70 @@
     }
     body.light ::-webkit-scrollbar-thumb { background: rgba(89,124,233,0.15); }
     body.light ::selection { background: rgba(89,124,233,0.2); }
-    body.light .topnav, body.light .subnav { background: rgba(249,250,254,0.92); border-bottom-color: rgba(89,124,233,0.08); }
+    /* Light nav — white with subtle blue shadow like Figma */
+    body.light .topnav { background: rgba(255,255,255,0.95); border-bottom: 1px solid rgba(89,124,233,0.08); box-shadow: 0 1px 8px rgba(25,42,70,0.06); }
+    body.light .subnav { background: rgba(255,255,255,0.9); border-bottom: 1px solid rgba(89,124,233,0.06); }
+    body.light .tabs { background: #EEF2FF; }
+    body.light .tab { color: #8896AA; }
+    body.light .tab.on { background: var(--accent); color: #fff; }
+    body.light .tab:hover { color: var(--accent); }
     body.light .wbtn { color: #fff; }
-    body.light .wbtn.on { color: var(--text-1); }
-    body.light .ambient { opacity: 0.5; }
-    body.light img.ac-ico, body.light img.af-ico { box-shadow: 0 1px 4px rgba(25,42,70,0.08); }
+    body.light .wbtn.on { color: var(--text-1); background: #fff; border: 1px solid #E0E6F5; }
+    body.light .net { background: #fff; border-color: #E0E6F5; }
+    body.light .theme-btn { background: #fff; border-color: #E0E6F5; }
+    body.light .ambient { opacity: 0.3; }
+    body.light img.ac-ico, body.light img.af-ico { box-shadow: 0 2px 8px rgba(25,42,70,0.1); }
     body.light .tbox-in { color: var(--text-0); }
-    body.light input::placeholder { color: var(--text-3); }
-    body.light .tsel { box-shadow: 0 24px 80px rgba(25,42,70,0.12); }
-    body.light .sw-card, body.light .sw-sb-card { box-shadow: 0 4px 24px rgba(25,42,70,0.08); }
-    body.light .ftbl th { background: #E0E6F5; color: var(--accent-soft); }
-    body.light .ftbl tr:hover td { background: rgba(89,124,233,0.06); }
-    body.light .card, body.light .kpi-box { box-shadow: 0 2px 12px rgba(25,42,70,0.06); }
-    body.light .card:hover, body.light .kpi-box:hover { box-shadow: 0 8px 24px rgba(25,42,70,0.12); }
-    body.light .ac:hover, body.light .asset-full:hover { box-shadow: 0 8px 24px rgba(25,42,70,0.12); }
-    body.light .section-hero, body.light .assets-hero, body.light .act-top { box-shadow: 0 4px 20px rgba(89,124,233,0.15); }
+    body.light input::placeholder { color: #b0b8c8; }
+    body.light .tsel { box-shadow: 0 24px 80px rgba(25,42,70,0.15); }
+    /* Light swap card — elevated white with strong shadow like Figma */
+    body.light .sw-card, body.light .sw-sb-card { box-shadow: 0 8px 32px rgba(25,42,70,0.10), 0 1px 3px rgba(25,42,70,0.06); border-color: #E0E6F5; }
+    body.light .sw-wrap::before { background: radial-gradient(ellipse, rgba(89,124,233,0.06) 0%, transparent 70%); }
+    body.light .tbox { background: #F5F7FD; border-color: transparent; }
+    body.light .tbox:focus-within { border-color: var(--accent); background: #fff; }
+    body.light .tkn { background: #fff; border-color: #E0E6F5; }
+    body.light .sw-flip { background: #fff; border-color: #E0E6F5; color: var(--accent); }
+    body.light .sw-btn.go { box-shadow: 0 4px 16px rgba(89,124,233,0.25); }
+    /* Light tables */
+    body.light .ftbl th { background: #E8ECF8; color: var(--accent-soft); font-weight: 700; }
+    body.light .ftbl tr:hover td { background: rgba(89,124,233,0.04); }
+    body.light .ftbl td { border-bottom-color: #EEF2FF; }
+    /* Light cards — white with Figma-style shadows */
+    body.light .card { box-shadow: 0 2px 12px rgba(25,42,70,0.06); border-color: #E8ECF8; }
+    body.light .card:hover { box-shadow: 0 8px 28px rgba(25,42,70,0.12); border-color: rgba(89,124,233,0.2); }
+    body.light .kpi-box { box-shadow: 0 2px 12px rgba(25,42,70,0.06); border-color: #E8ECF8; background: #fff; }
+    body.light .kpi-box:hover { box-shadow: 0 8px 28px rgba(25,42,70,0.12); }
+    /* Light asset cards */
+    body.light .ac { border-color: #E8ECF8; box-shadow: 0 2px 8px rgba(25,42,70,0.05); }
+    body.light .ac:hover { box-shadow: 0 12px 32px rgba(25,42,70,0.12); border-color: rgba(89,124,233,0.2); }
+    body.light .asset-full { border-color: #E8ECF8; box-shadow: 0 2px 8px rgba(25,42,70,0.05); }
+    body.light .asset-full:hover { box-shadow: 0 12px 32px rgba(25,42,70,0.12); border-color: rgba(89,124,233,0.2); }
+    /* Light hero banners — more vivid with shadow */
+    body.light .section-hero, body.light .assets-hero, body.light .act-top { box-shadow: 0 8px 32px rgba(47,70,168,0.18); }
+    /* Light activity items */
+    body.light .act-item { border-color: #E8ECF8; box-shadow: 0 1px 4px rgba(25,42,70,0.04); }
+    body.light .act-item:hover { box-shadow: 0 4px 16px rgba(25,42,70,0.08); border-color: rgba(89,124,233,0.15); }
+    /* Light backings */
+    body.light .bk { border-color: #E8ECF8; box-shadow: 0 2px 8px rgba(25,42,70,0.05); }
+    body.light .bk:hover { box-shadow: 0 8px 24px rgba(25,42,70,0.1); border-color: rgba(89,124,233,0.2); }
+    /* Light forms */
+    body.light .f-i, body.light .f-s { background: #F5F7FD; border-color: #E0E6F5; }
+    body.light .f-i:focus, body.light .f-s:focus { background: #fff; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(89,124,233,0.1); }
+    /* Light log */
+    body.light .log-b { border-color: #E8ECF8; box-shadow: 0 2px 8px rgba(25,42,70,0.05); }
+    /* Light activity filters on hero */
+    body.light .act-filters { background: rgba(255,255,255,0.25); }
+    body.light .act-f { color: rgba(255,255,255,0.7); }
+    body.light .act-f.on { color: #fff; background: rgba(255,255,255,0.25); }
+    body.light .act-f:hover { color: #fff; }
+    /* Light pills */
+    body.light .pill.ok { background: rgba(64,192,87,0.12); }
+    body.light .pill.off { background: rgba(89,124,233,0.1); }
+    /* Light highlight boxes */
+    body.light .hi { background: #F5F7FD; }
+    body.light .af-m { background: #F5F7FD; }
+    body.light .af-row { background: #F5F7FD; }
+    body.light .bk-m { background: #F5F7FD; }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; zoom: 1.5; }
@@ -946,16 +995,16 @@
 <!-- ═══ SWAP ═══ -->
 <div id="pg-swap" class="pg active">
   <div class="sw-wrap">
-    <div style="width:100%; max-width:420px;">
-      <p style="font-size:11px;color:var(--text-3);margin-bottom:12px;line-height:1.5;">Sell RWA tokens for USDC through Liquidity Nodes, buy RWA at oracle price, or trade on the peer-to-peer Resale Market.</p>
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-        <div class="sec" style="margin:0;"><h3>Swap RWA</h3></div>
-        <div style="display:flex; align-items:center; gap:6px; padding:4px 10px; border-radius:var(--r-sm); background:var(--bg-2); font-size:10px; color:var(--text-3); font-weight:500;">
-          <span style="width:5px; height:5px; border-radius:50%; background:var(--green); box-shadow:0 0 6px var(--green);"></span>
+    <div style="width:100%; max-width:480px;">
+      <div class="section-hero" style="text-align:center; padding:32px 28px 24px; margin-bottom:20px;">
+        <h1 style="font-size:22px; font-weight:800; letter-spacing:-0.5px; margin-bottom:6px;">Swap RWA</h1>
+        <p style="font-size:12px; color:rgba(255,255,255,0.7); margin-bottom:16px; line-height:1.5;">Sell RWA tokens for USDC through Liquidity Nodes, buy RWA at oracle price, or trade on the peer-to-peer Resale Market.</p>
+        <div style="display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border-radius:999px; background:rgba(255,255,255,0.12); font-size:10px; color:rgba(255,255,255,0.85); font-weight:600;">
+          <span style="width:5px; height:5px; border-radius:50%; background:#40C057; box-shadow:0 0 6px #40C057;"></span>
           Oracle Live &middot; DobValidatorRegistry
         </div>
       </div>
-      <div class="tabs" style="width:fit-content; margin-bottom:16px;">
+      <div class="tabs" style="width:fit-content; margin:0 auto 16px;">
         <button class="tab on" id="swapSellTab" onclick="swapMode('sell')">Sell RWA</button>
         <button class="tab" id="swapBuyTab" onclick="swapMode('buy')">Buy RWA</button>
         <button class="tab" id="swapResaleTab" onclick="swapMode('resale')">Resale Market</button>
