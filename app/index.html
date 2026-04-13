@@ -1231,15 +1231,20 @@
 <!-- ═══ LIQUIDITY NODE ═══ -->
 <div id="pg-node" class="pg">
   <div class="ln">
-    <div class="ln-top"><h1>Liquidity Node</h1><span class="pill off" id="lpBadge"><i></i> Not Registered</span></div>
-    <p style="font-size:12px; color:var(--text-3); margin-bottom:24px; max-width:600px; line-height:1.6;">
-      Liquidity Nodes provide USDC exit liquidity for RWA asset sellers at an LP-set discount. Choose between the <b>Pooled LN</b> (co-invest with Dobprotocol, earn proportional RWA) or run your own <b>Individual LP</b> with custom conditions per asset.
-    </p>
+    <div class="section-hero" style="margin-bottom:24px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; position:relative; z-index:1;">
+        <div>
+          <h1 style="font-size:22px; margin-bottom:4px;">Liquidity Node</h1>
+          <p style="font-size:12px; color:rgba(255,255,255,0.7); max-width:500px; line-height:1.5;">Provide USDC exit liquidity for RWA sellers. Choose the Pooled LN (co-invest) or run your own Individual LP.</p>
+        </div>
+        <span class="pill off" id="lpBadge" style="background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);"><i></i> Not Registered</span>
+      </div>
+    </div>
 
     <!-- ═══ SECTION 1: NETWORK OVERVIEW ═══ -->
     <div style="margin-bottom:32px;">
       <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
-        <div style="width:3px; height:18px; border-radius:2px; background:var(--blue);"></div>
+        <div style="width:3px; height:18px; border-radius:2px; background:var(--accent);"></div>
         <h2 style="font-size:16px; font-weight:800; letter-spacing:-0.3px;">Network Overview</h2>
         <span style="font-size:10px; color:var(--text-3); font-weight:500; margin-left:auto;">DobLPRegistry</span>
       </div>
@@ -1252,26 +1257,29 @@
         <div class="kpi-box"><div class="kpi-lbl">Distressed</div><div class="kpi-val" id="netDistressed" style="color:var(--red)">0</div><div class="kpi-sub">Pending liquidation</div></div>
       </div>
 
-      <div class="card" style="padding:16px;">
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
-          <div class="card-t" style="margin:0;">How Liquidations Work</div>
+      <div class="card" style="padding:0; overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:8px; padding:14px 18px; cursor:pointer;" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.chev').style.transform=this.nextElementSibling.classList.contains('open')?'rotate(180deg)':''">
+          <div class="card-t" style="margin:0; font-size:13px;">How Liquidations Work</div>
+          <span class="chev" style="margin-left:auto; font-size:10px; color:var(--text-3); transition:transform 0.2s;">&#9660;</span>
         </div>
-        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;">
-          <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--accent-soft);">
-            <div style="font-size:9px; color:var(--accent-light); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">1. Distress Signal</div>
-            <div style="font-size:11px; color:var(--text-2); line-height:1.5;">Dobprotocol AI agents detect asset distress and activate liquidation mode with a penalty rate.</div>
-          </div>
-          <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--blue);">
-            <div style="font-size:9px; color:var(--blue); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">2. FIFO Matching</div>
-            <div style="font-size:11px; color:var(--text-2); line-height:1.5;">LP backings are matched in FIFO order. Only LPs whose minPenaltyBps &#8804; penalty get filled.</div>
-          </div>
-          <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--green);">
-            <div style="font-size:9px; color:var(--green); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">3. Fill & Earn</div>
-            <div style="font-size:11px; color:var(--text-2); line-height:1.5;">Your USDC buys distressed RWA at discount. You receive dUSDC at full oracle price — the spread is your profit.</div>
-          </div>
-          <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--amber);">
-            <div style="font-size:9px; color:var(--amber); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">4. Reserve Hold</div>
-            <div style="font-size:11px; color:var(--text-2); line-height:1.5;">33% of filled amount is held as reserve for 24h to ensure system stability. Released automatically.</div>
+        <div class="af-expand">
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding:0 18px 16px;">
+            <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--accent-soft);">
+              <div style="font-size:9px; color:var(--accent); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">1. Distress Signal</div>
+              <div style="font-size:11px; color:var(--text-2); line-height:1.5;">AI agents detect asset distress and activate liquidation with a penalty rate.</div>
+            </div>
+            <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--accent);">
+              <div style="font-size:9px; color:var(--accent); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">2. FIFO Matching</div>
+              <div style="font-size:11px; color:var(--text-2); line-height:1.5;">LP backings matched in FIFO order. Only LPs whose minPenaltyBps &#8804; penalty get filled.</div>
+            </div>
+            <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--green);">
+              <div style="font-size:9px; color:var(--green); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">3. Fill & Earn</div>
+              <div style="font-size:11px; color:var(--text-2); line-height:1.5;">Your USDC buys distressed RWA at discount. The spread is your profit.</div>
+            </div>
+            <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--amber);">
+              <div style="font-size:9px; color:var(--amber); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">4. Reserve Hold</div>
+              <div style="font-size:11px; color:var(--text-2); line-height:1.5;">33% held for 24h for system stability. Released automatically.</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1279,16 +1287,14 @@
 
     <!-- ═══ SECTION 1.5: POOLED LIQUIDITY NODE ═══ -->
     <div style="margin-bottom:32px;">
-      <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
-        <div style="width:3px; height:18px; border-radius:2px; background:var(--green);"></div>
-        <h2 style="font-size:16px; font-weight:800; letter-spacing:-0.3px;">Pooled Liquidity</h2>
-        <span class="pill ok" style="margin-left:8px; font-size:9px;"><i></i> Main LN</span>
-        <span style="font-size:10px; color:var(--text-3); font-weight:500; margin-left:auto;">DobPooledLN</span>
+      <div style="background:linear-gradient(135deg, rgba(64,192,87,0.08), rgba(89,124,233,0.06)); border:1px solid rgba(64,192,87,0.12); border-radius:var(--r-lg); padding:18px 22px; margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+          <h2 style="font-size:16px; font-weight:800; letter-spacing:-0.3px;">Pooled Liquidity</h2>
+          <span class="pill ok" style="font-size:9px;"><i></i> Main LN</span>
+          <span style="font-size:10px; color:var(--text-3); font-weight:500; margin-left:auto;">DobPooledLN</span>
+        </div>
+        <p style="font-size:12px; color:var(--text-2); max-width:600px; line-height:1.5;">Managed by Dobprotocol. Deposit USDC to co-invest and earn proportional RWA tokens from sell fills.</p>
       </div>
-
-      <p style="font-size:12px; color:var(--text-3); margin-bottom:16px; max-width:600px; line-height:1.6;">
-        The Main Liquidity Node is managed by Dobprotocol. Deposit USDC to co-invest and earn a proportional share of RWA tokens acquired from sell fills. RWA tokens generate APR via the underlying real-world asset.
-      </p>
 
       <div class="kpi" style="grid-template-columns:repeat(4,1fr); margin-bottom:16px;">
         <div class="kpi-box"><div class="kpi-lbl">Pool USDC</div><div class="kpi-val" id="plnTotal">$0</div><div class="kpi-sub">Total deposited</div></div>
@@ -1319,26 +1325,29 @@
         </div>
       </div>
 
-      <div class="card" style="padding:16px;">
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
-          <div class="card-t" style="margin:0;">How the Pooled LN Works</div>
+      <div class="card" style="padding:0; overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:8px; padding:14px 18px; cursor:pointer;" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.chev').style.transform=this.nextElementSibling.classList.contains('open')?'rotate(180deg)':''">
+          <div class="card-t" style="margin:0; font-size:13px;">How the Pooled LN Works</div>
+          <span class="chev" style="margin-left:auto; font-size:10px; color:var(--text-3); transition:transform 0.2s;">&#9660;</span>
         </div>
-        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;">
-          <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--green);">
-            <div style="font-size:9px; color:var(--green); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">1. Deposit</div>
-            <div style="font-size:11px; color:var(--text-2); line-height:1.5;">Anyone deposits USDC and receives shares proportional to their contribution.</div>
-          </div>
-          <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--accent-soft);">
-            <div style="font-size:9px; color:var(--accent-light); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">2. Operator Backs</div>
-            <div style="font-size:11px; color:var(--text-2); line-height:1.5;">Dobprotocol decides which RWA assets to back and sets dynamic discount rates.</div>
-          </div>
-          <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--blue);">
-            <div style="font-size:9px; color:var(--blue); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">3. Fills Happen</div>
-            <div style="font-size:11px; color:var(--text-2); line-height:1.5;">When sellers exit, the pool fills at a discount — earning RWA tokens at below-market price.</div>
-          </div>
-          <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--amber);">
-            <div style="font-size:9px; color:var(--amber); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">4. Earn RWA</div>
-            <div style="font-size:11px; color:var(--text-2); line-height:1.5;">RWA tokens are distributed to depositors proportionally. These tokens generate APR from the real asset.</div>
+        <div class="af-expand">
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding:0 18px 16px;">
+            <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--green);">
+              <div style="font-size:9px; color:var(--green); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">1. Deposit</div>
+              <div style="font-size:11px; color:var(--text-2); line-height:1.5;">Deposit USDC, receive shares proportional to your contribution.</div>
+            </div>
+            <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--accent);">
+              <div style="font-size:9px; color:var(--accent); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">2. Operator Backs</div>
+              <div style="font-size:11px; color:var(--text-2); line-height:1.5;">Dobprotocol decides which assets to back and sets dynamic discounts.</div>
+            </div>
+            <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--accent);">
+              <div style="font-size:9px; color:var(--accent); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">3. Fills Happen</div>
+              <div style="font-size:11px; color:var(--text-2); line-height:1.5;">When sellers exit, the pool fills at discount — earning RWA at below-market price.</div>
+            </div>
+            <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--amber);">
+              <div style="font-size:9px; color:var(--amber); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">4. Earn RWA</div>
+              <div style="font-size:11px; color:var(--text-2); line-height:1.5;">RWA tokens distributed proportionally. They generate APR from the real asset.</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1346,10 +1355,12 @@
 
     <!-- ═══ SECTION 2: YOUR POSITION (Individual LP) ═══ -->
     <div>
-      <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
-        <div style="width:3px; height:18px; border-radius:2px; background:var(--accent);"></div>
-        <h2 style="font-size:16px; font-weight:800; letter-spacing:-0.3px;">Individual LP Position</h2>
-        <span class="pill off" id="lpBadge2" style="margin-left:8px;"><i></i> Not Registered</span>
+      <div style="background:linear-gradient(135deg, rgba(89,124,233,0.08), rgba(62,84,211,0.06)); border:1px solid rgba(89,124,233,0.12); border-radius:var(--r-lg); padding:18px 22px; margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+          <h2 style="font-size:16px; font-weight:800; letter-spacing:-0.3px;">Individual LP Position</h2>
+          <span class="pill off" id="lpBadge2"><i></i> Not Registered</span>
+        </div>
+        <p style="font-size:12px; color:var(--text-2); max-width:600px; line-height:1.5;">Run your own LP node. Deposit USDC, back specific assets, set your own discount and conditions.</p>
       </div>
 
       <!-- Your KPIs -->
