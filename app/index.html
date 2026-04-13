@@ -471,7 +471,7 @@
     .bk-form .inner { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 
     /* BACKINGS GRID */
-    .bk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+    .bk-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
     .bk {
       background: var(--bg-1); border: 1px solid var(--border-subtle);
       border-radius: var(--r-xl); padding: 18px;
@@ -498,6 +498,37 @@
     .bk-edit { display: none; border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px; }
     .bk-edit.open { display: block; animation: fadeUp .2s var(--ease); }
     .bk-edit .inner { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    /* COMPACT BACKING CARDS */
+    .bk-summary {
+      display: flex; align-items: center; gap: 12px; padding: 14px 18px;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .bk-summary:hover { background: var(--bg-2); }
+    .bk-summary .bk-id { display: flex; align-items: center; gap: 10px; min-width: 160px; }
+    .bk-summary .bk-id img { width: 36px; height: 36px; border-radius: var(--r-sm); object-fit: cover; }
+    .bk-summary .bk-id .nm { font-size: 13px; font-weight: 700; }
+    .bk-summary .bk-id .tk { font-size: 10px; color: var(--text-3); font-weight: 500; margin-top: 1px; }
+    .bk-compact-stats { display: flex; gap: 20px; flex: 1; align-items: center; justify-content: flex-end; }
+    .bk-compact-stat { text-align: right; }
+    .bk-compact-stat small { display: block; font-size: 9px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.3px; font-weight: 600; margin-bottom: 2px; }
+    .bk-compact-stat span { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .bk-expand {
+      display: none; padding: 0 18px 16px; border-top: 1px solid var(--border-subtle);
+      animation: fadeUp 0.2s var(--ease);
+    }
+    .bk-expand.open { display: block; }
+    .bk-expand-inner { padding-top: 14px; }
+    .bk-toggle-btn {
+      padding: 6px 16px; border-radius: 1.5em; border: none;
+      background: var(--accent-dim); color: var(--accent);
+      font-family: var(--font); font-size: 10px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s var(--ease);
+      white-space: nowrap; flex-shrink: 0;
+    }
+    .bk-toggle-btn:hover { background: var(--accent); color: #fff; }
+    body.light .bk-summary:hover { background: #F5F7FD; }
+    body.light .bk-expand { border-top-color: #E8ECF8; }
 
     /* ASSET CARDS */
     .a-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 24px; }
@@ -810,17 +841,16 @@
 
     /* ═══ FOOTER ═══ */
     footer {
-      padding: 20px 28px; border-top: 1px solid var(--border-subtle);
-      display: flex; align-items: center; justify-content: space-between;
-      font-size: 10px; color: var(--text-3); gap: 8px; flex-wrap: wrap;
+      padding: 32px 28px 24px; border-top: 1px solid var(--border-subtle);
+      font-size: 10px; color: var(--text-3);
     }
     .flogo { display: flex; align-items: center; gap: 8px; }
     .flogo svg { width: 18px; height: 18px; }
     .flogo span { font-weight: 700; }
     .flogo em { font-style: normal; color: var(--accent); }
-    footer a { color: var(--accent-light); text-decoration: none; font-weight: 500; }
-    footer a:hover { text-decoration: underline; }
-    .ftags { display: flex; gap: 4px; }
+    footer a { color: var(--accent-light); text-decoration: none; font-weight: 500; font-size: 11px; }
+    footer a:hover { text-decoration: underline; color: var(--accent); }
+    .ftags { display: flex; gap: 4px; flex-wrap: wrap; }
     .ftags span { padding: 2px 6px; border-radius: 3px; background: var(--bg-2); font-family: 'SF Mono',SFMono-Regular,Consolas,monospace; font-size: 9px; }
 
     /* ═══ TOAST ═══ */
@@ -844,7 +874,7 @@
     @media (max-width: 960px) {
       html { zoom: 1; }
       .kpi { grid-template-columns: repeat(3,1fr) !important; }
-      .bk-grid, .a-grid, .bk-form .inner, .row-2 { grid-template-columns: 1fr; }
+      .a-grid, .bk-form .inner, .row-2 { grid-template-columns: 1fr; }
       .bk-met { grid-template-columns: repeat(2,1fr); }
       .act-stats { grid-template-columns: repeat(2,1fr); }
       .pool { padding: 24px 16px 40px; }
@@ -874,10 +904,14 @@
       /* Fill table scrollable */
       .ftbl th, .ftbl td { padding: 8px 10px; font-size: 10px; white-space: nowrap; }
       /* Footer stack */
-      footer { flex-direction: column; align-items: flex-start; gap: 10px; padding: 16px; }
+      footer { padding: 20px 16px; }
+      footer > div > div:first-child { grid-template-columns: 1fr !important; gap: 20px !important; }
       .ftags { flex-wrap: wrap; }
     }
     @media (max-width: 600px) {
+      .bk-summary { flex-wrap: wrap; gap: 8px; }
+      .bk-compact-stats { gap: 12px; }
+      .bk-toggle-btn { display: none; }
       .kpi { grid-template-columns: 1fr 1fr !important; }
       .topnav { padding: 0 12px; height: 48px; }
       .mob-menu { top: 48px; }
@@ -1436,8 +1470,13 @@
 <!-- ═══ PORTFOLIO ═══ -->
 <div id="pg-portfolio" class="pg">
   <div style="max-width:900px; margin:0 auto; padding:28px 24px 60px;">
-    <h1 style="font-size:22px; font-weight:900; letter-spacing:-0.5px; margin-bottom:6px;">Portfolio</h1>
-    <p style="font-size:11px;color:var(--text-3);margin-bottom:24px;line-height:1.5;">Your positions across the protocol. Connect your wallet to view holdings, LP positions, and claimable tokens.</p>
+    <div class="section-hero" style="display:flex; align-items:center; justify-content:space-between;">
+      <div>
+        <h1 style="font-size:20px; font-weight:800; letter-spacing:-0.5px;">Portfolio</h1>
+        <div style="font-size:12px; color:rgba(255,255,255,0.7); margin-top:4px; position:relative; z-index:1;">Your positions across the protocol. Holdings, LP positions, and claimable tokens.</div>
+      </div>
+      <span class="pill ok" id="portfolioBadge" style="position:relative;z-index:1;"><i></i> Connected</span>
+    </div>
     <div id="portfolioContent">
       <div class="act-empty"><span class="icon">&#128176;</span><p>Connect wallet to view portfolio</p></div>
     </div>
@@ -1510,10 +1549,10 @@
 
 <!-- ═══ FAUCET ═══ -->
 <div id="pg-faucet" class="pg">
-  <div style="max-width:720px; margin:0 auto; padding:48px 24px 60px;">
-    <div style="text-align:center; margin-bottom:36px;">
-      <h1 style="font-size:24px; font-weight:900; letter-spacing:-0.5px; margin-bottom:8px;">Get Test Tokens</h1>
-      <p style="font-size:13px; color:var(--text-3); max-width:460px; margin:0 auto;">Claim free USDC from the faucet, then buy RWA tokens to try the full Dobprotocol flow: deposit, mint dUSDC, swap, and provide liquidity.</p>
+  <div style="max-width:720px; margin:0 auto; padding:28px 24px 60px;">
+    <div class="section-hero" style="text-align:center; padding:28px 28px 24px;">
+      <h1 style="font-size:20px; font-weight:800; letter-spacing:-0.5px; margin-bottom:6px;">Get Test Tokens</h1>
+      <p style="font-size:12px; color:rgba(255,255,255,0.7); max-width:460px; margin:0 auto; line-height:1.5; position:relative; z-index:1;">Claim free USDC from the faucet, then buy RWA tokens to try the full Dobprotocol flow: deposit, mint dUSDC, swap, and provide liquidity.</p>
     </div>
     <div style="background:var(--bg-1); border:1px solid var(--border); border-radius:var(--r-xl); padding:22px; margin-bottom:16px;">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
@@ -1540,8 +1579,13 @@
 <!-- ═══ dUSDC ═══ -->
 <div id="pg-pool" class="pg">
   <div class="pool">
-    <div class="ln-top" style="margin-bottom:8px"><h1 style="font-size:20px">dUSDC</h1><span class="pill ok"><i></i> Live</span></div>
-    <p style="font-size:11px;color:var(--text-3);margin-bottom:20px;line-height:1.5;max-width:500px;">dUSDC is minted when you deposit RWA into the vault. Swap it for USDC via Hook reserves, or deposit USDC into the Hook LP pool to earn a share of protocol fees.</p>
+    <div class="section-hero" style="display:flex; align-items:center; justify-content:space-between;">
+      <div>
+        <h1 style="font-size:20px; font-weight:800; letter-spacing:-0.5px;">dUSDC</h1>
+        <div style="font-size:12px; color:rgba(255,255,255,0.7); margin-top:4px; max-width:440px; line-height:1.5; position:relative; z-index:1;">Minted when you deposit RWA into the vault. Swap for USDC via Hook reserves, or deposit into the LP pool to earn fees.</div>
+      </div>
+      <span class="pill ok" style="position:relative;z-index:1;"><i></i> Live</span>
+    </div>
 
     <!-- Redeem dUSDC → USDC -->
     <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:28px;">
@@ -1675,11 +1719,38 @@
   </div>
 </div>
 
-  <div class="flogo">
-    <svg viewBox="0 0 89 89" fill="none"><circle cx="44.9" cy="44" r="44" fill="#597CE9"/><path d="M35.5 54.1C33.1 51.5 31.9 48.2 31.9 44C31.9 39.8 33.1 36.5 35.5 33.9C36.9 32.4 38.6 31.3 40.6 30.7V22C38 22.4 35.6 23.2 33.4 24.5C30.1 26.4 27.5 29 25.7 32.3C23.9 35.7 23 39.6 23 44.1C23 48.6 23.9 52.5 25.7 55.8C27.5 59.2 30.1 61.7 33.4 63.6C35.6 64.8 38 65.6 40.6 66V57.3C38.6 56.7 36.9 55.6 35.5 54.1Z" fill="#F9FAFE"/><path d="M64.1 32.3C62.2 29 59.7 26.4 56.4 24.5C54.2 23.2 51.8 22.4 49.2 22V30.7C51.2 31.4 52.9 32.4 54.3 34C56.7 36.6 57.9 39.9 57.9 44.1C57.9 48.3 56.7 51.5 54.3 54.1C52.9 55.6 51.2 56.7 49.2 57.3V66C51.8 65.6 54.2 64.8 56.4 63.6C59.7 61.7 62.2 59.1 64.1 55.8C65.9 52.5 66.9 48.6 66.9 44.1C66.9 39.6 65.9 35.7 64.1 32.3Z" fill="#F9FAFE"/><circle cx="44.9" cy="44" r="5.5" fill="#F9FAFE"/></svg>
-    <span><em>dob</em>dex</span> &middot; <a href="landing.html">About</a>
+  <div style="max-width:1060px; margin:0 auto; width:100%;">
+    <div style="display:grid; grid-template-columns:1.5fr 1fr 1fr; gap:28px; margin-bottom:20px;">
+      <div>
+        <div class="flogo" style="margin-bottom:8px;">
+          <svg viewBox="0 0 89 89" fill="none"><circle cx="44.9" cy="44" r="44" fill="#597CE9"/><path d="M35.5 54.1C33.1 51.5 31.9 48.2 31.9 44C31.9 39.8 33.1 36.5 35.5 33.9C36.9 32.4 38.6 31.3 40.6 30.7V22C38 22.4 35.6 23.2 33.4 24.5C30.1 26.4 27.5 29 25.7 32.3C23.9 35.7 23 39.6 23 44.1C23 48.6 23.9 52.5 25.7 55.8C27.5 59.2 30.1 61.7 33.4 63.6C35.6 64.8 38 65.6 40.6 66V57.3C38.6 56.7 36.9 55.6 35.5 54.1Z" fill="#F9FAFE"/><path d="M64.1 32.3C62.2 29 59.7 26.4 56.4 24.5C54.2 23.2 51.8 22.4 49.2 22V30.7C51.2 31.4 52.9 32.4 54.3 34C56.7 36.6 57.9 39.9 57.9 44.1C57.9 48.3 56.7 51.5 54.3 54.1C52.9 55.6 51.2 56.7 49.2 57.3V66C51.8 65.6 54.2 64.8 56.4 63.6C59.7 61.7 62.2 59.1 64.1 55.8C65.9 52.5 66.9 48.6 66.9 44.1C66.9 39.6 65.9 35.7 64.1 32.3Z" fill="#F9FAFE"/><circle cx="44.9" cy="44" r="5.5" fill="#F9FAFE"/></svg>
+          <span><em>dob</em>dex</span>
+        </div>
+        <div style="font-size:11px; color:var(--text-3); line-height:1.5; max-width:260px;">LP-Priced Exit Liquidity for RWA. The Uniswap V4 hook layer for tokenized real-world assets.</div>
+      </div>
+      <div>
+        <div style="font-size:9px; font-weight:700; color:var(--text-3); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:10px;">Protocol</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <a href="https://docs.dobprotocol.com" target="_blank">Docs</a>
+          <a href="protocol.html">Protocol</a>
+          <a href="deck.html">Pitch</a>
+          <a href="demo.html">Demo</a>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:9px; font-weight:700; color:var(--text-3); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:10px;">Ecosystem</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <a href="https://tokenize.dobprotocol.com" target="_blank">Token Studio</a>
+          <a href="https://validator.dobprotocol.com" target="_blank">Validator</a>
+          <a href="https://dobprotocol.com" target="_blank">Main Site</a>
+        </div>
+      </div>
+    </div>
+    <div style="border-top:1px solid var(--border); padding-top:14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+      <div style="font-size:10px; color:var(--text-3);">Built on Uniswap V4 &middot; Powered by Reactive Network</div>
+      <div class="ftags"><span>DobPegHook</span><span>DobRwaVault</span><span>DobValidatorRegistry</span><span>DobLPRegistry</span></div>
+    </div>
   </div>
-  <div class="ftags"><span>DobPegHook</span><span>DobRwaVault</span><span>DobValidatorRegistry</span><span>DobLPRegistry</span></div>
 </footer>
 
 <script>
@@ -2146,32 +2217,44 @@ function rBk(){
   if(!act.length){g.innerHTML='<div class="empty" style="grid-column:1/-1">No active backings yet.</div>';return;}
   g.innerHTML=act.map(b=>{
     const a=A.find(x=>x.id===b.aid);if(!a)return'';const rem=b.alloc-b.used,pct=b.alloc>0?((b.used/b.alloc)*100):0,gi=S.backings.indexOf(b);
-    return `<div class="bk" id="bk-${gi}">
-      <div class="bk-hd"><div class="bk-asset"><img class="ic" src="${a.icon}" style="width:28px;height:28px;border-radius:6px;object-fit:cover;"/><div><div class="nm">${a.name}</div><div class="tk">${a.ticker}</div></div></div><span class="pill ok" style="font-size:9px"><i></i> Active</span></div>
-      <div class="bk-met">
-        <div class="bk-m"><small>Allocated</small><span>${usd(b.alloc)}</span></div>
-        <div class="bk-m"><small>Remaining</small><span style="color:var(--green)">${usd(rem)}</span></div>
-        <div class="bk-m"><small>Used</small><span>${pct.toFixed(1)}%</span></div>
-        <div class="bk-m"><small>Min Discount</small><span>${(b.minDisc/100).toFixed(0)}%</span></div>
-        <div class="bk-m"><small>Min Price</small><span>${b.minPrice>0?usd(b.minPrice):'Any'}</span></div>
-        <div class="bk-m"><small>Exposure</small><span style="color:var(--accent)">${fmt(b.curExp,0)}/${fmt(b.maxExp,0)}</span></div>
-        ${b.earned>0?`<div class="bk-m"><small>Earned RWA</small><span style="color:var(--green)">${fmt(b.earned,4)} ${a.ticker}</span></div>`:''}
+    return `<div class="bk" id="bk-${gi}" style="padding:0;overflow:hidden;">
+      <div class="bk-summary" onclick="toggleBkExpand(${gi})">
+        <div class="bk-id"><img src="${a.icon}" alt="${a.ticker}"/><div><div class="nm">${a.name}</div><div class="tk">${a.ticker}</div></div></div>
+        <div class="bk-compact-stats">
+          <div class="bk-compact-stat"><small>Allocated</small><span>${usd(b.alloc)}</span></div>
+          <div class="bk-compact-stat"><small>Discount</small><span>${(b.minDisc/100).toFixed(0)}%</span></div>
+          <div class="bk-compact-stat"><small>Used</small><span>${pct.toFixed(1)}%</span></div>
+          ${b.earned>0?`<div class="bk-compact-stat"><small>Earned</small><span style="color:var(--green)">${fmt(b.earned,4)}</span></div>`:''}
+        </div>
+        <span class="pill ok" style="font-size:9px;flex-shrink:0;"><i></i> Active</span>
+        <button class="bk-toggle-btn" onclick="event.stopPropagation();toggleBkExpand(${gi})">Details</button>
       </div>
-      <div class="bk-bar"><div class="bk-bar-fill" style="width:${pct}%"></div></div>
-      <div class="btn-g">
-        <button class="btn btn-o btn-s" onclick="toggleE(${gi})">Update Rules</button>
-        <button class="btn btn-o btn-s" onclick="toggleA(${gi})">Add USDC</button>
-        <button class="btn btn-r btn-s" onclick="if(confirm('Stop backing this asset? Allocated USDC will return to your available balance.'))stopBk(${gi})">Stop</button>
-      </div>
-      <div class="bk-edit" id="edit-${gi}"><div class="inner">
-        <div class="f"><label class="f-l">Min Discount (%)</label><input type="number" class="f-i" id="eD-${gi}" value="${b.minDisc/100}" min="1" max="50"/></div>
-        <div class="f"><label class="f-l">Min Oracle Price</label><input type="number" class="f-i" id="eP-${gi}" value="${b.minPrice}" min="0"/></div>
-        <div class="f"><label class="f-l">Max Exposure</label><input type="number" class="f-i" id="eE-${gi}" value="${b.maxExp}" min="1"/></div>
-        <div style="display:flex;align-items:end"><button class="btn btn-a btn-s" onclick="saveE(${gi})">Save Rules</button></div>
-      </div></div>
-      <div class="bk-edit" id="aa-${gi}"><div style="display:flex;gap:8px;align-items:end">
-        <div class="f" style="flex:1;margin:0"><label class="f-l">Additional USDC</label><input type="number" class="f-i" id="aA-${gi}" placeholder="50" min="1"/></div>
-        <button class="btn btn-b btn-s" onclick="addA(${gi})">Add</button>
+      <div class="bk-expand" id="bkexp-${gi}"><div class="bk-expand-inner">
+        <div class="bk-met">
+          <div class="bk-m"><small>Allocated</small><span>${usd(b.alloc)}</span></div>
+          <div class="bk-m"><small>Remaining</small><span style="color:var(--green)">${usd(rem)}</span></div>
+          <div class="bk-m"><small>Used</small><span>${pct.toFixed(1)}%</span></div>
+          <div class="bk-m"><small>Min Discount</small><span>${(b.minDisc/100).toFixed(0)}%</span></div>
+          <div class="bk-m"><small>Min Price</small><span>${b.minPrice>0?usd(b.minPrice):'Any'}</span></div>
+          <div class="bk-m"><small>Exposure</small><span style="color:var(--accent)">${fmt(b.curExp,0)}/${fmt(b.maxExp,0)}</span></div>
+          ${b.earned>0?`<div class="bk-m"><small>Earned RWA</small><span style="color:var(--green)">${fmt(b.earned,4)} ${a.ticker}</span></div>`:''}
+        </div>
+        <div class="bk-bar"><div class="bk-bar-fill" style="width:${pct}%"></div></div>
+        <div class="btn-g" style="margin-bottom:10px;">
+          <button class="btn btn-o btn-s" onclick="toggleE(${gi})">Update Rules</button>
+          <button class="btn btn-o btn-s" onclick="toggleA(${gi})">Add USDC</button>
+          <button class="btn btn-r btn-s" onclick="if(confirm('Stop backing this asset? Allocated USDC will return to your available balance.'))stopBk(${gi})">Stop</button>
+        </div>
+        <div class="bk-edit" id="edit-${gi}"><div class="inner">
+          <div class="f"><label class="f-l">Min Discount (%)</label><input type="number" class="f-i" id="eD-${gi}" value="${b.minDisc/100}" min="1" max="50"/></div>
+          <div class="f"><label class="f-l">Min Oracle Price</label><input type="number" class="f-i" id="eP-${gi}" value="${b.minPrice}" min="0"/></div>
+          <div class="f"><label class="f-l">Max Exposure</label><input type="number" class="f-i" id="eE-${gi}" value="${b.maxExp}" min="1"/></div>
+          <div style="display:flex;align-items:end"><button class="btn btn-a btn-s" onclick="saveE(${gi})">Save Rules</button></div>
+        </div></div>
+        <div class="bk-edit" id="aa-${gi}"><div style="display:flex;gap:8px;align-items:end">
+          <div class="f" style="flex:1;margin:0"><label class="f-l">Additional USDC</label><input type="number" class="f-i" id="aA-${gi}" placeholder="50" min="1"/></div>
+          <button class="btn btn-b btn-s" onclick="addA(${gi})">Add</button>
+        </div></div>
       </div></div>
     </div>`;
   }).join('');
@@ -2985,6 +3068,7 @@ async function backNew(){
     toast('Now backing '+a.ticker);['newBackAsset','newBackAlloc','newBackPrice','newBackExp'].forEach(id=>document.getElementById(id).value='');closeBackingModal();renderAll();
   }catch(e){if(isUserRejection(e)){toast('Transaction cancelled');} else{console.error(e);toast('Back failed: '+(e.reason||e.shortMessage||e.message));}}
 }
+function toggleBkExpand(i){const ex=document.getElementById('bkexp-'+i);if(ex)ex.classList.toggle('open');}
 function toggleE(i){const e=document.getElementById('edit-'+i),a=document.getElementById('aa-'+i);if(a)a.classList.remove('open');e.classList.toggle('open');}
 function toggleA(i){const e=document.getElementById('aa-'+i),d=document.getElementById('edit-'+i);if(d)d.classList.remove('open');e.classList.toggle('open');}
 async function saveE(i){
