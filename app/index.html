@@ -1668,7 +1668,7 @@ function toggleTheme(){
   document.getElementById('themeBtn').innerHTML=isLight?'&#9728;':'&#9790;';
   localStorage.setItem('dobdex-theme',isLight?'light':'dark');
 }
-(function(){const t=localStorage.getItem('dobdex-theme');if(t==='light'){document.body.classList.add('light');document.addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('themeBtn');if(b)b.innerHTML='&#9728;';});}})();
+(function(){const t=localStorage.getItem('dobdex-theme');if(t!=='dark'){document.body.classList.add('light');document.addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('themeBtn');if(b)b.innerHTML='&#9728;';});}})();
 
 // ── Onboarding ──
 function showOnboard(){document.getElementById('onboardModal').style.display='grid';}
