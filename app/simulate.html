@@ -37,7 +37,13 @@
       --red-dim: rgba(245,82,82,0.12);
       --amber: #F7A617;
       --amber-dim: rgba(247,166,23,0.12);
-      --cyan: #00E5CC;
+      --cyan: #34c4cf;
+      --cyan-hover: #2eb0ba;
+      --cyan-dim: rgba(52,196,207,0.10);
+      --dob-blue: #3c4cca;
+      --dob-blue-hover: #222e8e;
+      --dob-blue-dim: rgba(60,76,202,0.10);
+      --dob-blue-light: #3E54D3;
       --font: 'Inter', system-ui, -apple-system, sans-serif;
       --ease: cubic-bezier(.4,0,.2,1);
     }
@@ -196,10 +202,11 @@
       border-radius: 16px; padding: 24px;
       cursor: pointer; transition: all 0.3s var(--ease);
       position: relative; overflow: hidden;
+      box-shadow: 0 1px 6px 0 rgba(0,0,0,0.12);
     }
     .scenario-card:hover {
       border-color: var(--border-hover); transform: translateY(-4px);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+      box-shadow: 0 8px 17px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
     }
     .scenario-card.active {
       border-color: var(--accent);
@@ -253,16 +260,16 @@
       margin-bottom: 32px; flex-wrap: wrap;
     }
     .sim-btn {
-      padding: 10px 24px; border-radius: 10px; border: none;
+      padding: 10px 24px; border-radius: 1.5em; border: none;
       font-family: var(--font); font-size: 13px; font-weight: 700;
       cursor: pointer; transition: all 0.2s var(--ease);
       display: inline-flex; align-items: center; gap: 8px;
     }
     .sim-btn-primary {
-      background: var(--accent); color: #fff;
-      box-shadow: 0 4px 16px rgba(151,90,255,0.25);
+      background: var(--dob-blue); color: #fff;
+      box-shadow: 0 4px 16px var(--dob-blue-dim);
     }
-    .sim-btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .sim-btn-primary:hover { background: var(--dob-blue-hover); transform: translateY(-1px); box-shadow: 0 2px 7px rgba(0,0,0,0.28); }
     .sim-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
     .sim-btn-secondary {
       background: var(--bg-elevated); color: var(--text-1);
@@ -470,12 +477,12 @@
       margin-top: 24px;
     }
     .cta-links a {
-      padding: 8px 18px; border-radius: 8px;
+      padding: 8px 18px; border-radius: 1.5em;
       background: var(--accent-dim); border: 1px solid rgba(151,90,255,0.1);
       color: var(--accent); font-size: 12px; font-weight: 600;
       transition: all 0.2s;
     }
-    .cta-links a:hover { background: rgba(151,90,255,0.2); border-color: var(--accent); }
+    .cta-links a:hover { background: rgba(151,90,255,0.2); border-color: var(--accent); box-shadow: 0 2px 7px rgba(0,0,0,0.28); }
 
     /* ═══ RESPONSIVE ═══ */
     @media (max-width: 1024px) {

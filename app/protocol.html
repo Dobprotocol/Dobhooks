@@ -30,6 +30,12 @@
       --red-dim: rgba(245,82,82,0.12);
       --warning: #F77E17;
       --warning-dim: rgba(247,126,23,0.12);
+      --cyan: #34c4cf;
+      --cyan-dim: rgba(52,196,207,0.10);
+      --dob-blue: #3c4cca;
+      --dob-blue-hover: #222e8e;
+      --dob-blue-dim: rgba(60,76,202,0.10);
+      --dob-blue-light: #3E54D3;
       --font: 'Inter', system-ui, -apple-system, sans-serif;
       --mono: 'JetBrains Mono', monospace;
     }
@@ -62,12 +68,12 @@
     .nav-links a:hover { color: var(--text-1); }
     .nav-links a.active { color: var(--accent-light); }
     .nav-cta {
-      padding: 8px 22px; border-radius: 8px; border: none;
-      background: var(--accent); color: white;
+      padding: 8px 22px; border-radius: 1.5em; border: none;
+      background: var(--dob-blue); color: white;
       font-family: var(--font); font-size: 13px; font-weight: 700;
-      cursor: pointer; transition: all 0.15s; text-decoration: none;
+      cursor: pointer; transition: all 0.2s; text-decoration: none;
     }
-    .nav-cta:hover { background: var(--accent-hover); }
+    .nav-cta:hover { background: var(--dob-blue-hover); box-shadow: 0 2px 7px rgba(0,0,0,0.28); }
 
     /* HERO */
     .proto-hero {
@@ -168,8 +174,9 @@
     .contract-card {
       background: var(--bg-card); border: 1px solid var(--border);
       border-radius: 16px; padding: 28px; transition: all 0.2s;
+      box-shadow: 0 1px 6px 0 rgba(0,0,0,0.12);
     }
-    .contract-card:hover { border-color: rgba(151,90,255,0.3); transform: translateY(-2px); }
+    .contract-card:hover { border-color: rgba(151,90,255,0.3); transform: translateY(-2px); box-shadow: 0 8px 17px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19); }
     .contract-card .cc-header {
       display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
     }

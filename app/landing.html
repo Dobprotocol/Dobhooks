@@ -31,6 +31,13 @@
       --green-dim: rgba(64,192,87,0.08);
       --red: #F55252;
       --amber: #F7A617;
+      --cyan: #34c4cf;
+      --cyan-hover: #2eb0ba;
+      --cyan-dim: rgba(52,196,207,0.08);
+      --dob-blue: #3c4cca;
+      --dob-blue-hover: #222e8e;
+      --dob-blue-dim: rgba(60,76,202,0.08);
+      --dob-blue-light: #3E54D3;
       --font: 'Inter', system-ui, -apple-system, sans-serif;
       --ease: cubic-bezier(.4,0,.2,1);
     }
@@ -83,12 +90,12 @@
     .nav-links a { color: var(--text-3); font-size: 13px; font-weight: 500; transition: color 0.15s; letter-spacing: 0.2px; }
     .nav-links a:hover { color: var(--text-0); }
     .nav-cta {
-      padding: 8px 22px; border-radius: 8px;
-      background: var(--accent); color: white;
+      padding: 8px 22px; border-radius: 1.5em;
+      background: var(--dob-blue); color: white;
       font-size: 13px; font-weight: 700;
       transition: all 0.2s var(--ease);
     }
-    .nav-cta:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .nav-cta:hover { background: var(--dob-blue-hover); transform: translateY(-1px); box-shadow: 0 2px 7px rgba(0,0,0,0.28); }
 
     /* ═══ FADE-IN ANIMATION ═══ */
     .fade-in {
@@ -150,15 +157,15 @@
     }
     .hero-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
     .btn-primary {
-      padding: 14px 36px; border-radius: 10px; border: none;
-      background: var(--accent); color: white;
+      padding: 14px 36px; border-radius: 1.5em; border: none;
+      background: var(--dob-blue); color: white;
       font-family: var(--font); font-size: 15px; font-weight: 700;
       cursor: pointer; transition: all 0.2s var(--ease);
-      box-shadow: 0 4px 20px rgba(89,124,233,0.25);
+      box-shadow: 0 4px 20px var(--dob-blue-dim);
     }
-    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(89,124,233,0.3); }
+    .btn-primary:hover { background: var(--dob-blue-hover); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(60,76,202,0.3); }
     .btn-secondary {
-      padding: 14px 36px; border-radius: 10px;
+      padding: 14px 36px; border-radius: 1.5em;
       border: 1px solid var(--border); background: rgba(255,255,255,0.03);
       color: var(--text-1); font-family: var(--font); font-size: 15px; font-weight: 600;
       cursor: pointer; transition: all 0.2s var(--ease);
@@ -221,10 +228,11 @@
       backdrop-filter: blur(12px);
       transition: all 0.3s var(--ease);
       position: relative; overflow: hidden;
+      box-shadow: 0 1px 6px 0 rgba(0,0,0,0.12);
     }
     .pipeline-card:hover {
       border-color: var(--border-hover);
-      box-shadow: 0 0 40px var(--accent-glow);
+      box-shadow: 0 8px 17px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
       transform: translateY(-4px);
     }
     .pipeline-card::before {
@@ -258,11 +266,12 @@
       background: var(--bg-card); border: 1px solid var(--border);
       border-radius: 16px; padding: 28px;
       transition: all 0.3s var(--ease);
+      box-shadow: 0 1px 6px 0 rgba(0,0,0,0.12);
     }
     .feat-card:hover {
       border-color: var(--border-hover);
       transform: translateY(-3px);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      box-shadow: 0 8px 17px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
     }
     .feat-icon {
       width: 48px; height: 48px; border-radius: 12px;
@@ -296,8 +305,8 @@
       width: 48px; height: 48px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       font-size: 18px; font-weight: 900; margin: 0 auto 20px;
-      background: var(--accent); color: white;
-      box-shadow: 0 4px 16px rgba(89,124,233,0.3);
+      background: var(--dob-blue); color: white;
+      box-shadow: 0 4px 16px var(--dob-blue-dim);
     }
     .how-step h4 { font-size: 15px; font-weight: 800; margin-bottom: 8px; }
     .how-step p { font-size: 13px; color: var(--text-2); line-height: 1.5; max-width: 200px; margin: 0 auto; }
@@ -310,9 +319,10 @@
       background: var(--bg-card); border: 1px solid var(--border);
       border-radius: 16px; padding: 28px;
       transition: all 0.3s var(--ease);
+      box-shadow: 0 1px 6px 0 rgba(0,0,0,0.12);
       position: relative; overflow: hidden;
     }
-    .chain-card:hover { border-color: var(--border-hover); transform: translateY(-3px); }
+    .chain-card:hover { border-color: var(--border-hover); transform: translateY(-3px); box-shadow: 0 8px 17px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19); }
     .chain-card .chain-bar { position: absolute; top: 0; left: 0; right: 0; height: 2px; }
     .chain-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
     .chain-icon {
@@ -388,12 +398,12 @@
       margin-top: 32px; position: relative;
     }
     .cta-links a {
-      padding: 8px 18px; border-radius: 8px;
+      padding: 8px 18px; border-radius: 1.5em;
       background: var(--accent-dim); border: 1px solid rgba(89,124,233,0.1);
       color: var(--accent); font-size: 12px; font-weight: 600;
       transition: all 0.2s;
     }
-    .cta-links a:hover { background: rgba(89,124,233,0.15); border-color: var(--accent); }
+    .cta-links a:hover { background: rgba(89,124,233,0.15); border-color: var(--accent); box-shadow: 0 2px 7px rgba(0,0,0,0.28); }
 
     /* ═══ FOOTER ═══ */
     .footer {
