@@ -1881,7 +1881,7 @@ const REACTIVE_CONFIG={
   OracleSync:"0xcfDf62D41222c832332209B03Ffe9eAD427f74F1"
 };
 let chainId=1301,ethListenersSet=false;
-const RPC_URLS={1301:'/rpc/unichain-sepolia'};
+const RPC_URLS={1301:'https://sepolia.unichain.org'};
 function getChain(){return CHAINS[chainId]||CHAINS[1301];}
 function ADDR(){return getChain();}
 function tokenAddr(id){return getChain().tokens[id]||null;}
