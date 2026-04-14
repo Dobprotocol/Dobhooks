@@ -631,12 +631,6 @@
     .af-oracle .oracle-conf.high { background: var(--green-dim); color: var(--green); }
     .af-oracle .oracle-conf.medium { background: var(--amber-dim); color: var(--amber); }
     .af-oracle .oracle-conf.low { background: var(--red-dim); color: var(--red); }
-    .af-liq { display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: var(--r-sm); font-size: 10px; font-weight: 600; margin-bottom: 12px; }
-    .af-liq.healthy { background: var(--green-dim); border: 1px solid rgba(64,192,87,0.08); color: var(--green); }
-    .af-liq.distressed { background: var(--red-dim); border: 1px solid rgba(245,82,82,0.08); color: var(--red); }
-    .af-liq i { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
-    .af-liq.healthy i { background: var(--green); box-shadow: 0 0 5px var(--green); }
-    .af-liq.distressed i { background: var(--red); box-shadow: 0 0 5px var(--red); animation: blink 1.5s infinite; }
     @media (max-width: 960px) { .af-summary { flex-wrap: wrap; } .af-stats { gap: 16px; } .af-metrics { grid-template-columns: repeat(2,1fr); } .af-detail { grid-template-columns: 1fr; } .assets-stats { grid-template-columns: repeat(2,1fr); } }
 
     /* ═══ ACTIVITY PAGE ═══ */
@@ -1515,10 +1509,6 @@
           <div style="font-size:11px;color:var(--text-3);line-height:1.5;">A shared Liquidity Node managed by Dobprotocol. Anyone can deposit USDC and earn a proportional share of RWA tokens from fills. Easier than running your own LP.</div>
         </div>
         <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;">
-          <div style="font-size:12px;font-weight:700;color:var(--text-1);margin-bottom:4px;">Liquidation</div>
-          <div style="font-size:11px;color:var(--text-3);line-height:1.5;">When an asset is distressed, Dobprotocol activates liquidation mode with a penalty rate. LPs who back that asset participate in fills at the mandated discount.</div>
-        </div>
-        <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r-md);padding:14px;">
           <div style="font-size:12px;font-weight:700;color:var(--text-1);margin-bottom:4px;">Slippage</div>
           <div style="font-size:11px;color:var(--text-3);line-height:1.5;">The difference between expected and actual output. On sells, slippage comes from LP discount variability. Set a tolerance to protect against unexpected price changes.</div>
         </div>
@@ -1806,53 +1796,43 @@ const A=[
   {id:'dct',name:'Datacenter Token',ticker:'DCT',icon:'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=80&h=80&fit=crop',
    desc:'Fractional ownership of Tier IV datacenter infrastructure in Virginia, USA. 99.995% uptime SLA.',
    price:0,pf:'—',apy:'8.5%',risk:'Low',units:'—',tvl:0,
-   oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
-   liq:{enabled:false,penaltyBps:0,cap:0,liquidated:0}},
+   oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]}},
   {id:'sft',name:'Solar Farm Token',ticker:'SFT',icon:'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=80&h=80&fit=crop',
    desc:'25MW solar farm in Andalucia, Spain. 20-year PPA with local utility. EPC by SunPower.',
    price:0,pf:'—',apy:'7.2%',risk:'Medium',units:'—',tvl:0,
-   oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
-   liq:{enabled:false,penaltyBps:0,cap:0,liquidated:0}},
+   oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]}},
   {id:'ret',name:'Real Estate Token',ticker:'RET',icon:'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=80&h=80&fit=crop',
    desc:'Class A commercial office building in Miami Financial District. 95% occupancy, 10-year leases.',
    price:0,pf:'—',apy:'6.0%',risk:'Low',units:'—',tvl:0,
-   oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
-   liq:{enabled:false,penaltyBps:0,cap:0,liquidated:0}},
+   oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]}},
   {id:'pwg',name:'Power Grid Token',ticker:'PWG',icon:'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=80&h=80&fit=crop',
    desc:'High-voltage transmission infrastructure across Texas ERCOT grid. Regulated utility returns.',
    price:0,pf:'—',apy:'5.8%',risk:'Low',units:'—',tvl:0,
-   oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
-   liq:{enabled:false,penaltyBps:0,cap:0,liquidated:0}},
+   oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]}},
   {id:'wft',name:'Wind Farm Token',ticker:'WFT',icon:'https://images.unsplash.com/photo-1532601224476-15c79f2f7a51?w=80&h=80&fit=crop',
    desc:'Offshore wind farm in the North Sea, 150MW capacity. 25-year concession from Danish Energy Agency.',
    price:0,pf:'—',apy:'6.5%',risk:'Medium',units:'—',tvl:0,
-   oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
-   liq:{enabled:false,penaltyBps:0,cap:0,liquidated:0}},
+   oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]}},
   {id:'glt',name:'Gold Reserve Token',ticker:'GLT',icon:'https://images.unsplash.com/photo-1610375461246-83df859d849d?w=80&h=80&fit=crop',
    desc:'Tokenized gold reserves held in LBMA-certified vaults in Zurich. Fully audited quarterly.',
    price:0,pf:'—',apy:'3.2%',risk:'Low',units:'—',tvl:0,
-   oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
-   liq:{enabled:false,penaltyBps:0,cap:0,liquidated:0}},
+   oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]}},
   {id:'evt',name:'EV Fleet Token',ticker:'EVT',icon:'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=80&h=80&fit=crop',
    desc:'Fleet of 500 Tesla Semi trucks leased to Amazon Logistics. 5-year master lease agreement.',
    price:0,pf:'—',apy:'9.0%',risk:'High',units:'—',tvl:0,
-   oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
-   liq:{enabled:false,penaltyBps:0,cap:0,liquidated:0}},
+   oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]}},
   {id:'tbt',name:'Treasury Bond Token',ticker:'TBT',icon:'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=80&h=80&fit=crop',
    desc:'Tokenized US Treasury Bonds (10-year). Backed 1:1 by T-bills held at State Street custodian.',
    price:0,pf:'—',apy:'4.3%',risk:'Low',units:'—',tvl:0,
-   oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
-   liq:{enabled:false,penaltyBps:0,cap:0,liquidated:0}},
+   oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]}},
   {id:'flt',name:'Farmland Token',ticker:'FLT',icon:'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=80&h=80&fit=crop',
    desc:'2,000-acre irrigated farmland in Iowa. Row crops (corn/soy) with 15-year operator lease.',
    price:0,pf:'—',apy:'5.5%',risk:'Low',units:'—',tvl:0,
-   oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
-   liq:{enabled:false,penaltyBps:0,cap:0,liquidated:0}},
+   oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]}},
   {id:'sct',name:'Shipping Container Token',ticker:'SCT',icon:'https://images.unsplash.com/photo-1524522173746-f628baad3644?w=80&h=80&fit=crop',
    desc:'Fleet of 10,000 dry containers leased to Maersk and MSC. 3-year rolling lease contracts.',
    price:0,pf:'—',apy:'7.8%',risk:'Medium',units:'—',tvl:0,
-   oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
-   liq:{enabled:false,penaltyBps:0,cap:0,liquidated:0}}
+   oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]}}
 ];
 const S={on:false,addr:'',short:'',prov:null,sig:null,dob:0,usdc:0,hook:0,minted:0,dir:'d2u',logs:loadLogs(),
   lpActive:false,lpDeposited:0,lpAvailable:0,lpEarned:0,lpFillCount:0,
@@ -1893,7 +1873,7 @@ const VA=["function deposit(address,uint256) returns (uint256)","function balanc
 const USDC_ABI=["function approve(address,uint256) returns (bool)","function balanceOf(address) view returns (uint256)","function faucet()"];
 const RWA_ABI=["function approve(address,uint256) returns (bool)","function balanceOf(address) view returns (uint256)","function totalSupply() view returns (uint256)","function faucet()","function buyTokens(uint256)","function salePrice() view returns (uint256)","function saleActive() view returns (bool)"];
 const ROUTER_ABI=["function swap(bool,uint256,bytes) returns (uint256)"];
-const REG_ABI=["function getPrice(address) view returns (uint256 priceUsd, uint48 updatedAt)","function liquidations(address) view returns (bool enabled, uint16 penaltyBps, uint256 cap, uint256 liquidatedAmount)","function MAX_ORACLE_DELAY() view returns (uint48)"];
+const REG_ABI=["function getPrice(address) view returns (uint256 priceUsd, uint48 updatedAt)","function MAX_ORACLE_DELAY() view returns (uint48)"];
 const LP_ABI=["function getAssetBackerCount(address) view returns (uint256)","function getAssetLiquidity(address) view returns (uint256)","function register(uint256)","function depositMore(uint256)","function positions(address) view returns (uint256 usdcDeposited,uint256 usdcAvailable,uint48 registeredAt,bool active)","function backAsset(address,uint256,uint16,uint256,uint256)","function getBacking(address,address) view returns (uint256 minOraclePrice,uint16 minPenaltyBps,uint256 maxExposure,uint256 currentExposure,uint256 usdcAllocated,uint256 usdcUsed,uint48 backedAt,bool active)","function updateConditions(address,uint256,uint16,uint256)","function increaseAllocation(address,uint256)","function stopBacking(address)","function releaseReserve(uint256)","function requestWithdrawal(uint256)","function cancelWithdrawal()","function executeWithdrawal()","function withdrawalRequests(address) view returns (uint256 amount, uint48 requestedAt)","function rwaOwed(address,address) view returns (uint256)","function claimRwaTokens(address,uint256)","function getReserveHolds(address) view returns (tuple(uint256 amount,address rwaToken,uint48 createdAt)[])"];
 const HOOK_ABI=["function swapFeeBps() view returns (uint16)","function protocolFeeBps() view returns (uint16)","function totalLpUsdc() view returns (uint256)","function totalShares() view returns (uint256)","function lpShares(address) view returns (uint256)","function sharePrice() view returns (uint256)","function depositUsdc(uint256) returns (uint256)","function withdrawUsdc(uint256) returns (uint256)","function protocolReserveUsdc() view returns (uint256)","function lpOnlyMode(address) view returns (bool)","function paused() view returns (bool)","function listRwaForSale(address,uint256)","function delistRwa(address,uint256)","function buyListedRwa(address,uint256)","function getRwaSellers(address) view returns (address[])","function getRwaSellersCount(address) view returns (uint256)","function totalRwaListed(address) view returns (uint256)","function rwaForSale(address,address) view returns (uint256)"];
 const PLN_ABI=["function totalPoolUsdc() view returns (uint256)","function totalShares() view returns (uint256)","function shares(address) view returns (uint256)","function sharePrice() view returns (uint256)","function minDeposit() view returns (uint256)","function backedAssetCount() view returns (uint256)","function paused() view returns (bool)","function deposit(uint256) returns (uint256)","function withdraw(uint256) returns (uint256)","function rwaClaimable(address,address) view returns (uint256)","function withdrawRwa(address,uint256)","function getBacking(address) view returns (uint256 minOraclePrice,uint16 minPenaltyBps,uint256 maxExposure,uint256 currentExposure,uint256 usdcAllocated,uint256 usdcUsed,uint48 backedAt,bool active)"];
@@ -1918,7 +1898,6 @@ async function loadValidatedPools(){
         desc:p.description||'Validated RWA token from Dobprotocol.',
         price:0,pf:'—',apy:'—',units:'—',tvl:0,
         oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
-        liq:{enabled:false,penaltyBps:0,cap:0,liquidated:0},
         certificate:p.certificate||null,
         validatedAt:p.validatedAt,
         overallScore:p.overallScore,
@@ -1960,10 +1939,6 @@ async function syncOnChainData(){
         a.oracle.stale=ageSec>86400;
         a.oracle.confidence=ageSec<600?'high':ageSec<3600?'medium':'low';
         a.oracle.history.push(price);if(a.oracle.history.length>30)a.oracle.history.shift();
-      }catch(e){}
-      try{
-        const [enabled,penaltyBps,cap,liquidatedAmount]=await reg.liquidations(addr);
-        a.liq={enabled,penaltyBps:Number(penaltyBps),cap:parseFloat(ethers.formatUnits(cap,18)),liquidated:parseFloat(ethers.formatUnits(liquidatedAmount,18))};
       }catch(e){}
       try{
         const hk=new ethers.Contract(c.Hook,HOOK_ABI,rp);
@@ -2098,7 +2073,7 @@ function renderTokenList(q){
       <img src="${a.icon}" alt="${a.ticker}"/>
       <div class="tsel-info">
         <div class="tsel-name">${a.name}</div>
-        <div class="tsel-ticker">${a.ticker}${a.liq.enabled?' <span style="color:var(--red);font-size:9px;font-weight:700;">DISTRESSED</span>':''}</div>
+        <div class="tsel-ticker">${a.ticker}</div>
       </div>
       <div class="tsel-price"><div class="tsel-price-v">${a.pf}</div></div>
       ${S.on&&bal>0?`<div class="tsel-bal"><div class="tsel-bal-v">${fmt(bal,2)}</div><div class="tsel-bal-u">${usd(usdVal)}</div></div>`:''}
@@ -2361,9 +2336,7 @@ function rAssetsFull(){
     const alloc=lps.reduce((s,b)=>s+b.alloc,0)||liq;
     const used=lps.reduce((s,b)=>s+b.used,0);
     const pct=alloc>0?((used/alloc)*100).toFixed(1):'0.0';
-    const o=a.oracle,l=a.liq;
-    const liqPct=l.enabled?(l.penaltyBps/100).toFixed(0)+'%':'—';
-    const liqCapPct=l.enabled&&l.cap>0?((l.liquidated/l.cap)*100).toFixed(1):'0.0';
+    const o=a.oracle;
     const exitCost=lps.length?(()=>{const ds=[...new Set(lps.map(b=>(b.minDisc/100).toFixed(0)))].sort((a,b)=>a-b);return ds.length>1?ds[0]+'-'+ds[ds.length-1]+'%':ds[0]+'%';})():'—';
     const uid='af-'+a.id;
     return `<div class="asset-full">
@@ -2402,11 +2375,7 @@ function rAssetsFull(){
               <div style="font-size:9px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.4px;font-weight:600;">Oracle History (30d)</div>
               <div style="font-size:11px;color:var(--text-1);font-weight:600;font-variant-numeric:tabular-nums;">${a.pf}</div>
             </div>
-            ${sparkline(o.history,280,40,l.enabled?'var(--red)':'var(--green)')}
-          </div>
-          <div class="af-liq ${l.enabled?'distressed':'healthy'}">
-            <i></i>
-            ${l.enabled?'Liquidation Active &middot; Penalty '+liqPct+' &middot; Cap '+liqCapPct+'% used':'Healthy &middot; No liquidation'}
+            ${sparkline(o.history,280,40,'var(--green)')}
           </div>
           ${S.on?`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:var(--r-sm);background:var(--bg-2);margin-bottom:14px;">
             <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.4px;font-weight:600;">Your Balance</div>
@@ -2424,10 +2393,7 @@ function rAssetsFull(){
             <div class="af-row"><span class="l">Tokenized Units</span><span class="v">${a.units}</span></div>
             <div class="af-row"><span class="l">LP Allocated</span><span class="v">${usd(alloc)}</span></div>
             <div class="af-row"><span class="l">LP Utilization</span><span class="v">${pct}%</span></div>
-            ${l.enabled?`<div class="af-row"><span class="l">Penalty (Risk)</span><span class="v" style="color:var(--red)">${liqPct}</span></div>
-            <div class="af-row"><span class="l">Liq. Cap</span><span class="v">${usd(l.cap)}</span></div>
-            <div class="af-row"><span class="l">Liquidated</span><span class="v" style="color:var(--red)">${usd(l.liquidated)}</span></div>`
-            :`<div class="af-row"><span class="l">Status</span><span class="v" style="color:var(--green)">Active</span></div>`}
+            <div class="af-row"><span class="l">Status</span><span class="v" style="color:var(--green)">Active</span></div>
           </div>
         </div>
       </div>
@@ -2739,7 +2705,7 @@ async function readBalances(){
 }
 async function connectWallet(){
   const btn=document.getElementById('walletBtn');
-  if(S.on){if(oracleInterval)clearInterval(oracleInterval);S.on=false;S.prov=null;S.sig=null;S.addr='';S.short='';S.dob=0;S.usdc=0;S.hook=0;S.minted=0;S.logs=[];S.lpActive=false;S.lpDeposited=0;S.lpAvailable=0;S.lpEarned=0;S.lpFillCount=0;S.backings=[];S.fills=[];S.reserveHolds=[];S.gLP=0;S.faucetBals={};A.forEach(a=>{a.price=0;a.pf='—';a.apy='—';a.units='—';a.tvl=0;a.oracle.history=[];a.oracle.updatedAgo='—';a.oracle.stale=true;a.oracle.confidence='—';a.liq={enabled:false,penaltyBps:0,cap:0,liquidated:0};});btn.textContent='Connect Wallet';btn.className='wbtn';renderAll();return;}
+  if(S.on){if(oracleInterval)clearInterval(oracleInterval);S.on=false;S.prov=null;S.sig=null;S.addr='';S.short='';S.dob=0;S.usdc=0;S.hook=0;S.minted=0;S.logs=[];S.lpActive=false;S.lpDeposited=0;S.lpAvailable=0;S.lpEarned=0;S.lpFillCount=0;S.backings=[];S.fills=[];S.reserveHolds=[];S.gLP=0;S.faucetBals={};A.forEach(a=>{a.price=0;a.pf='—';a.apy='—';a.units='—';a.tvl=0;a.oracle.history=[];a.oracle.updatedAgo='—';a.oracle.stale=true;a.oracle.confidence='—';});btn.textContent='Connect Wallet';btn.className='wbtn';renderAll();return;}
   const ethereum=getMetaMask();
   if(!ethereum||!ethereum.isMetaMask){toast('MetaMask not detected');return;}
   try{
@@ -3243,7 +3209,6 @@ function openBackingModal(){
   document.getElementById('modalAssetGrid').innerHTML=avail.length?avail.map(a=>`<div onclick="selectModalAsset('${a.id}')" style="display:flex;align-items:center;gap:8px;padding:10px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--r-sm);cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
     <img src="${a.icon}" style="width:32px;height:32px;border-radius:var(--r-xs);object-fit:cover;" alt="${a.ticker}"/>
     <div><div style="font-size:12px;font-weight:700;">${a.ticker}</div><div style="font-size:9px;color:var(--text-3);">${a.pf}</div></div>
-    ${a.liq.enabled?'<span style="margin-left:auto;font-size:8px;padding:2px 5px;border-radius:999px;background:var(--red-dim);color:var(--red);font-weight:700;">DISTRESSED</span>':''}
   </div>`).join(''):'<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--text-3);font-size:12px;">All assets are already backed.</div>';
   document.getElementById('modalForm').style.display='none';
 }
