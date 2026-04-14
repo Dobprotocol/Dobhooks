@@ -1249,32 +1249,31 @@
         <span style="font-size:10px; color:var(--text-3); font-weight:500; margin-left:auto;">DobLPRegistry</span>
       </div>
 
-      <div class="kpi" style="grid-template-columns:repeat(5,1fr); margin-bottom:16px;">
+      <div class="kpi" style="grid-template-columns:repeat(4,1fr); margin-bottom:16px;">
         <div class="kpi-box"><div class="kpi-lbl">Active LPs</div><div class="kpi-val" id="netLps">0</div><div class="kpi-sub">Registered nodes</div></div>
         <div class="kpi-box"><div class="kpi-lbl">Total Deposited</div><div class="kpi-val" id="netDeposited">$0</div><div class="kpi-sub">USDC in protocol</div></div>
         <div class="kpi-box"><div class="kpi-lbl">Your Backings</div><div class="kpi-val" id="netBacked">0</div><div class="kpi-sub">Assets you back</div></div>
         <div class="kpi-box"><div class="kpi-lbl">Your Fills</div><div class="kpi-val" id="netFills">0</div><div class="kpi-sub">Fills received</div></div>
-        <div class="kpi-box"><div class="kpi-lbl">Distressed</div><div class="kpi-val" id="netDistressed" style="color:var(--red)">0</div><div class="kpi-sub">Pending liquidation</div></div>
       </div>
 
       <div class="card" style="padding:0; overflow:hidden;">
         <div style="display:flex; align-items:center; gap:8px; padding:14px 18px; cursor:pointer;" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('.chev').style.transform=this.nextElementSibling.classList.contains('open')?'rotate(180deg)':''">
-          <div class="card-t" style="margin:0; font-size:13px;">How Liquidations Work</div>
+          <div class="card-t" style="margin:0; font-size:13px;">How LP Fills Work</div>
           <span class="chev" style="margin-left:auto; font-size:10px; color:var(--text-3); transition:transform 0.2s;">&#9660;</span>
         </div>
         <div class="af-expand">
           <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding:0 18px 16px;">
             <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--accent-soft);">
-              <div style="font-size:9px; color:var(--accent); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">1. Distress Signal</div>
-              <div style="font-size:11px; color:var(--text-2); line-height:1.5;">AI agents detect asset distress and activate liquidation with a penalty rate.</div>
+              <div style="font-size:9px; color:var(--accent); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">1. Seller Exits</div>
+              <div style="font-size:11px; color:var(--text-2); line-height:1.5;">A user sells RWA tokens. The hook routes the sell through LP fallback for exit USDC.</div>
             </div>
             <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--accent);">
               <div style="font-size:9px; color:var(--accent); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">2. FIFO Matching</div>
-              <div style="font-size:11px; color:var(--text-2); line-height:1.5;">LP backings matched in FIFO order. Only LPs whose minPenaltyBps &#8804; penalty get filled.</div>
+              <div style="font-size:11px; color:var(--text-2); line-height:1.5;">LP backings matched in FIFO order. LPs whose minPenaltyBps meets the seller's discount get filled.</div>
             </div>
             <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--green);">
-              <div style="font-size:9px; color:var(--green); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">3. Fill & Earn</div>
-              <div style="font-size:11px; color:var(--text-2); line-height:1.5;">Your USDC buys distressed RWA at discount. The spread is your profit.</div>
+              <div style="font-size:9px; color:var(--green); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">3. Fill &amp; Earn</div>
+              <div style="font-size:11px; color:var(--text-2); line-height:1.5;">Your USDC buys RWA at the LP discount. The spread is your profit.</div>
             </div>
             <div style="padding:12px; background:var(--bg-2); border-radius:var(--r-sm); border-left:2px solid var(--amber);">
               <div style="font-size:9px; color:var(--amber); text-transform:uppercase; letter-spacing:0.5px; font-weight:700; margin-bottom:6px;">4. Reserve Hold</div>
@@ -1370,7 +1369,7 @@
         <div class="kpi-box"><div class="kpi-lbl">Allocated</div><div class="kpi-val" id="sAlloc" style="color:var(--blue)">$0</div><div class="kpi-sub">Backing assets</div></div>
         <div class="kpi-box"><div class="kpi-lbl">RWA Earned</div><div class="kpi-val" id="sEarned" style="color:var(--accent)">0</div><div class="kpi-sub">From fills</div></div>
         <div class="kpi-box"><div class="kpi-lbl">Total Fills</div><div class="kpi-val" id="sFills">0</div><div class="kpi-sub">Your liquidation events</div></div>
-        <div class="kpi-box" id="reserveKpi" style="display:none;"><div class="kpi-lbl">Reserve Locked</div><div class="kpi-val" id="sReserve" style="color:var(--amber)">$0</div><div class="kpi-sub">33% distress hold</div></div>
+        <div class="kpi-box" id="reserveKpi" style="display:none;"><div class="kpi-lbl">Reserve Locked</div><div class="kpi-val" id="sReserve" style="color:var(--amber)">$0</div><div class="kpi-sub">33% of fills held 24h</div></div>
       </div>
 
       <!-- Register / Deposit + Claims -->
@@ -1418,7 +1417,7 @@
             <h2 style="font-size:16px; font-weight:800;">Back a New Asset</h2>
             <button onclick="closeBackingModal()" style="width:30px;height:30px;border-radius:var(--r-xs);border:1px solid var(--border);background:var(--bg-2);color:var(--text-2);font-size:14px;cursor:pointer;display:grid;place-items:center;">&times;</button>
           </div>
-          <div style="font-size:11px; color:var(--text-3); margin-bottom:14px; line-height:1.5;">Choose an asset to back. Distressed assets have active liquidations — you'll start earning immediately if your conditions match.</div>
+          <div style="font-size:11px; color:var(--text-3); margin-bottom:14px; line-height:1.5;">Choose an asset to back. Your USDC provides exit liquidity for sellers — you earn the LP discount spread on every fill that matches your conditions.</div>
           <div style="margin-bottom:16px;">
             <div style="font-size:11px; color:var(--text-3); text-transform:uppercase; letter-spacing:0.4px; font-weight:600; margin-bottom:8px;">Available Assets</div>
             <div id="modalAssetGrid" style="display:grid; grid-template-columns:1fr 1fr; gap:8px; max-height:240px; overflow-y:auto;"></div>
@@ -1446,7 +1445,7 @@
         <div class="sec"><h3>Fill History</h3><small>Your liquidation fill records</small></div>
         <div class="card" style="padding:0;overflow-x:auto;"><table class="ftbl">
           <thead><tr><th>Time</th><th>Asset</th><th>USDC Spent</th><th>RWA Earned</th><th>Discount</th><th>Fee</th></tr></thead>
-          <tbody id="fillsBody"><tr><td colspan="6" class="empty">No fills yet. Back a distressed asset to start earning from liquidations.</td></tr></tbody>
+          <tbody id="fillsBody"><tr><td colspan="6" class="empty">No fills yet. Back an asset to start earning from sell fills.</td></tr></tbody>
         </table></div>
       </div>
     </div>
@@ -1464,7 +1463,6 @@
       <div class="kpi-box"><div class="kpi-lbl">Total Assets</div><div class="kpi-val" id="atCount">10</div><div class="kpi-sub">Verified RWA tokens</div></div>
       <div class="kpi-box"><div class="kpi-lbl">Total TVL</div><div class="kpi-val" id="atTvl">$0</div><div class="kpi-sub">Across all assets</div></div>
       <div class="kpi-box"><div class="kpi-lbl">Oracle Status</div><div class="kpi-val" id="atOracle" style="color:var(--green)">Live</div><div class="kpi-sub" id="atOracleSub">All feeds active</div></div>
-      <div class="kpi-box"><div class="kpi-lbl">Distressed</div><div class="kpi-val" id="atDistressed" style="color:var(--red)">0</div><div class="kpi-sub">Assets in liquidation</div></div>
     </div>
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
       <span style="font-size:10px;color:var(--text-3);font-weight:600;">Sort:</span>
@@ -2343,15 +2341,12 @@ function rAssetsFull(){
   const g=document.getElementById('assetsFullGrid');
   const totalTvl=A.reduce((s,a)=>s+a.tvl,0);
   const staleCount=A.filter(a=>a.oracle.stale).length;
-  const distressedCount=A.filter(a=>a.liq.enabled).length;
   document.getElementById('atCount').textContent=A.length;
   document.getElementById('assetCountBadge').innerHTML='<i></i> '+A.length+' Assets Live';
   document.getElementById('atTvl').textContent=usd(totalTvl);
   const oEl=document.getElementById('atOracle'),oSub=document.getElementById('atOracleSub');
   if(staleCount>0){oEl.textContent=staleCount+' Stale';oEl.style.color='var(--red)';oSub.textContent=staleCount+' feed'+(staleCount>1?'s':'')+' delayed';}
   else{oEl.textContent='Live';oEl.style.color='var(--green)';oSub.textContent='All feeds active';}
-  const dEl=document.getElementById('atDistressed');
-  dEl.textContent=distressedCount;dEl.style.color=distressedCount?'var(--red)':'var(--green)';
   // Sort controls highlight
   document.querySelectorAll('[data-sort]').forEach(b=>{b.classList.toggle('on',b.dataset.sort===assetSort);});
   const riskOrder={Low:0,Medium:1,High:2};
@@ -3272,7 +3267,6 @@ function rPosition(){
   document.getElementById('netDeposited').textContent=usd(S.hook+S.hookLpUsdc);
   document.getElementById('netBacked').textContent=actBk.length;
   document.getElementById('netFills').textContent=S.lpFillCount;
-  document.getElementById('netDistressed').textContent=A.filter(a=>a.liq.enabled).length;
   // Your position badge
   const b2=document.getElementById('lpBadge2');
   if(b2){if(S.lpActive){b2.innerHTML='<i></i> Active LP';b2.className='pill ok';}else{b2.innerHTML='<i></i> Not Registered';b2.className='pill off';}}
