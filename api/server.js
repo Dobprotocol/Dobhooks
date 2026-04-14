@@ -286,19 +286,33 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && url.pathname === '/api/activity') {
     try {
       const wallet = url.searchParams.get('wallet');
+      const networksParam = url.searchParams.get('networks');
+      const networks = networksParam
+        ? networksParam.split(',').map(n => parseInt(n, 10)).filter(n => Number.isFinite(n))
+        : null;
       const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 200);
-      const walletFilter = wallet ? `WHERE LOWER(wallet) = $1` : '';
-      const params = wallet ? [wallet.toLowerCase(), limit] : [limit];
-      const limitParam = wallet ? '$2' : '$1';
+      const conditions = [];
+      const params = [];
+      if (wallet) {
+        params.push(wallet.toLowerCase());
+        conditions.push(`LOWER(wallet) = $${params.length}`);
+      }
+      if (networks && networks.length) {
+        params.push(networks);
+        conditions.push(`chain_id = ANY($${params.length}::int[])`);
+      }
+      const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+      params.push(limit);
+      const limitParam = `$${params.length}`;
       const result = await dexDb.query(`
         SELECT tx_hash, chain_id, wallet, 'swap' AS type, token_id, direction AS detail, amount_in, amount_out, created_at
-        FROM swap_history ${walletFilter}
+        FROM swap_history ${whereClause}
         UNION ALL
         SELECT tx_hash, chain_id, wallet, 'redeem' AS type, 'dUSDC' AS token_id, 'redeem' AS detail, dusdc_amount AS amount_in, usdc_amount AS amount_out, created_at
-        FROM redeem_history ${walletFilter}
+        FROM redeem_history ${whereClause}
         UNION ALL
         SELECT tx_hash, chain_id, wallet, 'lp' AS type, token_id, event_type AS detail, amount AS amount_in, amount AS amount_out, created_at
-        FROM lp_events ${walletFilter}
+        FROM lp_events ${whereClause}
         ORDER BY created_at DESC LIMIT ${limitParam}
       `, params);
       res.writeHead(200, headers);
