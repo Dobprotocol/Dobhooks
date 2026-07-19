@@ -135,6 +135,9 @@ DOBVALIDATOR_ORACLE_PROMPT.md  # Oracle integration guide for DOBVALIDATOR
 ## API Server
 
 - `api/server.js` queries MVP (dob-prod) and Validator (dob-validator) PostgreSQL databases
+  - **Consolidación Cloud SQL (18-jul-2026):** la base `dob-validator` se movió de la instancia
+    `dob-validator-v2` (PG17, proxy `:5433`) a la instancia compartida `dobprotocol-db` (PG16,
+    proxy `:5435`). Ahora `VAL_DB_PORT=5435` (ver `api/.env.example`). La instancia vieja quedó detenida.
 - `GET /api/validated-pools?networks=421614,46630` — returns verified pools with certificate scores
 - `GET /api/health` — health check
 - Runs as systemd service `dobdex-api` on port 3050, proxied via nginx at `/api/`

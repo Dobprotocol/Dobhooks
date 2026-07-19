@@ -25,7 +25,7 @@ const mvpDb = new Pool({
 
 const valDb = new Pool({
   host: process.env.VAL_DB_HOST || 'localhost',
-  port: parseInt(process.env.VAL_DB_PORT || '5433'),
+  port: parseInt(process.env.VAL_DB_PORT || '5435'),
   database: process.env.VAL_DB_NAME || 'dob-validator',
   user: process.env.VAL_DB_USER,
   password: process.env.VAL_DB_PASS,
