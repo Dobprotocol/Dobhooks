@@ -4,6 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DobDex — LP-Priced Exit Liquidity for Real-World Assets</title>
+  <link rel="canonical" href="https://dex.dobprotocol.com/" />
+  <!-- GA4 de dobprotocol.com. Mismo measurement ID que el apex a proposito:
+       GA4 trackea subdominios bajo una sola property; una property nueva
+       partiria el historico. dex. no reportaba NADA hasta ahora. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-1M2TNZYEZZ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-1M2TNZYEZZ');
+  </script>
   <meta name="description" content="LP-priced exit liquidity for tokenized real-world assets. Liquidity Nodes set their own terms. Uniswap V4 Custom Accounting Hook on Unichain. Cross-chain oracle sync via Reactive Network." />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 89 89'><circle cx='44.9' cy='44' r='44' fill='%23597CE9'/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com" />

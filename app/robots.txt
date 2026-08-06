@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+# La dApp y el deck del hackathon llevan noindex en el HTML; se listan aca
+# tambien para que el crawler no gaste el fetch.
+Disallow: /index.html
+Disallow: /deck.html
+Disallow: /api/
+
+Sitemap: https://dex.dobprotocol.com/sitemap.xml
