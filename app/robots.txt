@@ -1,9 +1,11 @@
 User-agent: *
 Allow: /
-# La dApp y el deck del hackathon llevan noindex en el HTML; se listan aca
-# tambien para que el crawler no gaste el fetch.
-Disallow: /index.html
-Disallow: /deck.html
 Disallow: /api/
+
+# index.html (la dApp) y deck.html (el pitch deck del hackathon) NO se
+# disallowean a proposito: llevan <meta name="robots" content="noindex">
+# y Google solo puede leer ese noindex si puede rastrear la pagina. Un
+# Disallow ahi haria lo contrario de lo que parece — dejaria la URL
+# elegible para aparecer como resultado sin snippet.
 
 Sitemap: https://dex.dobprotocol.com/sitemap.xml
