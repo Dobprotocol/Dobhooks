@@ -40,6 +40,9 @@ TBT="${TBT:-}"
 FLT="${FLT:-}"
 SCT="${SCT:-}"
 
+# Derived, never printed as a key: we need the address to ask for its nonce.
+SENDER=$(cast wallet address --private-key "$PRIVATE_KEY")
+
 # Base prices (USD per token)
 DCT_BASE=100    # $100
 SFT_BASE=50     # $50
@@ -79,6 +82,12 @@ to_18dec() {
   echo "${usd}000000000000000000"
 }
 
+# The public Unichain Sepolia RPC lags a block behind on eth_getTransactionCount,
+# so ten back-to-back `cast send`s ask it for a nonce it has already handed out and
+# eight of them die with "nonce too low". Ask once per run, then count ourselves.
+# Only a send that actually landed consumes a nonce, so this only advances on success.
+NONCE=""
+
 update_price() {
   local name=$1 token=$2 base=$3 vol=$4
   local delta
@@ -95,18 +104,40 @@ update_price() {
 
   echo "  $name: \$$price (${delta:+$delta}% from \$$base)"
 
-  cast send "$REGISTRY" \
-    "setPrice(address,uint256)" \
-    "$token" "$price_wei" \
-    --rpc-url "$RPC_URL" \
-    --private-key "$PRIVATE_KEY" \
-    --silent 2>/dev/null || echo "    [WARN] Failed to update $name"
+  local err attempt
+  for attempt in 1 2; do
+    if err=$(cast send "$REGISTRY" \
+          "setPrice(address,uint256)" \
+          "$token" "$price_wei" \
+          --rpc-url "$RPC_URL" \
+          --private-key "$PRIVATE_KEY" \
+          --nonce "$NONCE" \
+          --silent 2>&1); then
+      NONCE=$((NONCE + 1))
+      return 0
+    fi
+    # The RPC names the nonce it wants ("next nonce 83511"). Take it at its word
+    # once — that resyncs a run whose opening `cast nonce` was itself stale.
+    local want
+    want=$(echo "$err" | grep -o 'next nonce [0-9]*' | grep -o '[0-9]*' || true)
+    if [ "$attempt" = 1 ] && [ -n "$want" ] && [ "$want" != "$NONCE" ]; then
+      echo "    [INFO] RPC wants nonce $want, not $NONCE — resyncing"
+      NONCE=$want
+      continue
+    fi
+    # Never silence this again: it hid a broken feeder for as long as it ran.
+    echo "    [WARN] Failed to update $name (nonce $NONCE): $(echo "$err" | tr '\n' ' ')"
+    return 0
+  done
 }
 
 do_update() {
   local ts
   ts=$(date '+%Y-%m-%d %H:%M:%S')
   echo "[$ts] Oracle update:"
+
+  NONCE=$(cast nonce "$SENDER" --rpc-url "$RPC_URL")
+  echo "  sender $SENDER, starting nonce $NONCE"
 
   update_price "DCT (Datacenter)" "$DCT" "$DCT_BASE" "$DCT_VOL"
   update_price "SFT (Solar Farm)" "$SFT" "$SFT_BASE" "$SFT_VOL"

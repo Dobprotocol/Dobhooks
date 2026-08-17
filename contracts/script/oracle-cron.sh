@@ -3,6 +3,13 @@
 set -euo pipefail
 
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+# A run is ten sequential sends, each waiting for a receipt; it can outlast the
+# five-minute cron slot. Two overlapping runs would hand out the same nonces, so
+# a late run is skipped rather than allowed to collide with the one in flight.
+exec 9>/tmp/oracle-cron.lock
+flock -n 9 || { echo "[$(date '+%F %T')] previous run still going, skipping"; exit 0; }
+
 source "$DIR/.env"
 
 export PATH="$HOME/.foundry/bin:$PATH"
