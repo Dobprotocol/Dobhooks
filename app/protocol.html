@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>How DobDex works — the protocol, end to end</title>
-<meta name="description" content="The full DobDex walkthrough: how a TRUFA score sets the risk tier, how the exit auction runs, who the Liquidity Nodes are, what happens when nobody bids, and the six Soroban contracts that settle it in USDC on Stellar.">
+<meta name="description" content="The full DobDex walkthrough: how a TRUFA score sets the risk tier, how the exit auction runs, who the Liquidity Nodes are, what happens when nobody bids, and the four Soroban contracts that settle it in USDC on Stellar.">
 <meta name="theme-color" content="#08090b">
 <link rel="canonical" href="https://dex.dobprotocol.com/protocol.html">
 
@@ -370,7 +370,7 @@ h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
       <p class="hero-sub rv" style="transition-delay:0.12s">
         Eight chapters, in the order the protocol runs them: how a TRUFA score sets the risk
         tier, how the auction opens, who the Liquidity Nodes are, what happens when nobody
-        bids, and which of the six Soroban contracts holds each step.
+        bids, and which of the four Soroban contracts holds each step.
       </p>
       <div class="chain rv" style="transition-delay:0.18s">
         <b>TRUFA score</b><i>&rarr;</i><b>risk tier</b><i>&rarr;</i><b>LP quote</b><i>&rarr;</i><b>USDC on Stellar</b><i>&rarr;</i><b>anchor off-ramp</b>
@@ -394,7 +394,7 @@ h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
       <a class="hp-row toc" href="#ch-exit"><span class="k"><i>04</i> Anatomy of an exit</span></a>
       <a class="hp-row toc" href="#ch-nodes"><span class="k"><i>05</i> Who provides the exit capital</span></a>
       <a class="hp-row toc" href="#ch-queue"><span class="k"><i>06</i> When nobody bids</span></a>
-      <a class="hp-row toc" href="#ch-contracts"><span class="k"><i>07</i> Six Soroban contracts</span></a>
+      <a class="hp-row toc" href="#ch-contracts"><span class="k"><i>07</i> Four Soroban contracts</span></a>
       <a class="hp-row toc" href="#ch-safety"><span class="k"><i>08</i> Safety rails</span></a>
       <div class="hp-foot">
         The oracle prices the <em style="font-style:normal;color:var(--t2);">asset</em>. Liquidity Nodes price the
@@ -794,10 +794,11 @@ h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
         the market working, not a bug.</p>
       </div>
       <div class="card-flat rv" style="transition-delay:0.2s">
-        <div class="eyebrow" style="color:var(--pos);margin-bottom:8px;">Downgrades are not retroactive</div>
-        <p style="font-size:13px;color:var(--t2);line-height:1.68;">A tier change applies to exits
-        opened after it. An exit already inside its auction window keeps the band it opened with, so
-        a seller cannot have the terms moved underneath them mid-auction. Settled exits are final.</p>
+        <div class="eyebrow" style="color:var(--pos);margin-bottom:8px;">What is fixed when you open</div>
+        <p style="font-size:13px;color:var(--t2);line-height:1.68;">Tiers can move; your exit cannot
+        be moved underneath you. The reference you declared and the floor you set are written into
+        the exit at <code>open_exit</code> and never change. Nodes re-price freely &mdash; that
+        changes what they offer, never what you agreed to accept.</p>
       </div>
     </div>
   </div>
@@ -807,7 +808,7 @@ h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
     <div class="ch-head rv"><span class="ch-num">Chapter 03</span><span class="ch-line"></span></div>
     <h3 class="ch-title rv" style="transition-delay:0.04s">Anatomy of an exit</h3>
     <p class="ch-lede rv" style="transition-delay:0.08s">
-      Every exit takes one of three paths, decided by the tier and the size of the position.
+      Every exit ends one of three ways, and the seller decides which one in two of them.
       Buying into an asset in the first place happens on
       <a href="https://tokenize.dobprotocol.com" target="_blank" rel="noopener" style="color:var(--br400);text-decoration:none;border-bottom:1px solid rgba(89,124,233,0.3);">Token Studio</a>;
       DobDex only handles the way out.
@@ -816,23 +817,24 @@ h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
     <div class="g3" style="margin-bottom:34px;">
       <div class="card rv" style="transition-delay:0.1s">
         <div class="eyebrow" style="color:var(--pos);margin-bottom:8px;">Path 1</div>
-        <h4>Instant from reserve</h4>
-        <p>High score, small ticket, healthy reserve. The vault fills at the tier's floor spread and
-        the seller has USDC in under a minute. Available only while the reserve stays above
-        <code>hot_reserve_floor</code>.</p>
+        <h4>Take the standing bid</h4>
+        <p>The ordinary path. The seller asked what the position is worth, saw a number they liked,
+        and said yes &mdash; without waiting for the window to run out. <code>accept_bid</code> is a
+        separate signature, so a bid is never binding on the seller.</p>
       </div>
       <div class="card rv" style="transition-delay:0.14s">
         <div class="eyebrow" style="margin-bottom:8px;">Path 2</div>
-        <h4>Auctioned to Liquidity Nodes</h4>
-        <p>The default for anything larger or lower-scored. Nodes bid inside the tier band for 30
-        minutes; the best bid wins. The seller sees the clearing discount before signing the
-        settlement.</p>
+        <h4>Let the window close</h4>
+        <p>Five minutes by default, and the seller can set anything from one minute to a day. At
+        expiry the highest bid settles if it met the floor. <code>close</code> is permissionless
+        &mdash; leaving capital committed to a finished auction helps nobody.</p>
       </div>
       <div class="card rv" style="transition-delay:0.18s">
         <div class="eyebrow" style="color:var(--neg);margin-bottom:8px;">Path 3</div>
         <h4>Queued, publicly</h4>
-        <p>No acceptable bid arrived. The exit takes a numbered FIFO position visible on-chain and is
-        served when capital enters that tier. The seller can walk away from the queue at any time.</p>
+        <p>Nothing met the floor. The exit takes a numbered FIFO position visible on-chain and keeps
+        taking bids from there &mdash; while an asset has a queue, only the exit at its head can
+        settle. The seller can walk away at any time.</p>
       </div>
     </div>
 
@@ -846,11 +848,11 @@ h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
         <div class="tl-body">
           <div class="tl-kicker" style="color:var(--warn);">Open</div>
           <h4>The holder opens an exit from their wallet</h4>
-          <p>The seller signs with Freighter (or any Soroban-compatible wallet) to authorize the
-          position for exit. <code>exit_auction.open_exit</code> immediately calls
-          <code>score_reader</code>: a stale or missing score stops the exit right here, before
-          anything is locked.</p>
-          <div class="codeline">exit_auction.open_exit(asset, amount, min_accept_bps)</div>
+          <p>The seller signs with Freighter (or any Soroban-compatible wallet). The tokens move
+          into router escrow in the same transaction, so every bid that follows is against tokens
+          that are demonstrably there. The seller declares two numbers: what they think the size is
+          worth, and the least they will take for it.</p>
+          <div class="codeline">open_exit(seller, asset, amount, reference_usdc, min_accept_usdc, duration?)</div>
         </div>
 
         <div class="tl-rail">
@@ -858,12 +860,13 @@ h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
           <div class="tl-bar" style="background:linear-gradient(180deg,var(--br500),var(--violet));"></div>
         </div>
         <div class="tl-body">
-          <div class="tl-kicker" style="color:var(--br400);">Classify</div>
-          <h4>The classifier assigns the tier and the band</h4>
-          <p>The fresh score goes to <code>risk_classifier</code>, which returns the tier, the spread
-          band in basis points and the routing policy. From this moment the exit's price ceiling and
-          floor are fixed and public &mdash; nobody can bid outside them, including the protocol.</p>
-          <div class="codeline">tier B &rarr; band [120, 300] bps &rarr; reserve: eligible</div>
+          <div class="tl-kicker" style="color:var(--br400);">Quote</div>
+          <h4>Liquidity Nodes answer with absolute USDC</h4>
+          <p>Each Node prices off-chain &mdash; the asset's TRUFA score, its own model, whatever the
+          primary market is doing &mdash; and names a number. Absolute, not a discount: whatever the
+          seller declared as a reference, a Node can only ever be held to the figure it named
+          itself. Each bid must beat the standing one.</p>
+          <div class="codeline">place_bid(node, exit_id, usdc_amount)  // must beat the standing bid</div>
         </div>
 
         <div class="tl-rail">
@@ -871,14 +874,13 @@ h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
           <div class="tl-bar" style="background:linear-gradient(180deg,var(--violet),var(--pos));"></div>
         </div>
         <div class="tl-body">
-          <div class="tl-kicker" style="color:var(--violet);">Price</div>
-          <h4>Liquidity Nodes bid, or the reserve fills</h4>
-          <p>If the exit qualifies for instant settlement and the reserve is above its floor, the
-          vault fills it at the tier floor and the flow jumps to step 5. Otherwise the auction window
-          opens for <code>AUCTION_WINDOW</code> and every Node whose appetite covers this tier can
-          post a discount. Bids outside the band are rejected on entry, so the published band is
-          enforced by the contract rather than by convention.</p>
-          <div class="codeline">exit_auction.place_bid(exit_id, discount_bps)  // must sit inside the band</div>
+          <div class="tl-kicker" style="color:var(--violet);">Back it</div>
+          <h4>A quote cannot be shown and then withdrawn</h4>
+          <p>The auction checks nothing about the Node's model and everything about its money. Every
+          bid commits real USDC in <code>lp_vault</code> at the moment it is placed &mdash; free
+          balance and the Node's own exposure ceiling for that asset both have to allow it. The
+          previous best bid is released in the same call.</p>
+          <div class="codeline">lp_vault.commit(node, asset, usdc_amount)  // or the bid never lands</div>
         </div>
 
         <div class="tl-rail">
@@ -887,12 +889,13 @@ h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
         </div>
         <div class="tl-body">
           <div class="tl-kicker" style="color:var(--pos);">Clear</div>
-          <h4>Best bid wins &mdash; or the exit is queued</h4>
-          <p>When the window closes, the lowest discount wins and is compared against the seller's
-          <code>min_accept_bps</code>. If no bid clears that threshold, the exit is not force-filled
-          at a bad price: it moves to <code>fifo_queue</code> with a public position and waits for
-          capital. The seller keeps their tokens and their option to cancel.</p>
-          <div class="codeline">no bid &rarr; fifo_queue.enqueue(exit_id) &rarr; emits exit.queued</div>
+          <h4>Best bid wins &mdash; or the exit takes its place in line</h4>
+          <p>The seller can accept the standing bid at any point, or let the window close and take
+          the highest. Either way it is measured against their <code>min_accept_usdc</code>. If
+          nothing clears it, the exit is not force-filled at a bad price: it moves to
+          <code>fifo_queue</code> with a public position and keeps taking bids from there. The
+          seller keeps their tokens and their option to cancel.</p>
+          <div class="codeline">below the floor &rarr; fifo_queue.enqueue(asset, exit_id) &rarr; emits exit.queued</div>
         </div>
 
         <div class="tl-rail">
@@ -918,30 +921,30 @@ h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
     <h3 class="ch-title rv" style="transition-delay:0.04s">Who provides the exit capital</h3>
     <p class="ch-lede rv" style="transition-delay:0.08s">
       A Liquidity Node is anyone willing to buy someone else's RWA position at a discount they set
-      themselves. Permissionless to join, explicit about risk appetite, and never forced into a tier
-      they did not opt into.
+      themselves. Permissionless to join, explicit about risk appetite per asset, and never filled on something
+      they did not name.
     </p>
 
     <div class="g4" style="margin-bottom:26px;">
       <div class="card rv" style="transition-delay:0.1s">
         <div class="eyebrow" style="color:var(--pos);margin-bottom:8px;">Phase 1</div>
         <h4>Deposit</h4>
-        <p>Send USDC to <code>lp_vault</code> and become a Node. Capital sits idle-yield-bearing until
-        it is used to fill an exit.</p>
+        <p>Send USDC to <code>lp_vault</code> and become a Node. It stays yours and stays free until you
+        put it behind a bid.</p>
         <div class="codeline" style="margin-top:12px;">USDC on Stellar</div>
       </div>
       <div class="card rv" style="transition-delay:0.14s">
         <div class="eyebrow" style="color:var(--pos);margin-bottom:8px;">Phase 2</div>
         <h4>Declare appetite</h4>
-        <p>Choose which tiers you serve, the minimum discount you require, and your maximum exposure
-        per asset. You are never matched outside this.</p>
-        <div class="codeline" style="margin-top:12px;">tiers &middot; min_bps &middot; max_exposure</div>
+        <p>Per asset: the minimum discount you require and your maximum exposure. No appetite set
+        means no fills &mdash; you are never matched into something you did not name.</p>
+        <div class="codeline" style="margin-top:12px;">set_appetite(asset, min_bps, max_exposure)</div>
       </div>
       <div class="card rv" style="transition-delay:0.18s">
         <div class="eyebrow" style="color:var(--pos);margin-bottom:8px;">Phase 3</div>
         <h4>Bid &amp; win</h4>
-        <p>Bid on open exits inside the tier band. Win and you receive the participation tokens at
-        your discount &mdash; a yield-bearing position bought below score value.</p>
+        <p>Name a number on any open exit. Win and you receive the participation tokens at your own
+        price &mdash; a yield-bearing position bought below what the seller called it worth.</p>
         <div class="codeline" style="margin-top:12px;">exit.bid &rarr; exit.settled</div>
       </div>
       <div class="card rv" style="transition-delay:0.22s">
@@ -956,18 +959,18 @@ h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
     <div class="card rv" style="transition-delay:0.24s;margin-bottom:18px;">
       <h4 style="margin-bottom:14px;">Node parameters</h4>
       <div class="g2">
-        <div class="mini"><div class="k">served_tiers</div><div class="v">The risk bands you are willing to
-          underwrite. A Node that only serves A and B will never be shown a distressed exit, and its
-          capital is not counted toward that tier's depth.</div></div>
+        <div class="mini"><div class="k">set_appetite(asset, …)</div><div class="v">Standing terms, declared
+          per asset. An asset you have set no appetite for is an asset you cannot be filled on &mdash;
+          silence is a refusal, not a default yes.</div></div>
         <div class="mini"><div class="k">min_discount_bps</div><div class="v">The floor return you require
-          to part with capital. Bids you place are your own number &mdash; the protocol only enforces
-          that it falls inside the tier's published band.</div></div>
+          to part with capital, checked against the discount your bid implies. It is your own limit,
+          held against you by the vault so a fat-fingered bid cannot clear.</div></div>
         <div class="mini"><div class="k">max_exposure</div><div class="v">A per-asset ceiling on how much
-          of a single RWA you can accumulate, so one asset going bad cannot take the whole position
-          with it.</div></div>
-        <div class="mini"><div class="k">reserve_contribution</div><div class="v">How much of your deposit
-          may be used for instant hot-reserve fills. Opt in for higher utilisation, opt out to bid
-          only where you have chosen to.</div></div>
+          of a single RWA you can accumulate. It keeps counting after a payout, because you are then
+          holding the asset &mdash; only you can mark a position divested.</div></div>
+        <div class="mini"><div class="k">free_balance</div><div class="v">Not a setting: <code>deposited
+          &minus; committed &minus; pending_withdrawal</code>. Real USDC the contract holds. It is the
+          solvency invariant, and nothing bypasses it.</div></div>
       </div>
     </div>
 
@@ -981,10 +984,11 @@ h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
           bidding and settling.</div>
         </div>
         <div class="mini" style="border-left:2px solid var(--warn);">
-          <div class="k" style="color:var(--warn);">Reserve-committed capital</div>
-          <div class="v">Capital pledged to the hot reserve cannot be withdrawn below
-          <code>hot_reserve_floor</code> while exits are settling against it. Instant settlement is
-          only credible if the buffer cannot evaporate at the moment it is needed.</div>
+          <div class="k" style="color:var(--warn);">Capital behind a live bid</div>
+          <div class="v">A withdrawal request reserves the amount immediately, so it stops counting
+          as free balance the moment you ask. What is already committed to a standing bid stays
+          committed until that bid is beaten, settled or released &mdash; otherwise a quote could be
+          shown and then withdrawn.</div>
         </div>
       </div>
     </div>
@@ -1045,8 +1049,8 @@ h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
 
     <div class="qv rv" style="transition-delay:0.1s">
       <div class="qv-box">
-        <div class="val" style="color:var(--br400);">30 min</div>
-        <div class="lbl">auction window closes</div>
+        <div class="val" style="color:var(--br400);">5 min</div>
+        <div class="lbl">bidding window closes</div>
       </div>
       <div class="qv-arrow">
         <span class="arr" style="color:var(--neg);">&#8594;</span>
@@ -1091,62 +1095,51 @@ h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
   <!-- ─────────── 06 · CONTRACTS & EVENTS ─────────── -->
   <div class="chapter" id="ch-contracts">
     <div class="ch-head rv"><span class="ch-num">Chapter 06</span><span class="ch-line"></span></div>
-    <h3 class="ch-title rv" style="transition-delay:0.04s">Six Soroban contracts</h3>
+    <h3 class="ch-title rv" style="transition-delay:0.04s">Four Soroban contracts</h3>
     <p class="ch-lede rv" style="transition-delay:0.08s">
-      The exit layer is deliberately small and separable. Each contract owns one decision, emits
-      typed events, and is gated by multisig for every parameter that can move money.
+      The exit layer is deliberately small and separable. Each contract owns one decision and emits
+      typed events. Their error codes are disjoint &mdash; 1&ndash;99, 100&ndash;199, 200&ndash;299,
+      300&ndash;399 &mdash; so a refusal that surfaces through a cross-contract call still says which
+      contract said no, instead of decoding as the caller's own error with the same number.
+      <a href="https://github.com/Dobprotocol/stellar-exit-contracts" target="_blank" rel="noopener" style="color:var(--br400);text-decoration:none;border-bottom:1px solid rgba(89,124,233,0.3);">Source on GitHub</a>.
     </p>
 
     <div class="g3" style="margin-bottom:22px;">
       <div class="ct rv" style="transition-delay:0.1s">
-        <div class="ct-head"><span class="ct-name" style="color:var(--br400);">score_reader</span><span class="pill build">In build</span></div>
-        <h4 style="font-size:15px;font-weight:650;margin-bottom:8px;">Score Reader</h4>
-        <p>Reads the TRUFA validation score published for an asset and exposes it on-chain with an
-        explicit staleness window. A score older than <code>STALENESS_SECS</code> stops being usable
-        for pricing instead of quietly going stale.</p>
-        <div class="ct-fn">get_score(asset) &rarr; (score, age)</div>
-      </div>
-      <div class="ct rv" style="transition-delay:0.14s">
-        <div class="ct-head"><span class="ct-name" style="color:var(--violet);">risk_classifier</span><span class="pill build">In build</span></div>
-        <h4 style="font-size:15px;font-weight:650;margin-bottom:8px;">Risk Classifier</h4>
-        <p>Maps a score to one of five tiers and to the spread band, reserve access and settlement
-        path that tier is allowed. The tier table is a stored parameter, so policy can be tuned
-        without redeploying the pricing path.</p>
-        <div class="ct-fn">classify(score) &rarr; (tier, band, policy)</div>
-      </div>
-      <div class="ct rv" style="transition-delay:0.18s">
         <div class="ct-head"><span class="ct-name" style="color:var(--pos);">lp_vault</span><span class="pill build">In build</span></div>
         <h4 style="font-size:15px;font-weight:650;margin-bottom:8px;">LP Liquidity Vault</h4>
-        <p>Where Liquidity Nodes deposit USDC and declare which assets and tiers they will back.
-        Enforces a hot-reserve floor so a single large exit cannot empty the vault, and routes idle
-        capital to yield strategies.</p>
-        <div class="ct-fn">deposit / withdraw / set_appetite</div>
+        <p>Where Liquidity Nodes deposit USDC and declare, per asset, the minimum discount they
+        require and the most of it they will hold. Free balance is the solvency invariant and
+        nothing bypasses it. <span style="color:var(--t3);">17 tests &middot; errors 1&ndash;99</span></p>
+        <div class="ct-fn">deposit / set_appetite / commit / pay_out</div>
+      </div>
+      <div class="ct rv" style="transition-delay:0.14s">
+        <div class="ct-head"><span class="ct-name" style="color:var(--cyan);">settlement_router</span><span class="pill build">In build</span></div>
+        <h4 style="font-size:15px;font-weight:650;margin-bottom:8px;">Settlement Router</h4>
+        <p>The only contract in the layer that moves value. Escrowed tokens have exactly two exits:
+        to a Node that paid for them, or back to the seller. There is no admin path to them, at any
+        fee. <span style="color:var(--t3);">12 tests &middot; errors 100&ndash;199</span></p>
+        <div class="ct-fn">escrow / settle / refund / quote_net</div>
+      </div>
+      <div class="ct rv" style="transition-delay:0.18s">
+        <div class="ct-head"><span class="ct-name" style="color:var(--neg);">fifo_queue</span><span class="pill build">In build</span></div>
+        <h4 style="font-size:15px;font-weight:650;margin-bottom:8px;">FIFO Queue Manager</h4>
+        <p>When demand for the door exceeds the capital standing behind it, exits wait instead of
+        racing. Position is public, leaving is always allowed, and there is no function anywhere
+        that reorders the line &mdash; not for the admin either.
+        <span style="color:var(--t3);">7 tests &middot; errors 200&ndash;299</span></p>
+        <div class="ct-fn">enqueue / dequeue / position_of / head</div>
       </div>
       <div class="ct rv" style="transition-delay:0.22s">
         <div class="ct-head"><span class="ct-name" style="color:var(--amber);">exit_auction</span><span class="pill build">In build</span></div>
         <h4 style="font-size:15px;font-weight:650;margin-bottom:8px;">Exit Auction Engine</h4>
-        <p>Opens a bounded <code>AUCTION_WINDOW</code> in which Liquidity Nodes bid to fill the exit.
-        Best bid wins; the window is short enough to feel immediate and long enough to stop a single
-        LP from dictating the price.</p>
-        <div class="ct-fn">open_exit / place_bid / close</div>
+        <p>The lifecycle, and the only caller the other three accept. It holds no funds itself: the
+        vault knows whether a Node's capital is really there, the router performs the transfer or
+        reverts, and the queue records who was waiting first.
+        <span style="color:var(--t3);">15 tests &middot; errors 300&ndash;399</span></p>
+        <div class="ct-fn">open_exit / place_bid / accept_bid / close / cancel</div>
       </div>
-      <div class="ct rv" style="transition-delay:0.26s">
-        <div class="ct-head"><span class="ct-name" style="color:var(--cyan);">settlement_router</span><span class="pill build">In build</span></div>
-        <h4 style="font-size:15px;font-weight:650;margin-bottom:8px;">Settlement Router</h4>
-        <p>Moves the participation token to the winning LP and USDC to the seller in a single atomic
-        Soroban transaction, then emits the settlement event the indexer and the seller's receipt
-        both read from.</p>
-        <div class="ct-fn">settle(exit_id)</div>
-      </div>
-      <div class="ct rv" style="transition-delay:0.3s">
-        <div class="ct-head"><span class="ct-name" style="color:var(--neg);">fifo_queue</span><span class="pill build">In build</span></div>
-        <h4 style="font-size:15px;font-weight:650;margin-bottom:8px;">FIFO Queue Manager</h4>
-        <p>When demand for the door exceeds available liquidity, exits enter a first-in-first-out
-        queue instead of racing. Position is public, cancellation is allowed, and nobody can pay to
-        jump the line.</p>
-        <div class="ct-fn">enqueue / position_of / cancel</div>
-      </div>
-    </div>
+          </div>
 
     <h4 class="rv" style="transition-delay:0.32s;font-size:16px;font-weight:650;margin:34px 0 8px;">Typed events, indexed end to end</h4>
     <p class="rv" style="transition-delay:0.34s;font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:18px;max-width:720px;">
@@ -1155,14 +1148,14 @@ h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
     </p>
 
     <div class="ev-grid rv" style="transition-delay:0.36s">
-      <div class="ev"><code>exit.opened</code><span>A holder opened an exit. Carries asset, amount, tier, spread band and the seller's minimum acceptable discount.</span></div>
-      <div class="ev"><code>exit.bid</code><span>A Liquidity Node posted a bid. Carries the Node, the discount in bps and the ledger it landed on.</span></div>
-      <div class="ev"><code>exit.settled</code><span>The exit cleared. Carries the winning discount, USDC paid to the seller, the protocol fee and the counterparty.</span></div>
-      <div class="ev"><code>exit.queued</code><span>No acceptable bid. Carries the FIFO position assigned and the queue depth at that moment.</span></div>
-      <div class="ev"><code>exit.cancelled</code><span>The seller withdrew before settlement, from the auction or from the queue.</span></div>
-      <div class="ev"><code>vault.deposit</code><span>A Liquidity Node added USDC. Carries the Node, the amount and the resulting tier depth.</span></div>
-      <div class="ev"><code>vault.withdraw</code><span>Capital left the vault, after the timelock and the reserve-floor check.</span></div>
-      <div class="ev"><code>vault.yield</code><span>Yield accrued to vault capital while idle, and how it was attributed across Nodes.</span></div>
+      <div class="ev"><code>exit.opened</code><span>A position is on the block and the tokens are escrowed. Carries the asset, the size, the seller's declared reference and their floor.</span></div>
+      <div class="ev"><code>exit.bid</code><span>A Node put capital behind a price. Carries the absolute USDC and the discount it implies &mdash; the discount is descriptive, the USDC is what binds.</span></div>
+      <div class="ev"><code>exit.settled</code><span>One transaction moved everything: tokens to the Node, USDC to the seller net of discount and fee, fee to the treasury.</span></div>
+      <div class="ev"><code>exit.queued</code><span>Nothing met the floor. Carries the FIFO position assigned and the queue depth at that moment.</span></div>
+      <div class="ev"><code>exit.cancelled</code><span>The seller withdrew. Bids are conditional at fill time, so nobody was owed anything.</span></div>
+      <div class="ev"><code>vault.deposit</code> / <code>vault.withdraw</code><span>A Node added USDC, or capital left after the timelock and the free-balance check.</span></div>
+      <div class="ev"><code>vault.committed</code> / <code>vault.released</code><span>Capital locked behind a live bid, then freed because the bid was outbid, cancelled or expired.</span></div>
+      <div class="ev"><code>vault.paid_out</code><span>Capital actually left the vault to pay a seller &mdash; the only event in the pair that is not reversible.</span></div>
     </div>
 
     <div class="callout rv" style="margin-top:20px;transition-delay:0.4s">
@@ -1182,85 +1175,95 @@ h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
     <div class="ch-head rv"><span class="ch-num">Chapter 07</span><span class="ch-line"></span></div>
     <h3 class="ch-title rv" style="transition-delay:0.04s">Safety rails</h3>
     <p class="ch-lede rv" style="transition-delay:0.08s">
-      The failure modes that matter for an exit venue are stale data, drained reserves, front-run
-      settlements and a governance key that can quietly change the rules. Each has a specific rail.
+      The failure modes that matter for an exit venue are a quote nobody can honour, a seller filled
+      at a price they never took, a queue somebody pays to skip, and an admin who can reach the
+      money. Each has a specific rail, and none of them is a promise &mdash; they are all checks.
     </p>
 
     <div class="g3" style="margin-bottom:22px;">
       <div class="safe rv" style="transition-delay:0.1s">
-        <div class="si" style="background:rgba(251,191,36,0.1);">&#128336;</div>
-        <h4>Staleness gate</h4>
-        <p>No exit can be opened on an asset whose TRUFA score is older than the configured window.
-        The contract refuses to quote rather than quoting on data nobody currently stands behind.</p>
-        <div class="sv">STALENESS_SECS: 24 hours</div>
+        <div class="si" style="background:rgba(248,113,113,0.1);">&#128101;</div>
+        <h4>The seller's floor, in absolute USDC</h4>
+        <p>Every exit carries a <code>min_accept_usdc</code>. A bid below it cannot settle &mdash; the
+        exit queues instead. And a bid is only ever an offer: accepting it is a separate signature,
+        so sellers are never force-filled at a price they did not take.</p>
+        <div class="sv">min_accept_usdc in open_exit</div>
       </div>
       <div class="safe rv" style="transition-delay:0.13s">
         <div class="si" style="background:rgba(74,222,128,0.1);">&#128737;</div>
-        <h4>Hot reserve floor</h4>
-        <p>Instant settlement stops automatically once the reserve reaches its floor. The buffer that
-        makes fast exits credible cannot be drained to zero by a run of instant fills.</p>
-        <div class="sv">hot_reserve_floor (per tier)</div>
+        <h4>Free balance is the invariant</h4>
+        <p><code>deposited &minus; committed &minus; pending_withdrawal</code>. Real USDC the contract
+        holds, checked before any bid is accepted. Nothing in the layer bypasses it, which is why a
+        Node cannot show a quote it cannot honour.</p>
+        <div class="sv">free_balance &ge; bid</div>
       </div>
       <div class="safe rv" style="transition-delay:0.16s">
         <div class="si" style="background:rgba(89,124,233,0.1);">&#9201;</div>
-        <h4>Fixed auction window</h4>
-        <p>The window is a protocol constant, not a per-exit choice. Nobody can shorten a window to
-        squeeze out competing bids or extend one to wait for a friendlier counterparty.</p>
-        <div class="sv">AUCTION_WINDOW: 30 minutes</div>
+        <h4>Bounded window, seller's choice</h4>
+        <p>Five minutes by default, floored at one and capped at a day. The seller sets it when they
+        open; nobody else can move it afterwards, and <code>close</code> is permissionless so a
+        finished auction cannot be held open to strand a Node's committed capital.</p>
+        <div class="sv">60 &le; duration &le; 86,400 &middot; default 300</div>
       </div>
       <div class="safe rv" style="transition-delay:0.19s">
-        <div class="si" style="background:rgba(89,124,233,0.1);">&#128274;</div>
-        <h4>Band enforcement</h4>
-        <p>Bids outside the tier's published spread band are rejected at entry. The band a seller was
-        shown when they opened the exit is the band the contract enforces at settlement.</p>
-        <div class="sv">min_bps &le; bid &le; max_bps</div>
+        <div class="si" style="background:rgba(167,139,250,0.1);">&#128274;</div>
+        <h4>Escrow has exactly two doors</h4>
+        <p>Tokens locked by the router can only leave towards a Node that paid for them, or back to
+        the seller. There is no admin path to them at any fee, and settlement is one atomic Soroban
+        transaction &mdash; there is no state where one leg happened and the other did not.</p>
+        <div class="sv">settle &rarr; node &nbsp;|&nbsp; refund &rarr; seller</div>
       </div>
       <div class="safe rv" style="transition-delay:0.22s">
-        <div class="si" style="background:rgba(248,113,113,0.1);">&#128101;</div>
-        <h4>Seller floor price</h4>
-        <p>Every exit carries the seller's <code>min_accept_bps</code>. A bid worse than that cannot
-        settle &mdash; the exit queues instead. Sellers are never force-filled at a price they did
-        not accept.</p>
-        <div class="sv">min_accept_bps in open_exit</div>
+        <div class="si" style="background:rgba(251,191,36,0.1);">&#128203;</div>
+        <h4>The line cannot be bought</h4>
+        <p>While an asset has a queue, only the exit at its head can settle. Bidding on the others
+        stays open, but nobody buys their way past a seller who has been waiting &mdash; and no
+        function anywhere reorders the line, not for the admin either.</p>
+        <div class="sv">not_at_head &rarr; settlement refused</div>
       </div>
       <div class="safe rv" style="transition-delay:0.25s">
-        <div class="si" style="background:rgba(251,191,36,0.1);">&#128273;</div>
-        <h4>Multisig-governed parameters</h4>
-        <p>Tier boundaries, spread bands, the auction window, the staleness limit and the reserve
-        floor are all on-chain values behind a multisig. Changing the rules is a public, signed,
-        observable event.</p>
-        <div class="sv">multisig-gated config</div>
-      </div>
-      <div class="safe rv" style="transition-delay:0.28s">
         <div class="si" style="background:rgba(74,222,128,0.1);">&#9203;</div>
         <h4>Withdrawal timelock</h4>
-        <p>Node withdrawals are time-delayed so liquidity cannot be pulled between placing a bid and
-        settling it, and cannot be yanked out of the reserve the moment an exit needs it.</p>
-        <div class="sv">delayed withdraw request</div>
+        <p>Node withdrawals are requested, not taken. The amount stops counting as free balance the
+        moment it is requested, so liquidity cannot be pulled out from under a bid that is already
+        standing.</p>
+        <div class="sv">request &rarr; unlock_at &rarr; execute</div>
+      </div>
+      <div class="safe rv" style="transition-delay:0.28s">
+        <div class="si" style="background:rgba(167,139,250,0.1);">&#128202;</div>
+        <h4>Exposure keeps counting after the fill</h4>
+        <p>A Node's per-asset ceiling does not reset when it pays out &mdash; it is then holding the
+        asset. Only the Node can mark a position divested, so the number it is trusting is its own.
+        Lying here risks its capital and can never make the vault insolvent.</p>
+        <div class="sv">reduce_exposure, by the node only</div>
       </div>
       <div class="safe rv" style="transition-delay:0.31s">
-        <div class="si" style="background:rgba(167,139,250,0.1);">&#128202;</div>
-        <h4>Per-asset exposure caps</h4>
-        <p>Each Node sets a maximum exposure per asset, and each tier carries a protocol cap.
-        Concentration risk is bounded on both sides rather than discovered afterwards.</p>
-        <div class="sv">max_exposure per node &amp; tier</div>
+        <div class="si" style="background:rgba(89,124,233,0.1);">&#127991;</div>
+        <h4>A refusal says who refused</h4>
+        <p>Error codes are disjoint across the four contracts. A bid rejected by the Node's own vault
+        terms and a bid rejected by the auction are different failures, and they never decode to the
+        same thing.</p>
+        <div class="sv">1&ndash;99 &middot; 100&ndash;199 &middot; 200&ndash;299 &middot; 300&ndash;399</div>
       </div>
       <div class="safe rv" style="transition-delay:0.34s">
-        <div class="si" style="background:rgba(248,113,113,0.1);">&#9208;</div>
-        <h4>Emergency pause</h4>
-        <p>Exit opening and settlement can be halted under multisig authority in a security incident.
-        Pausing never strands assets: queued and unsettled positions remain the seller's property.</p>
-        <div class="sv">pause() / unpause()</div>
+        <div class="si" style="background:rgba(251,191,36,0.1);">&#128273;</div>
+        <h4>What the admin can and cannot do</h4>
+        <p>The admin sets the wiring &mdash; which auction the vault answers, the treasury address,
+        the protocol fee within a hard <code>MAX_PROTOCOL_FEE_BPS</code> of 500. It cannot price an
+        exit, reorder the queue, or reach escrowed tokens.</p>
+        <div class="sv">fee &le; 500 bps, enforced on-chain</div>
       </div>
     </div>
 
     <div class="card rv" style="transition-delay:0.37s">
       <h4 style="margin-bottom:10px;">Audit &amp; monitoring plan</h4>
-      <p style="font-size:13.5px;color:var(--t2);line-height:1.72;">The build includes a written threat
-      model covering oracle manipulation, reserve draining, bid front-running and governance-key
-      compromise, plus an on-chain monitoring plan: alerting on reserve-floor breaches, abnormal
-      queue growth, score-publication gaps and any parameter change. Contracts are open source and
-      the event stream is public, so the monitoring we run is monitoring anyone can reproduce.</p>
+      <p style="font-size:13.5px;color:var(--t2);line-height:1.72;">The four contracts ship with 51
+      tests that link the real peers and run the layer end to end, and a written threat model
+      covering vault insolvency, escrow reachability, queue manipulation and admin-key compromise.
+      Monitoring alerts on abnormal queue growth, exits closing into the queue at unusual rates, and
+      any config change. The contracts are open source with <code>Cargo.lock</code> committed for
+      reproducible SEP-55 builds, and the event stream is public &mdash; so the monitoring we run is
+      monitoring anyone can reproduce. Nothing is deployed yet.</p>
     </div>
   </div>
 
@@ -1406,11 +1409,10 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
   <div class="stage-glass" data-glow></div>
   <div class="wrap">
     <div class="center">
-      <span class="eyebrow rv">Interactive</span>
       <h2 class="rv" style="transition-delay:0.05s">Price your exit</h2>
-      <p class="lede rv" style="transition-delay:0.1s">Move the score and the ticket size to see how
-      DobDex would route and price the exit. Same logic the Exit Auction Engine applies on-chain,
-      run here in your browser.</p>
+      <p class="lede rv" style="transition-delay:0.1s">Move the score and the ticket size to see
+      roughly what a Liquidity Node would pay for the position today. Illustrative &mdash; every
+      Node prices off-chain, so the real number is whatever a Node actually bids.</p>
     </div>
 
     <div class="sim rv" style="transition-delay:0.15s">
@@ -1442,9 +1444,9 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
         <div class="sim-note">
           <div class="t">What this model assumes</div>
           <ul>
-            <li>The <b>TRUFA score</b> comes from DobValidator and is read on-chain by <b>score_reader</b>. A score older than <b>STALENESS_SECS</b> (24h) is rejected, not extrapolated.</li>
-            <li>The tier spread is a <b>band</b>, not a price. Liquidity Nodes bid inside it; the auction clears at the best bid received in the <b>AUCTION_WINDOW</b> (30 min).</li>
-            <li>Instant settlement only draws from the hot reserve while it stays above <b>hot_reserve_floor</b>. Below the floor, the exit is auctioned or queued.</li>
+            <li>The <b>TRUFA score</b> comes from DobValidator and travels with the asset. Nodes read it and price off-chain &mdash; no contract re-derives it.</li>
+            <li>Tiers are a <b>vocabulary</b>, not a rule. Nodes bid absolute USDC; the chain only checks the money is really there.</li>
+            <li>The <b>best bid wins</b> when the window closes. Below the seller's floor the exit takes a public place in line instead of being force-filled.</li>
             <li>Every position settles in <b>USDC on Stellar</b> and can leave through an Anchor Platform off-ramp.</li>
           </ul>
         </div>
@@ -1457,18 +1459,17 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
         </div>
         <div class="sim-rows">
           <div class="sim-row"><span class="k">Risk tier</span><span class="v" id="simTier">B &middot; Standard</span></div>
-          <div class="sim-row"><span class="k">Tier spread</span><span class="v" id="simSpread">2.00%</span></div>
+          <div class="sim-row"><span class="k">Typical spread</span><span class="v" id="simSpread">2.00%</span></div>
           <div class="sim-row"><span class="k">Size impact</span><span class="v" id="simSize">0.33%</span></div>
           <div class="sim-row"><span class="k">Protocol fee</span><span class="v" id="simFee">0.25%</span></div>
           <div class="sim-row" style="padding-top:12px;border-top:1px solid var(--b1);"><span class="k" style="color:var(--t1);font-weight:600;">Total discount</span><span class="v" id="simTotal">2.58%</span></div>
-          <div class="sim-row"><span class="k">Settlement path</span><span class="v" id="simRoute">Hot reserve</span></div>
-          <div class="sim-row"><span class="k">Expected time to cash</span><span class="v" id="simTime">&lt; 1 min</span></div>
+          <div class="sim-row"><span class="k">Likely path</span><span class="v" id="simRoute">Bid accepted</span></div>
+          <div class="sim-row"><span class="k">Expected time to cash</span><span class="v" id="simTime">Minutes</span></div>
         </div>
         <div class="sim-path" id="simExplain"></div>
-        <div class="sim-disclaimer">Illustrative model. Spread bands, the auction window and the
-        hot-reserve floor are multisig-configurable protocol parameters and are not final. Real
-        quotes are posted by Liquidity Nodes and can differ; DobDex does not guarantee a price or a
-        fill.</div>
+        <div class="sim-disclaimer">Illustrative model, not a quote. Real prices are posted by
+        Liquidity Nodes and can differ in either direction; DobDex does not guarantee a price or a
+        fill, and never buys the position itself.</div>
       </div>
     </div>
   </div>
@@ -1491,7 +1492,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
     <div class="g3 integ-grid">
       <div class="integ rv" style="transition-delay:0.12s">
         <div class="ih"><h4>Soroban</h4><span class="pill build">Build target</span></div>
-        <p>All six contracts are Rust on Soroban. Atomic multi-step settlement, typed events and
+        <p>All four contracts are Rust on Soroban. Atomic multi-step settlement, typed events and
         predictable fees are the reason the exit path can be a single transaction instead of a
         choreography.</p>
         <div class="why">execution layer</div>
@@ -1572,9 +1573,9 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
         <h4>MVP &amp; core contracts</h4>
         <div class="road-when">Soroban testnet</div>
         <ul>
-          <li>Score Reader and Risk Classifier deployed, with the five-tier table as a stored parameter</li>
-          <li>LP Liquidity Vault accepting USDC deposits with an enforced hot-reserve floor</li>
-          <li>Exit request &rarr; tier &rarr; quote path working end to end against test pools</li>
+          <li>LP Liquidity Vault taking USDC deposits and per-asset appetite from Liquidity Nodes</li>
+          <li>Settlement Router escrowing tokens and clearing a fill in one atomic transaction</li>
+          <li>Open &rarr; bid &rarr; accept path working end to end against test pools</li>
           <li>Exit interface and LP dashboard wired to Freighter</li>
         </ul>
       </div>
@@ -1585,7 +1586,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
         <ul>
           <li>Exit Auction Engine with a bounded window and competitive LP bidding</li>
           <li>FIFO Queue Manager for the case where demand exceeds available liquidity</li>
-          <li>DeFindex yield routing on idle vault capital; Blend v2 reserve venue</li>
+          <li>DeFindex yield routing on uncommitted vault capital; Blend v2 as a second venue</li>
           <li>Soroban RPC event indexer plus the onchain monitoring plan and threat model</li>
         </ul>
       </div>
@@ -1594,10 +1595,10 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
         <h4>Mainnet &amp; off-ramp</h4>
         <div class="road-when">Stellar mainnet</div>
         <ul>
-          <li>All six contracts on mainnet behind multisig-gated parameters</li>
+          <li>All four contracts on mainnet, SEP-55 attested from a reproducible build</li>
           <li>Anchor Platform integration closing the loop from USDC to local currency</li>
           <li>Real exits from live Dobprotocol pools with real Liquidity Node capital</li>
-          <li>Public dashboards for fills, spreads, queue depth and reserve health</li>
+          <li>Public dashboards for fills, spreads, queue depth and Node capacity</li>
         </ul>
       </div>
     </div>
@@ -1654,8 +1655,8 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
       <a href="https://github.com/Dobprotocol/stellar-exit-contracts" target="_blank" rel="noopener">GitHub</a>
     </div>
     <div class="footer-tags">
-      <span>score_reader</span><span>risk_classifier</span><span>lp_vault</span>
-      <span>exit_auction</span><span>settlement_router</span><span>fifo_queue</span>
+      <span>lp_vault</span><span>settlement_router</span>
+      <span>fifo_queue</span><span>exit_auction</span>
     </div>
   </div>
   <div class="footer-copy">
@@ -1777,32 +1778,32 @@ var TIERS = [
   {
     id: 'A', name: 'Institutional', color: '#4ade80', min: 90, max: 100,
     spread: '0.3% – 1.2%', bandBps: [30, 120],
-    blurb: 'Fully documented, cash-flowing assets with a current validation and no open findings. These exits are filled straight from the hot reserve because the collateral is the easiest thing in the vault to re-sell.',
-    facts: [['Settlement', 'Hot reserve'], ['Time to cash', '< 1 min'], ['Reserve access', 'Full'], ['LP-only mode', 'Off']]
+    blurb: 'Fully documented, cash-flowing assets with a current validation and no open findings. Bids arrive early and tight, because this is the easiest collateral in the market to re-sell.',
+    facts: [['Typical outcome', 'Bid accepted'], ['Time to cash', 'Minutes'], ['Competing Nodes', 'Many'], ['Queue risk', 'Low']]
   },
   {
     id: 'B', name: 'Standard', color: '#597ce9', min: 75, max: 89,
     spread: '1.2% – 3.0%', bandBps: [120, 300],
-    blurb: 'Solid assets with minor documentation or performance gaps. Small tickets clear instantly; larger ones open a short auction so Liquidity Nodes can compete rather than the reserve absorbing the whole position.',
-    facts: [['Settlement', 'Reserve / auction'], ['Time to cash', '< 5 min'], ['Reserve access', 'Capped'], ['LP-only mode', 'Off']]
+    blurb: 'Solid assets with minor documentation or performance gaps. Small tickets draw a bid the seller can take straight away; larger ones usually run the window out so more Nodes get a look.',
+    facts: [['Typical outcome', 'Bid accepted'], ['Time to cash', 'Minutes'], ['Competing Nodes', 'Several'], ['Queue risk', 'Low']]
   },
   {
     id: 'C', name: 'Watch', color: '#fbbf24', min: 60, max: 74,
     spread: '3.0% – 6.5%', bandBps: [300, 650],
-    blurb: 'Something in the validation moved the wrong way: a late report, weaker cashflow, a maintenance flag. The asset is still financeable, but the exit goes to auction so the spread is set by whoever is actually willing to hold it.',
-    facts: [['Settlement', 'Auction'], ['Time to cash', '~30 min'], ['Reserve access', 'Limited'], ['LP-only mode', 'Off']]
+    blurb: 'Something in the validation moved the wrong way: a late report, weaker cashflow, a maintenance flag. Still financeable, but the spread is set by whoever is actually willing to hold it, so the window is usually worth running out.',
+    facts: [['Typical outcome', 'Window closes'], ['Time to cash', '~5 min'], ['Competing Nodes', 'Few'], ['Queue risk', 'Moderate']]
   },
   {
     id: 'D', name: 'Elevated', color: '#f5824f', min: 45, max: 59,
     spread: '6.5% – 13%', bandBps: [650, 1300],
-    blurb: 'Material stress. The hot reserve is protected and only Liquidity Nodes who explicitly opted into this tier may bid. If bids do not cover the position, the remainder enters the FIFO queue instead of being force-filled.',
-    facts: [['Settlement', 'Auction + queue'], ['Time to cash', '30 min – hours'], ['Reserve access', 'Blocked'], ['LP-only mode', 'On']]
+    blurb: 'Material stress. Only Nodes that set an appetite for this asset can bid at all, and few will. If nothing clears the seller’s floor, the exit takes a public place in line rather than being force-filled.',
+    facts: [['Typical outcome', 'Queued'], ['Time to cash', 'Hours – days'], ['Competing Nodes', 'Few'], ['Queue risk', 'High']]
   },
   {
     id: 'E', name: 'Distressed', color: '#f87171', min: 0, max: 44,
     spread: '13% – 25%+', bandBps: [1300, 2500],
-    blurb: 'Default, abandonment, or a validation stale past its window. The protocol will not quote a price it cannot honour: exits are LP-only, queued, and priced by whoever is willing to take the workout risk. The alternative is not a better price — it is no bid at all.',
-    facts: [['Settlement', 'LP-only, queued'], ['Time to cash', 'Hours – days'], ['Reserve access', 'Blocked'], ['LP-only mode', 'Forced']]
+    blurb: 'Default, abandonment, or a validation nobody currently stands behind. DobDex never quotes a price itself, so an exit here is worth exactly what someone will pay to take the workout risk. Often that is nobody, and the exit waits. The alternative is not a better price — it is no bid at all.',
+    facts: [['Typical outcome', 'Queued'], ['Time to cash', 'Hours – days'], ['Competing Nodes', 'Rare'], ['Queue risk', 'Very high']]
   }
 ];
 
@@ -1875,19 +1876,19 @@ function quote() {
   var net = amount * (1 - (bps + feeBps) / 10000);
 
   var route, time, explain;
-  var instant = (t.id === 'A' || t.id === 'B') && amount <= 50000 && depthFactor <= 1;
-  if (instant) {
-    route = 'Hot reserve';
-    time = '< 1 min';
-    explain = 'Tier <b>' + t.id + '</b> at this size clears directly against the vault’s hot reserve. No auction is opened and the Settlement Router pays out in the same Soroban transaction.';
+  var quick = (t.id === 'A' || t.id === 'B') && amount <= 50000 && depthFactor <= 1;
+  if (quick) {
+    route = 'Bid accepted';
+    time = 'Minutes';
+    explain = 'At this score and size a Node is likely to bid early. The seller can <b>accept the standing bid</b> without waiting for the window to close &mdash; the Settlement Router then moves tokens and USDC in the same Soroban transaction.';
   } else if (t.id === 'D' || t.id === 'E') {
-    route = t.id === 'E' ? 'LP-only, queued' : 'Auction + queue';
-    time = t.id === 'E' ? 'Hours – days' : '30 min – hours';
-    explain = 'Tier <b>' + t.id + '</b> is <b>LP-only</b>: the hot reserve is protected and only Liquidity Nodes who opted into this risk band may bid. Anything the auction does not fill enters the <b>FIFO queue</b> at a public position rather than being force-filled at a price the vault cannot honour.';
+    route = 'Queued';
+    time = 'Hours – days';
+    explain = 'Few Nodes hold appetite at this risk, so bids may not clear the seller’s floor. The exit then takes a <b>public place in line</b> for that asset and keeps taking bids &mdash; nobody can buy their way past it, and the seller can walk away at any point.';
   } else {
-    route = 'Auction (30 min)';
-    time = '~30 min';
-    explain = 'This exit opens a bounded <b>30-minute auction</b>. Liquidity Nodes backing this asset bid against each other and the best bid settles. Competition, not a curve, sets the spread.';
+    route = 'Window closes';
+    time = '~5 min';
+    explain = 'This exit runs its <b>bidding window</b> &mdash; five minutes by default, set by the seller. Nodes backing this asset bid against each other in absolute USDC and the best price wins. Competition sets the spread, not a curve.';
   }
 
   elScoreVal.textContent = score;
