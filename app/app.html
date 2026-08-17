@@ -1022,7 +1022,8 @@
           <div class="sw-row"><span title="RWA deposited to vault, dUSDC minted, then swapped to USDC through Liquidity Nodes">Route</span><span class="v" id="depositRoute">Vault &rarr; Hook &rarr; Liquidity Node</span></div>
           <div class="sw-row" id="depositSwapFeeRow" style="display:none;"><span title="Fee charged by the protocol on sell transactions">Swap Fee</span><span class="v" id="depositSwapFeeVal">—</span></div>
           <div class="sw-row" id="depositProtocolFeeRow" style="display:none;"><span title="Additional protocol fee on sell transactions">Protocol Fee</span><span class="v" id="depositProtocolFeeVal">—</span></div>
-          <div class="sw-row"><span title="Discount set by the Liquidity Node providing exit capital. LPs earn this spread as profit.">LP Discount</span><span class="v" style="color:var(--amber)" id="depositLpDiscount">—</span></div>
+          <div class="sw-row"><span title="Read from the live book: which Liquidity Nodes will actually fill this size, and their allocation-weighted average discount. Includes the 1.5% registry fee on each fill.">Liquidity Nodes</span><span class="v" style="color:var(--amber)" id="depositLpDiscount">—</span></div>
+          <div class="sw-row" id="depositShortRow" style="display:none;"><span title="The book cannot cover this size at any discount. The sell will fill only partially.">Uncovered</span><span class="v" style="color:var(--red,#f87171)" id="depositShortVal">—</span></div>
           <div class="sw-row"><span title="Maximum acceptable deviation from estimated output">Slippage</span><span class="v"><input type="number" id="sellSlipInput" value="5" min="0.5" max="50" step="0.5" style="width:46px;text-align:right;background:var(--bg-2);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:11px;color:var(--text-1);"/>%</span></div>
         </div>
         <button class="sw-btn" id="depositBtn" disabled>Select a token</button>
@@ -1762,7 +1763,11 @@ const A=[
 const S={on:false,addr:'',short:'',prov:null,sig:null,dob:0,usdc:0,hook:0,minted:0,dir:'d2u',logs:loadLogs(),
   lpActive:false,lpDeposited:0,lpAvailable:0,lpEarned:0,lpFillCount:0,
   backings:[],fills:[],reserveHolds:[],faucetBals:{},wdPending:false,wdAmount:0,wdTime:null,gLP:0,
-  swapFeeBps:0,protocolFeeBps:0,hookPaused:false,hookLpUsdc:0,hookLpShares:0,hookSharePrice:0,hookMyShares:0};
+  swapFeeBps:0,protocolFeeBps:0,hookPaused:false,hookLpUsdc:0,hookLpShares:0,hookSharePrice:0,hookMyShares:0,
+  books:{},bookLoading:{}};
+// ── Liquidity Node book constants (must mirror DobLPRegistry) ──
+const LN_PROTOCOL_FEE_BPS=150;   // PROTOCOL_FEE_BPS — taken from each fill
+const LN_MIN_BACKING_AGE=3600;   // MIN_BACKING_AGE — 1 hour before a backing can fill
 // ── Multi-chain config ──
 const CHAINS={
   1301:{name:'Unichain Sepolia',explorer:'https://sepolia.uniscan.xyz',
@@ -1799,7 +1804,7 @@ const USDC_ABI=["function approve(address,uint256) returns (bool)","function bal
 const RWA_ABI=["function approve(address,uint256) returns (bool)","function balanceOf(address) view returns (uint256)","function totalSupply() view returns (uint256)","function faucet()","function buyTokens(uint256)","function salePrice() view returns (uint256)","function saleActive() view returns (bool)"];
 const ROUTER_ABI=["function swap(bool,uint256,bytes) returns (uint256)"];
 const REG_ABI=["function getPrice(address) view returns (uint256 priceUsd, uint48 updatedAt)","function MAX_ORACLE_DELAY() view returns (uint48)"];
-const LP_ABI=["function getAssetBackerCount(address) view returns (uint256)","function getAssetLiquidity(address) view returns (uint256)","function register(uint256)","function depositMore(uint256)","function positions(address) view returns (uint256 usdcDeposited,uint256 usdcAvailable,uint48 registeredAt,bool active)","function backAsset(address,uint256,uint16,uint256,uint256)","function getBacking(address,address) view returns (uint256 minOraclePrice,uint16 minPenaltyBps,uint256 maxExposure,uint256 currentExposure,uint256 usdcAllocated,uint256 usdcUsed,uint48 backedAt,bool active)","function updateConditions(address,uint256,uint16,uint256)","function increaseAllocation(address,uint256)","function stopBacking(address)","function releaseReserve(uint256)","function requestWithdrawal(uint256)","function cancelWithdrawal()","function executeWithdrawal()","function withdrawalRequests(address) view returns (uint256 amount, uint48 requestedAt)","function rwaOwed(address,address) view returns (uint256)","function claimRwaTokens(address,uint256)","function getReserveHolds(address) view returns (tuple(uint256 amount,address rwaToken,uint48 createdAt)[])"];
+const LP_ABI=["function getAssetBackerCount(address) view returns (uint256)","function getAssetLiquidity(address) view returns (uint256)","function getAssetBackers(address) view returns (address[])","function register(uint256)","function depositMore(uint256)","function positions(address) view returns (uint256 usdcDeposited,uint256 usdcAvailable,uint48 registeredAt,bool active)","function backAsset(address,uint256,uint16,uint256,uint256)","function getBacking(address,address) view returns (uint256 minOraclePrice,uint16 minPenaltyBps,uint256 maxExposure,uint256 currentExposure,uint256 usdcAllocated,uint256 usdcUsed,uint48 backedAt,bool active)","function updateConditions(address,uint256,uint16,uint256)","function increaseAllocation(address,uint256)","function stopBacking(address)","function releaseReserve(uint256)","function requestWithdrawal(uint256)","function cancelWithdrawal()","function executeWithdrawal()","function withdrawalRequests(address) view returns (uint256 amount, uint48 requestedAt)","function rwaOwed(address,address) view returns (uint256)","function claimRwaTokens(address,uint256)","function getReserveHolds(address) view returns (tuple(uint256 amount,address rwaToken,uint48 createdAt)[])"];
 const HOOK_ABI=["function swapFeeBps() view returns (uint16)","function protocolFeeBps() view returns (uint16)","function totalLpUsdc() view returns (uint256)","function totalShares() view returns (uint256)","function lpShares(address) view returns (uint256)","function sharePrice() view returns (uint256)","function depositUsdc(uint256) returns (uint256)","function withdrawUsdc(uint256) returns (uint256)","function protocolReserveUsdc() view returns (uint256)","function lpOnlyMode(address) view returns (bool)","function paused() view returns (bool)","function listRwaForSale(address,uint256)","function delistRwa(address,uint256)","function buyListedRwa(address,uint256)","function getRwaSellers(address) view returns (address[])","function getRwaSellersCount(address) view returns (uint256)","function totalRwaListed(address) view returns (uint256)","function rwaForSale(address,address) view returns (uint256)"];
 const PLN_ABI=["function totalPoolUsdc() view returns (uint256)","function totalShares() view returns (uint256)","function shares(address) view returns (uint256)","function sharePrice() view returns (uint256)","function minDeposit() view returns (uint256)","function backedAssetCount() view returns (uint256)","function paused() view returns (bool)","function deposit(uint256) returns (uint256)","function withdraw(uint256) returns (uint256)","function rwaClaimable(address,address) view returns (uint256)","function withdrawRwa(address,uint256)","function getBacking(address) view returns (uint256 minOraclePrice,uint16 minPenaltyBps,uint256 maxExposure,uint256 currentExposure,uint256 usdcAllocated,uint256 usdcUsed,uint48 backedAt,bool active)"];
 
@@ -2179,38 +2184,112 @@ function rLog(){
   b.innerHTML=S.logs.map(l=>`<div class="log-r"><span class="log-t ${l.t}">${l.t}</span><span class="log-m">${l.m}</span><span class="log-ts">${l.time}</span></div>`).join('');
   b.scrollTop=0;
 }
+// ── Read the live Liquidity Node book for one asset ──────────────────────────
+// getAssetBackers() returns the LNs already sorted by ascending minPenaltyBps,
+// which is the exact order queryAndFillAtMarket() walks when filling a sell.
+async function loadBook(aid){
+  const addr=tokenAddr(aid);if(!addr||S.bookLoading[aid])return;
+  S.bookLoading[aid]=true;
+  try{
+    const lp=new ethers.Contract(ADDR().LPRegistry,LP_ABI,getReadProvider());
+    const lns=await lp.getAssetBackers(addr);
+    const rows=await Promise.all(lns.map(async who=>{
+      try{
+        const b=await lp.getBacking(who,addr);
+        return{who,active:b.active,penalty:Number(b.minPenaltyBps),
+          minPrice:parseFloat(ethers.formatUnits(b.minOraclePrice,18)),
+          alloc:parseFloat(ethers.formatUnits(b.usdcAllocated,18)),
+          used:parseFloat(ethers.formatUnits(b.usdcUsed,18)),
+          maxExp:parseFloat(ethers.formatUnits(b.maxExposure,18)),
+          curExp:parseFloat(ethers.formatUnits(b.currentExposure,18)),
+          backedAt:Number(b.backedAt)};
+      }catch(e){return null;}
+    }));
+    S.books[aid]={rows:rows.filter(Boolean),at:Date.now()};
+  }catch(e){S.books[aid]={rows:[],at:Date.now(),err:true};}
+  finally{S.bookLoading[aid]=false;}
+  uDep();
+}
+
+// ── Off-chain replica of DobLPRegistry.queryAndFillAtMarket() ────────────────
+// Walks the same sorted book with the same skip conditions, so the number the
+// seller is shown is the number the fill will actually produce — not an
+// oracle-value guess. Keep in sync with _tryFillLPAtMarket().
+function simulateFill(aid,oraclePrice,usdcNeeded){
+  const book=S.books[aid];if(!book)return null;
+  const now=Math.floor(Date.now()/1000);
+  let remaining=usdcNeeded,filled=0,dobRwaOwed=0,weighted=0;
+  const legs=[];
+  for(const r of book.rows){
+    if(remaining<=0)break;
+    if(!r.active)continue;
+    if(now-r.backedAt<LN_MIN_BACKING_AGE)continue;   // MIN_BACKING_AGE
+    if(oraclePrice<r.minPrice)continue;              // LN's price floor
+    const availUsdc=r.alloc-r.used;if(availUsdc<=0)continue;
+    const availExp=r.maxExp-r.curExp;if(availExp<=0)continue;
+    const p=r.penalty>0?r.penalty:1;
+    let fill=Math.min(remaining,availUsdc);
+    let dobRwa=fill*10000/(10000-p);
+    if(dobRwa>availExp){dobRwa=availExp;fill=dobRwa*(10000-p)/10000;}
+    if(fill<=0)continue;
+    const net=fill-fill*LN_PROTOCOL_FEE_BPS/10000;
+    remaining-=net;filled+=net;dobRwaOwed+=dobRwa;weighted+=p*net;
+    legs.push({who:r.who,penalty:p,net});
+  }
+  return{filled,dobRwaOwed,legs,shortfall:Math.max(0,remaining),
+    avgPenalty:filled>0?weighted/filled:0};
+}
+
+// Quote a sell end to end, in the same order the contracts apply it:
+// vault (oracle) → hook swap fee → LN book → hook protocol fee.
+function quoteSell(a,amt){
+  const dUsdc=amt*a.price;
+  const swapFee=S.swapFeeBps>0?dUsdc*S.swapFeeBps/10000:0;
+  const idealOut=dUsdc-swapFee;
+  const sim=simulateFill(a.id,a.price,idealOut);
+  const gross=sim?sim.filled:idealOut;            // idealOut = optimistic fallback while the book loads
+  const pFee=S.protocolFeeBps>0?gross*S.protocolFeeBps/10000:0;
+  return{dUsdc,swapFee,idealOut,sim,gross,pFee,out:gross-pFee};
+}
+
 function uDep(){
   const aid=document.getElementById('depositAsset').value,amt=parseFloat(document.getElementById('depositAmt').value)||0,a=A.find(x=>x.id===aid);
+  if(aid&&(!S.books[aid]||Date.now()-S.books[aid].at>30000))loadBook(aid);
   const bal=a?(S.faucetBals?.[a.id]||0):0;
   const btn=document.getElementById('depositBtn'),det=document.getElementById('depositDetail');
   if(!a){btn.disabled=true;btn.textContent='Select a token';btn.className='sw-btn';document.getElementById('depositOut').textContent='0';document.getElementById('depositRate').textContent='';det.style.display='none';return;}
   document.getElementById('depositBal').textContent=fmt(bal,2);
   document.getElementById('depositUsd').textContent=amt>0?'~$'+fmt(amt*a.price,2):'';
   if(amt<=0){btn.disabled=true;btn.textContent='Enter an amount';btn.className='sw-btn';document.getElementById('depositOut').textContent='0';document.getElementById('depositRate').textContent='';det.style.display='none';return;}
-  // Calculate output: RWA → dUSDC (oracle) → USDC (swap fee + protocol fee + LP discount)
-  const dUsdcOut=amt*a.price;
-  const swapFee=S.swapFeeBps>0?(dUsdcOut*S.swapFeeBps/10000):0;
-  const afterSwapFee=dUsdcOut-swapFee;
-  const pFee=S.protocolFeeBps>0?(afterSwapFee*S.protocolFeeBps/10000):0;
-  const afterFees=afterSwapFee-pFee;
-  // Estimate LP discount from first active backing for this asset
-  const lpBacking=S.backings?.find(b=>b.aid===a.id&&b.active);
-  const lpDiscBps=lpBacking?lpBacking.minDisc:0;
-  const lpDisc=lpDiscBps>0?(afterFees*lpDiscBps/10000):0;
-  const out=afterFees-lpDisc;
+  // Quote the sell against the live LN book instead of guessing at oracle value
+  const q=quoteSell(a,amt),sim=q.sim,swapFee=q.swapFee,pFee=q.pFee,out=q.out;
   document.getElementById('depositOut').textContent=fmt(out,2);
-  document.getElementById('depositRate').textContent='~$'+fmt(out,2);
+  document.getElementById('depositRate').textContent=(sim?'$':'~$')+fmt(out,2);
   document.getElementById('depositOraclePrice').textContent='1 '+a.ticker+' = '+fmt(a.price,2)+' dUSDC';
   // Fee rows
   const sfRow=document.getElementById('depositSwapFeeRow'),pfRow=document.getElementById('depositProtocolFeeRow');
   if(S.swapFeeBps>0){sfRow.style.display='';document.getElementById('depositSwapFeeVal').textContent=(S.swapFeeBps/100).toFixed(1)+'% ('+fmt(swapFee,2)+' dUSDC)';}else{sfRow.style.display='none';}
   if(S.protocolFeeBps>0){pfRow.style.display='';document.getElementById('depositProtocolFeeVal').textContent=(S.protocolFeeBps/100).toFixed(1)+'% ('+fmt(pFee,2)+' dUSDC)';}else{pfRow.style.display='none';}
-  document.getElementById('depositLpDiscount').textContent=lpDiscBps>0?(lpDiscBps/100).toFixed(1)+'% ('+fmt(lpDisc,2)+' USDC)':'~best LP rate';
+  // Liquidity Node row: who actually fills this sell, at what average discount
+  const lnEl=document.getElementById('depositLpDiscount');
+  if(!sim){lnEl.textContent='reading the book…';lnEl.style.color='var(--text-3)';}
+  else if(sim.legs.length===0){lnEl.textContent='no node will fill this';lnEl.style.color='var(--red,#f87171)';}
+  else{
+    lnEl.textContent=(sim.avgPenalty/100).toFixed(2)+'% avg · '+sim.legs.length+(sim.legs.length===1?' node':' nodes');
+    lnEl.style.color='var(--amber)';
+  }
+  // Shortfall: the book could not cover the whole position at any price
+  const scRow=document.getElementById('depositShortRow');
+  if(sim&&sim.shortfall>0.01){
+    scRow.style.display='';
+    document.getElementById('depositShortVal').textContent='−'+fmt(sim.shortfall,2)+' USDC uncovered';
+  }else if(scRow){scRow.style.display='none';}
   det.style.display='block';
   if(!S.on){btn.disabled=true;btn.textContent='Connect Wallet';btn.className='sw-btn';}
   else if(S.hookPaused){btn.disabled=true;btn.textContent='Protocol paused';btn.className='sw-btn';}
   else if(a.oracle.stale){btn.disabled=true;btn.textContent='Oracle stale — price outdated';btn.className='sw-btn';}
   else if(a.lpOnly&&(a.lpAvailUsdc||0)<=0){btn.disabled=true;btn.textContent='No LP liquidity for '+a.ticker;btn.className='sw-btn';}
+  else if(a.lpOnly&&sim&&sim.filled<=0){btn.disabled=true;btn.textContent='No node will fill this size';btn.className='sw-btn';}
   else if(amt>bal){btn.disabled=true;btn.textContent='Insufficient '+a.ticker;btn.className='sw-btn';}
   else{btn.disabled=false;btn.textContent='Sell for USDC';btn.className='sw-btn go';}
 }
@@ -2893,14 +2972,15 @@ async function doDeposit(){
       // dUSDC→USDC: USDC is currency0, dUSDC is currency1 → zeroForOne=false
       toast('Approving dUSDC...');await(await dUsdcToken.approve(c.Router,swapAmt,gas)).wait();
       // Encode rwaToken + minAmountOut in hookData for LP routing + slippage protection
-      const estUsdc=S.swapFeeBps>0?dUsdcMinted*(10000-S.swapFeeBps)/10000:dUsdcMinted;
+      // minOut derives from the simulated fill against the live book, not from a fee-only estimate
+      const qx=quoteSell(a,amt);
+      const estUsdc=qx.out;
       const sellSlip=parseFloat(document.getElementById('sellSlipInput').value)||5;
       const minOut=estUsdc*(100-sellSlip)/100;
       const minOutWei=ethers.parseUnits(minOut.toFixed(18),18);
       const hookData=ethers.AbiCoder.defaultAbiCoder().encode(['address','uint256'],[addr,minOutWei]);
       toast('Swapping dUSDC → USDC via LPs...');const swTx=await(await router.swap(false,swapAmt,hookData,gas)).wait();
-      const estOut=S.swapFeeBps>0?dUsdcMinted*(10000-S.swapFeeBps)/10000:dUsdcMinted;
-      trackEvent('swaps',{txHash:swTx.hash,tokenId:aid,direction:'sell',amountIn:amt,amountOut:estOut,oraclePrice:a.price,blockNumber:swTx.blockNumber});
+      trackEvent('swaps',{txHash:swTx.hash,tokenId:aid,direction:'sell',amountIn:amt,amountOut:qx.out,oraclePrice:a.price,blockNumber:swTx.blockNumber});
       log('swap',`Sold <strong>${fmt(dUsdcMinted,2)} dUSDC</strong> → <strong>USDC</strong> via Liquidity Node`);
       txToast('Sold '+fmt(amt,2)+' '+a.ticker+' for USDC',swTx.hash);
     } else {

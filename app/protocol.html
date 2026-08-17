@@ -696,9 +696,9 @@ h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
     <div class="ch-head rv"><span class="ch-num">Chapter 01</span><span class="ch-line"></span></div>
     <h3 class="ch-title rv" style="transition-delay:0.04s">How an asset gets priced</h3>
     <p class="ch-lede rv" style="transition-delay:0.08s">
-      Assets do not price themselves. The TRUFA score is produced off-chain by DobValidator,
-      published on-chain with a timestamp, and consumed by the exit contracts under a hard
-      freshness rule.
+      Assets do not price themselves. The TRUFA score is produced by DobValidator and travels with
+      the asset. Each Liquidity Node reads it, prices off-chain, and answers with a number it is
+      willing to be held to.
     </p>
 
     <div class="card rv" style="transition-delay:0.12s;padding:32px 28px;">
@@ -722,11 +722,11 @@ h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
         </div>
         <div class="tl-body">
           <div class="tl-kicker" style="color:var(--br400);">Publication</div>
-          <h4>The score is written on-chain with a timestamp</h4>
-          <p>Only the validator authority can publish, and every publication carries the ledger
-          timestamp. Anyone can read the current score and its age &mdash; the input to every exit
-          price is public before any exit is opened.</p>
-          <div class="codeline">score_reader.publish_score(asset, score, ledger_ts)</div>
+          <h4>The score travels with the asset</h4>
+          <p>The certificate is attached to the asset itself, and its history is public. Anyone
+          pricing that asset &mdash; a buyer on the primary market, a Liquidity Node quoting an exit
+          &mdash; is reading the same record, before any exit is opened.</p>
+          <div class="codeline">trufa_certificate(asset) &rarr; score, issued_at</div>
         </div>
 
         <div class="tl-rail">
@@ -734,24 +734,24 @@ h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
           <div class="tl-bar" style="background:linear-gradient(180deg,var(--pos),var(--neg));"></div>
         </div>
         <div class="tl-body">
-          <div class="tl-kicker" style="color:var(--pos);">Classification</div>
-          <h4>The classifier turns the score into a tier</h4>
-          <p>The tier determines the spread band Liquidity Nodes may bid inside, whether the hot
-          reserve can be touched, and whether the asset is restricted to LP-only routing. A score
-          change that crosses a boundary re-prices every future exit on that asset immediately.</p>
-          <div class="codeline" style="color:var(--pos);">(tier, min_bps, max_bps, policy) = classify(score)</div>
+          <div class="tl-kicker" style="color:var(--pos);">Pricing</div>
+          <h4>Each Node turns the score into its own number</h4>
+          <p>How much a score is worth in discount is a judgement, and it belongs to whoever is
+          risking the capital. One Node weights cashflow history, another weights the operator,
+          another simply refuses the asset. The protocol does not arbitrate between them.</p>
+          <div class="codeline" style="color:var(--pos);">off-chain model &rarr; the USDC the Node will pay</div>
         </div>
 
         <div class="tl-rail">
           <div class="tl-dot" style="background:var(--neg);color:#3b0a0a;">4</div>
         </div>
         <div class="tl-body" style="padding-bottom:0;">
-          <div class="tl-kicker" style="color:var(--neg);">Freshness gate</div>
-          <h4>A stale score blocks the exit &mdash; it does not guess</h4>
-          <p>If the last publication is older than <code>STALENESS_SECS</code>, <code>score_reader</code>
-          reverts and no exit can be opened on that asset until the validator refreshes it. Refusing
-          to quote is a safer failure than quoting on data nobody stands behind.</p>
-          <div class="codeline" style="color:var(--neg);">STALENESS_SECS = 86_400  // 24h, multisig-configurable</div>
+          <div class="tl-kicker" style="color:var(--neg);">What the chain checks</div>
+          <h4>Not the model &mdash; the money behind it</h4>
+          <p>The contracts never re-derive a price. They verify the Node's USDC is really in the
+          vault, that the bid clears the floor the Node itself declared, and that it stays under the
+          exposure ceiling the Node itself set. A wrong model costs the Node, not the seller.</p>
+          <div class="codeline" style="color:var(--neg);">lp_vault.commit(node, asset, amount, discount_bps)</div>
         </div>
       </div>
 
@@ -774,8 +774,9 @@ h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
     <div class="ch-head rv"><span class="ch-num">Chapter 02</span><span class="ch-line"></span></div>
     <h3 class="ch-title rv" style="transition-delay:0.04s">Five tiers, five different exits</h3>
     <p class="ch-lede rv" style="transition-delay:0.08s">
-      The tier is the contract between the protocol and its users: it fixes in advance what a given
-      score band is allowed to cost and how fast it can settle. Select a tier to see how it routes.
+      Tiers are the shared vocabulary Liquidity Nodes price in, not a rule the chain imposes. They
+      say what a given score band has historically had to pay to find a buyer, and how quickly.
+      Select a tier to see how exits in it tend to clear.
     </p>
 
     <div class="tier-wrap rv" style="transition-delay:0.12s">
@@ -785,12 +786,12 @@ h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
 
     <div class="g2" style="margin-top:20px;">
       <div class="card-flat rv" style="transition-delay:0.16s">
-        <div class="eyebrow" style="margin-bottom:8px;">A band, not a price</div>
-        <p style="font-size:13px;color:var(--t2);line-height:1.68;">The tier fixes the range a bid may
-        fall in. Where inside the range it lands depends on how much capital is competing for that
-        exit, how large the position is, and how deep the vault is for that tier. Two identical
-        scores can clear at different prices on different days &mdash; that is the market working,
-        not a bug.</p>
+        <div class="eyebrow" style="margin-bottom:8px;">A range, not a price</div>
+        <p style="font-size:13px;color:var(--t2);line-height:1.68;">The tier describes where bids on
+        that score band usually land. Where a given exit actually lands depends on how much capital
+        is competing for it, how large the position is, and what each Node already holds of that
+        asset. Two identical scores can clear at different prices on different days &mdash; that is
+        the market working, not a bug.</p>
       </div>
       <div class="card-flat rv" style="transition-delay:0.2s">
         <div class="eyebrow" style="color:var(--pos);margin-bottom:8px;">Downgrades are not retroactive</div>
@@ -1632,7 +1633,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
         <a href="https://docs.dobprotocol.com/dex/overview" target="_blank" rel="noopener">Documentation</a>
         <a href="https://docs.dobprotocol.com/dobdex-architecture.pdf" target="_blank" rel="noopener">Architecture PDF</a>
         <a href="https://tokenize.dobprotocol.com" target="_blank" rel="noopener">Token Studio</a>
-        <a href="https://github.com/Dobprotocol/Dobhooks" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/Dobprotocol/stellar-exit-contracts" target="_blank" rel="noopener">GitHub</a>
       </div>
     </div>
   </div>
@@ -1650,7 +1651,7 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;bac
       <a href="#quote">Exit quote</a>
       <a href="app.html">App</a>
       <a href="https://docs.dobprotocol.com/dex/overview" target="_blank" rel="noopener">Docs</a>
-      <a href="https://github.com/Dobprotocol/Dobhooks" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/Dobprotocol/stellar-exit-contracts" target="_blank" rel="noopener">GitHub</a>
     </div>
     <div class="footer-tags">
       <span>score_reader</span><span>risk_classifier</span><span>lp_vault</span>
