@@ -76,27 +76,6 @@
       --mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
       --ease: cubic-bezier(0.16,1,0.3,1);
     }
-    /* ═══ CONTEXT BAR ═══
-       Una sola barra. Antes eran dos apiladas (testnet ambar + explicacion
-       EVM) y ocupaban 3 lineas antes de que se viera el producto. */
-    .ctxbar {
-      background: var(--bg-1); border-bottom: 1px solid var(--border-subtle);
-      color: var(--text-2); padding: 7px 16px;
-      font-size: 11px; line-height: 1.45;
-      display: flex; align-items: center; justify-content: center;
-      gap: 10px; flex-wrap: wrap; text-align: center;
-    }
-    .ctxbar .tag {
-      font-family: var(--mono); font-size: 9px; letter-spacing: 0.09em;
-      text-transform: uppercase; font-weight: 500;
-      color: var(--amber); border: 1px solid rgba(251,191,36,0.3);
-      border-radius: 999px; padding: 2px 8px; flex-shrink: 0;
-    }
-    .ctxbar b { color: var(--text-1); font-weight: 600; }
-    .ctxbar a { color: var(--accent-light); text-decoration: none; font-weight: 500;
-      border-bottom: 1px solid rgba(157,176,245,0.3); }
-    .ctxbar a:hover { border-bottom-color: var(--accent-light); }
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; zoom: 1.5; }
     body {
@@ -850,7 +829,6 @@
       .af-stats { display: none; }
       .assets-stats { grid-template-columns: 1fr 1fr; }
       #faucetGrid { grid-template-columns: 1fr !important; }
-      .ctxbar { font-size: 10px; padding: 6px 10px; gap: 7px; }
       /* Inline 4-col / 3-col → 1-col */
       #pg-node [style*="grid-template-columns:repeat(4"] { grid-template-columns: 1fr !important; }
       #pg-node [style*="grid-template-columns: repeat(4"] { grid-template-columns: 1fr !important; }

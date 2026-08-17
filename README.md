@@ -9,7 +9,7 @@
 
 # Dobhooks — Uniswap V4 Hooks for RWA Liquidity
 
-Zero-slippage DEX for tokenized real-world assets, built with Uniswap V4 Custom Accounting Hooks on **Unichain**, with cross-chain oracle automation via **Reactive Network**.
+Exit liquidity for tokenized real-world assets, built with Uniswap V4 Custom Accounting Hooks on **Unichain**, with cross-chain oracle automation via **Reactive Network**. Prices come from the oracle and from Liquidity Nodes rather than from an AMM curve — there is no pool depth to move.
 
 ---
 
@@ -17,7 +17,7 @@ Zero-slippage DEX for tokenized real-world assets, built with Uniswap V4 Custom 
 
 ### 1. Unichain (by Uniswap Labs)
 
-DobPegHook is a Uniswap V4 Custom Accounting Hook deployed on **Unichain Sepolia (chain 1301)**. It intercepts swaps via `beforeSwap` + `beforeSwapReturnDelta` to settle at exact 1:1 oracle price — zero slippage, no AMM curve, no impermanent loss.
+DobPegHook is a Uniswap V4 Custom Accounting Hook deployed on **Unichain Sepolia (chain 1301)**. It intercepts swaps via `beforeSwap` + `beforeSwapReturnDelta` and settles them itself — no AMM curve, no liquidity pool to size, no impermanent loss. The oracle prices the RWA → `dUSDC` leg; the `dUSDC` → USDC exit is priced by Liquidity Nodes at the discount each one set, so a sell is **not** pegged and not slippage-free.
 
 | What | Where in Code |
 |------|---------------|
@@ -30,8 +30,8 @@ DobPegHook is a Uniswap V4 Custom Accounting Hook deployed on **Unichain Sepolia
 **How it works:**
 1. DobPegHook implements `beforeSwap` with `BEFORE_SWAP_RETURNS_DELTA` flag
 2. Hook reads oracle price from `DobValidatorRegistry.getPrice(token)`
-3. Returns exact delta to settle swap at 1:1 peg — PoolManager's AMM curve is completely bypassed
-4. Result: zero-slippage swaps at oracle price, no liquidity pool needed
+3. Returns an exact delta to settle the swap — PoolManager's AMM curve is completely bypassed
+4. With `lpOnlyMode` (the production default) a sell is routed to Liquidity Nodes and filled at the cheapest standing `minPenaltyBps`, so the seller pays that discount rather than a curve's price impact
 
 ### 2. Reactive Network
 
@@ -103,12 +103,12 @@ Unichain Sepolia (1301)                    Reactive Network (5318007)
 
 | Contract | LOC | Description |
 |----------|-----|-------------|
-| `DobPegHook.sol` | 366 | Uniswap V4 Custom Accounting Hook — intercepts swaps, settles at 1:1 oracle peg |
+| `DobPegHook.sol` | 366 | Uniswap V4 Custom Accounting Hook — intercepts swaps, routes sells to Liquidity Nodes |
 | `DobRwaVault.sol` | 129 | RWA deposit vault, mints dUSDC ERC-20 at oracle price |
 | `DobValidatorRegistry.sol` | 163 | On-chain oracle + liquidation parameters |
 | `DobLPRegistry.sol` | 652 | Permissionless LP system with FIFO liquidation fills |
 | `DobSwapRouter.sol` | 132 | Uniswap V4 swap interface |
-| `DobDirectSwap.sol` | 106 | Lightweight 1:1 swap for non-V4 chains |
+| `DobDirectSwap.sol` | 106 | Fallback for chains without V4 — fixed 1:1, no Liquidity Node routing |
 | `DobTokenFactory.sol` | — | RWA token factory + MockUSDC |
 | `ReactiveOracleSync.sol` | 270 | Reactive Network cross-chain oracle monitor |
 | `OracleAlertReceiver.sol` | 165 | Callback receiver for Reactive Network alerts |

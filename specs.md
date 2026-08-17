@@ -1,6 +1,15 @@
 
 # Architecture Specifications: Index Wrapper Model
 
+> **Scope.** This document describes the **EVM contracts in `contracts/src/`** — the vault that
+> mints `dUSDC` against a deposited RWA, the Uniswap V4 hook that routes the sell, and the LP
+> registry behind it. That is what is deployed on Unichain Sepolia and Base Sepolia.
+>
+> It is **not** the Stellar exit layer. The DobDex site under `app/` describes a different, later
+> design: direct settlement with no synthetic and no vault, in four Soroban contracts that live in
+> [`Dobprotocol/stellar-exit-contracts`](https://github.com/Dobprotocol/stellar-exit-contracts).
+> Where the two disagree, the Soroban repo is the one being shipped.
+
 ## 1. System Components & Repository Structure
 
 The architecture is split into the **Vault** (handling regulated assets), the **DEX Hook** (routing swaps through Liquidity Nodes), and the **LP system** (providing exit liquidity). The codebase inherits its structure, deployment scripts, and testing utilities directly from the official `uniswapfoundation/v4-template`.
