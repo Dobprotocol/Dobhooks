@@ -99,16 +99,37 @@
     }
     .nav-links a:hover { color: var(--text-1); background: var(--bg-2); }
     .nav-r { display: flex; align-items: center; gap: 10px; }
+    .net-wrap { position: relative; }
     .net {
-      display: flex; align-items: center; gap: 7px;
+      display: flex; align-items: center; gap: 7px; cursor: pointer;
       padding: 6px 11px; border-radius: 999px;
       background: var(--bg-2); border: 1px solid var(--border);
       font-size: 11.5px; color: var(--text-2); font-weight: 500;
+      transition: 0.16s var(--ease);
     }
+    .net:hover { border-color: var(--border-hover); color: var(--text-1); }
     .net i {
       width: 6px; height: 6px; border-radius: 50%;
       background: var(--amber); box-shadow: 0 0 7px var(--amber);
     }
+    .net-arrow { font-size: 8px; opacity: 0.7; }
+    .net-menu {
+      display: none; position: absolute; top: calc(100% + 6px); right: 0; z-index: 200;
+      background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-md);
+      padding: 4px; min-width: 210px; box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+    }
+    .net-menu.open { display: block; }
+    .net-opt {
+      display: flex; align-items: center; gap: 9px; width: 100%;
+      padding: 9px 11px; border: 0; border-radius: var(--r-xs);
+      background: transparent; color: var(--text-2); text-align: left;
+      font-size: 12.5px; font-weight: 500; cursor: pointer; text-decoration: none;
+      transition: 0.16s var(--ease);
+    }
+    .net-opt:hover { background: var(--bg-2); color: var(--text-0); }
+    .net-opt.active { background: var(--accent-dim); color: var(--accent-light); }
+    .net-opt span.d { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .net-opt em { font-style: normal; display: block; font-size: 11px; color: var(--text-3); font-weight: 400; }
     .wbtn {
       padding: 8px 15px; border-radius: var(--r-md); border: 0; cursor: pointer;
       background: var(--grad-primary); color: #fff; font-weight: 550; font-size: 13px;
@@ -303,7 +324,17 @@
     </div>
   </div>
   <div class="nav-r">
-    <span class="net"><i></i> Stellar Testnet</span>
+    <div class="net-wrap">
+      <button class="net" id="netBadge"><i></i> Stellar Testnet <span class="net-arrow">&#9662;</span></button>
+      <!-- Two clients, not two chains of one client. Each has its own wallet,
+           its own contracts and its own settlement, so this navigates. -->
+      <div class="net-menu" id="netMenu">
+        <button class="net-opt active"><span class="d" style="background:var(--accent);"></span>
+          <span>Stellar Testnet<em>Exit auction &middot; direct settlement</em></span></button>
+        <a class="net-opt" href="app-evm.html"><span class="d" style="background:#FF007A;"></span>
+          <span>Unichain Sepolia<em>Uniswap V4 hook &middot; dUSDC vault</em></span></a>
+      </div>
+    </div>
     <button class="wbtn" id="walletBtn">Connect Freighter</button>
   </div>
 </nav>
@@ -314,6 +345,7 @@
     <button class="tab" data-p="sell">Sell a position</button>
     <button class="tab" data-p="node">Liquidity Node</button>
     <button class="tab" data-p="queue">The line</button>
+    <button class="tab" data-p="faucet">Get tokens</button>
     <button class="tab" data-p="contracts">Contracts</button>
   </div>
 </div>
@@ -461,6 +493,18 @@
       </div>
       <button class="btn" id="aBtn">Set appetite</button>
       <div id="aState" style="margin-top:14px;"></div>
+
+      <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border-subtle);">
+        <label style="display:block; font-size:12px; color:var(--text-2); margin-bottom:6px; font-weight:500;">
+          Mark a position divested</label>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <input type="number" id="rAmount" min="0" step="0.01" placeholder="0.00" style="flex:1; min-width:160px;" />
+          <button class="btn ghost" id="rBtn">Reduce exposure</button>
+        </div>
+        <div class="hint" style="margin-top:6px;">Filling an exit leaves you holding the asset, so your
+        exposure keeps counting. When you have sold it on, tell the vault here — nothing else can,
+        because nothing else knows.</div>
+      </div>
     </div>
 
     <div class="card">
@@ -495,6 +539,27 @@
     <div id="queueBox"><div class="empty"><span class="spin"></span> Reading testnet…</div></div>
   </div>
 
+  <!-- ═══════════ FAUCET ═══════════ -->
+  <div id="pg-faucet" class="pg">
+    <div class="phd">
+      <h1>Get test tokens</h1>
+      <p>Nothing here can be tried with an empty wallet: a seller needs a position to sell and a Node
+      needs USDC to back a bid. The tap below hands out both, once an hour per wallet, per token.</p>
+    </div>
+
+    <div id="faucetList"><div class="empty"><span class="spin"></span> Reading testnet…</div></div>
+
+    <div class="note warn" style="margin-top:14px;">
+      <div><b>Play money.</b> These are testnet tokens with no value at all. The faucet holds the mint
+      for them, which is exactly why it can hand them out and why the amounts mean nothing.</div>
+    </div>
+
+    <div class="note" style="margin-top:10px;">
+      <div>You also need a little XLM to pay the fee on any transaction. Freighter funds a new testnet
+      account for you, or use <a href="https://friendbot.stellar.org" target="_blank" rel="noopener">friendbot ↗</a>.</div>
+    </div>
+  </div>
+
   <!-- ═══════════ CONTRACTS ═══════════ -->
   <div id="pg-contracts" class="pg">
     <div class="phd">
@@ -516,8 +581,9 @@
     </div>
 
     <div class="note warn" style="margin-top:14px;">
-      <div><b>Testnet only.</b> These tokens have an open mint and carry no value whatsoever. This is
-      not the real USDC contract, and nothing here is deployed to mainnet.</div>
+      <div><b>Testnet only.</b> These tokens carry no value whatsoever, and their mint is held by the
+      faucet so anyone can help themselves. This is not the real USDC contract, and nothing here is
+      deployed to mainnet.</div>
     </div>
   </div>
 
@@ -547,6 +613,14 @@ var C = {
   auction: 'CBZE6QZHCEKS23E3SIUBGILTGSPHHUCLKAPVSJT4C5Q3IHHE57QPMMZ3'
 };
 var USDC = { id: 'CCPNESXPESH5F7WOOWYPLPTLK2PICRP7DXGNGJPPH3YJ3XZVEGKAJL2I', dec: 7, sym: 'USDC' };
+
+/* Testnet scaffolding, deliberately not one of the four: the test tokens mint
+   only for their admin, so the faucet *is* their admin and hands out a drip on
+   a cooldown. Its error codes are 900-999, clear of the layer's ranges. */
+var FAUCET = 'CAJHMAFYVO7LDRUDQFYIJYSVXR6UJL55AR7LLU6EEWDFUVQSMWO6YV4G';
+/* A seed, not the list. There is no asset registry contract — assets become
+   real to this layer by having an exit opened on them — so anything that
+   turns up in an exit gets read off its own token contract and added below. */
 var ASSETS = [
   { id: 'CDPHF6JRRPAG2ZHEQCR3CG4JYBYDAEMPYIDSIWGGVUEJNRWAYG2E7VTS', dec: 0, sym: 'SFA', name: 'Solar Farm Alpha' }
 ];
@@ -569,6 +643,27 @@ function $(id) { return document.getElementById(id); }
 function assetById(id) {
   for (var i = 0; i < ASSETS.length; i++) if (ASSETS[i].id === id) return ASSETS[i];
   return { id: id, dec: 0, sym: id.slice(0, 4) + '…', name: 'Unknown asset' };
+}
+function knownAsset(id) {
+  for (var i = 0; i < ASSETS.length; i++) if (ASSETS[i].id === id) return true;
+  return false;
+}
+
+/* Read a token's own metadata rather than trusting a hardcoded table — a
+   wrong `dec` here would misprice every amount on screen by orders of ten. */
+async function learnAsset(id) {
+  if (knownAsset(id)) return;
+  var dec, sym, name;
+  try {
+    dec = Number(await read(id, 'decimals', []));
+    sym = String(await read(id, 'symbol', []));
+    name = String(await read(id, 'name', []));
+  } catch (e) {
+    return;   // not a token we can read; leave it as the truncated fallback
+  }
+  if (knownAsset(id)) return;
+  ASSETS.push({ id: id, dec: dec, sym: sym, name: name || sym });
+  fillAssetSelects();
 }
 
 /* Contract amounts are integers scaled by the token's decimals. Doing this
@@ -628,7 +723,7 @@ function explain(err) {
   if (!m) return s.length > 240 ? s.slice(0, 240) + '…' : s;
   var n = Number(m[1]);
   var who = n < 100 ? 'lp_vault' : n < 200 ? 'settlement_router'
-          : n < 300 ? 'fifo_queue' : 'exit_auction';
+          : n < 300 ? 'fifo_queue' : n < 400 ? 'exit_auction' : 'faucet';
   var known = {
     5:  'Your free balance will not cover that bid.',
     7:  'That would take you past your own exposure ceiling for this asset.',
@@ -641,7 +736,9 @@ function explain(err) {
     305: 'That does not beat the standing bid — matching it is not beating it.',
     306: 'Bidding is over for this exit.',
     308: 'No bids to accept.',
-    311: 'Another exit is ahead of this one in the line for this asset.'
+    311: 'Another exit is ahead of this one in the line for this asset.',
+    903: 'The faucet does not hand out that token.',
+    904: 'You already took this one. The tap refills an hour after your last claim.'
   };
   return (known[n] || 'The call was refused.') +
          '<span class="code">' + who + ' → Error(Contract, #' + n + ')</span>';
@@ -819,6 +916,14 @@ async function loadExits() {
       .catch(function () { return null; });
   }));
   lastExits = got.filter(Boolean);
+
+  /* Anything traded here that we have not seen before, learn now — otherwise
+     it would render as a truncated address with the wrong decimals. */
+  var unseen = [];
+  lastExits.forEach(function (x) {
+    if (!knownAsset(x.asset) && unseen.indexOf(x.asset) < 0) unseen.push(x.asset);
+  });
+  if (unseen.length) await Promise.all(unseen.map(learnAsset));
 
   var live = lastExits.filter(function (x) {
     var s = statusOf(x); return s === 'open' || s === 'queued';
@@ -1050,8 +1155,80 @@ function fillAssetSelects() {
   var opts = ASSETS.map(function (a) {
     return '<option value="' + a.id + '">' + a.name + ' (' + a.sym + ')</option>';
   }).join('');
-  $('sAsset').innerHTML = opts;
-  $('aAsset').innerHTML = opts;
+  ['sAsset', 'aAsset'].forEach(function (id) {
+    var el = $(id), keep = el.value;      // a redraw must not move the user's choice
+    el.innerHTML = opts;
+    if (keep) el.value = keep;
+  });
+}
+
+/* ── faucet ──────────────────────────────────────────────────────────── */
+
+/* USDC is not in ASSETS — it is the settlement currency, not something you
+   sell — so metadata lookups have to check it separately. */
+function tokenMeta(id) {
+  if (id === USDC.id) return { id: id, dec: USDC.dec, sym: USDC.sym, name: 'USD Coin (test)' };
+  for (var i = 0; i < ASSETS.length; i++) if (ASSETS[i].id === id) return ASSETS[i];
+  return null;
+}
+
+function claimFrom(id) {
+  write(FAUCET, 'claim', [
+    SDK.nativeToScVal(me, { type: 'address' }),
+    SDK.nativeToScVal(id, { type: 'address' })
+  ], 'Claiming…');
+}
+
+async function loadFaucet() {
+  var box = $('faucetList'), toks;
+  try {
+    toks = await read(FAUCET, 'tokens', []);
+  } catch (e) {
+    box.innerHTML = '<div class="empty">Could not read the faucet. ' + explain(e) + '</div>';
+    return;
+  }
+  if (!toks || !toks.length) { box.innerHTML = '<div class="empty">The tap is closed.</div>'; return; }
+
+  /* Whatever the faucet lists is what it hands out. Anything the page has not
+     met yet gets read off its own token contract, so adding a token to the tap
+     needs no change here. */
+  await Promise.all(toks.map(function (id) {
+    return tokenMeta(id) ? null : learnAsset(id);
+  }));
+
+  var now = Math.floor(Date.now() / 1000);
+  var rows = await Promise.all(toks.map(async function (id) {
+    var addr = SDK.nativeToScVal(id, { type: 'address' });
+    var drip = String(await read(FAUCET, 'drip', [addr]));
+    var next = 0, bal = null;
+    if (me) {
+      var mine = SDK.nativeToScVal(me, { type: 'address' });
+      try { next = Number(await read(FAUCET, 'next_claim', [mine, addr])); } catch (e) {}
+      try { bal = String(await read(id, 'balance', [mine])); } catch (e) {}
+    }
+    return { id: id, drip: drip, next: next, bal: bal };
+  }));
+
+  box.innerHTML = rows.map(function (r) {
+    var m = tokenMeta(r.id) || { dec: 0, sym: '???', name: r.id };
+    var wait = r.next > now ? Math.ceil((r.next - now) / 60) : 0;
+    var btn;
+    if (!me) {
+      btn = '<button class="btn sm ghost" onclick="connect()">Connect to claim</button>';
+    } else if (wait) {
+      btn = '<button class="btn sm ghost" disabled>Again in ' + wait + ' min</button>';
+    } else {
+      btn = '<button class="btn sm" onclick="claimFrom(\'' + r.id + '\')">Claim '
+          + fmt(r.drip, m.dec, 0) + ' ' + m.sym + '</button>';
+    }
+    return '<div class="card" style="display:flex;align-items:center;gap:14px;justify-content:space-between;flex-wrap:wrap;">'
+         + '<div><h3 style="margin:0;">' + m.name + '</h3>'
+         + '<p class="sub" style="margin:4px 0 0;">' + fmt(r.drip, m.dec, 0) + ' ' + m.sym
+         + ' per claim · <a href="' + EXPERT + '/contract/' + r.id + '" target="_blank" rel="noopener">'
+         + shortId(r.id) + ' ↗</a>'
+         + (r.bal === null ? '' : ' · you hold ' + fmt(r.bal, m.dec, 2) + ' ' + m.sym)
+         + '</p></div>' + btn + '</div>';
+  }).join('');
 }
 
 function fillContractTables() {
@@ -1068,11 +1245,14 @@ function fillContractTables() {
          + shortId(r[1]) + ' ↗</a></span></div>';
   }).join('');
 
-  var toks = [[USDC.sym + ' (test)', USDC.id, USDC.dec]].concat(
-    ASSETS.map(function (a) { return [a.name + ' (' + a.sym + ')', a.id, a.dec]; }));
+  var toks = [[USDC.sym + ' (test)', USDC.id, USDC.dec + ' decimals']].concat(
+    ASSETS.map(function (a) { return [a.name + ' (' + a.sym + ')', a.id, a.dec + ' decimals']; }));
+  /* Listed here so nobody has to wonder who can mint these: the faucet holds
+     the admin of both, which is what lets it hand them out. */
+  toks.push(['testnet faucet', FAUCET, 'holds the mint · codes 900–999']);
   $('kvTokens').innerHTML = toks.map(function (t) {
     return '<div><span class="k">' + t[0] + ' <span style="color:var(--text-3)">· '
-         + t[2] + ' decimals</span></span><span class="v"><a href="' + EXPERT + '/contract/' + t[1]
+         + t[2] + '</span></span><span class="v"><a href="' + EXPERT + '/contract/' + t[1]
          + '" target="_blank" rel="noopener">' + shortId(t[1]) + ' ↗</a></span></div>';
   }).join('');
 }
@@ -1085,6 +1265,7 @@ function refresh() {
   loadQueue().catch(function () {});
   loadNode().catch(function () {});
   loadSell().catch(function () {});
+  loadFaucet().catch(function () {});
 }
 
 document.querySelectorAll('.tab').forEach(function (t) {
@@ -1095,6 +1276,22 @@ document.querySelectorAll('.tab').forEach(function (t) {
     $('pg-' + t.dataset.p).classList.add('active');
   });
 });
+
+$('rBtn').addEventListener('click', function () {
+  var raw = toRaw($('rAmount').value, USDC.dec);
+  if (!raw || BigInt(raw) <= 0n) { toast('Enter how much you have divested.', 'err'); return; }
+  write(C.vault, 'reduce_exposure', [
+    SDK.nativeToScVal(me, { type: 'address' }),
+    SDK.nativeToScVal($('aAsset').value, { type: 'address' }),
+    SDK.nativeToScVal(raw, { type: 'i128' })
+  ], 'Reducing exposure…');
+});
+
+$('netBadge').addEventListener('click', function (e) {
+  e.stopPropagation();
+  $('netMenu').classList.toggle('open');
+});
+document.addEventListener('click', function () { $('netMenu').classList.remove('open'); });
 
 $('walletBtn').addEventListener('click', connect);
 $('sBtn').addEventListener('click', openExit);
