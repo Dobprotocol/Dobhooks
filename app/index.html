@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>dobdex — RWA Liquidity</title>
+  <title>DobDex — EVM Reference App (testnet)</title>
+  <meta name="description" content="The DobDex EVM reference implementation on Unichain Sepolia testnet. The production protocol is being built on Stellar / Soroban." />
   <link rel="canonical" href="https://dex.dobprotocol.com/index.html" />
   <meta name="robots" content="noindex,follow" />
   <!-- GA4 de dobprotocol.com. Mismo measurement ID que el apex a proposito:
@@ -16,7 +17,12 @@
     gtag('js', new Date());
     gtag('config', 'G-1M2TNZYEZZ');
   </script>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 89 89'><circle cx='44.9' cy='44' r='44' fill='%23597CE9'/></svg>">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="icon" type="image/svg+xml" href="/dob-logo.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&display=swap" rel="stylesheet" />
@@ -72,6 +78,15 @@
       font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
       text-transform: uppercase;
     }
+    .testnet-banner a { color: #000; text-decoration: underline; text-underline-offset: 2px; }
+    .ref-banner {
+      background: var(--bg-2); border-bottom: 1px solid var(--border);
+      color: var(--text-2); text-align: center; padding: 8px 16px;
+      font-size: 11px; line-height: 1.5;
+    }
+    .ref-banner b { color: var(--text-1); font-weight: 800; }
+    .ref-banner a { color: var(--accent-light); text-decoration: none; font-weight: 700; border-bottom: 1px solid rgba(151,90,255,0.35); }
+    .ref-banner a:hover { border-bottom-color: var(--accent-light); }
 
     /* ═══ LIGHT THEME ═══ */
     body.light {
@@ -976,6 +991,11 @@
 </head>
 <body>
 <div class="testnet-banner">Testnet Mode — All tokens and transactions are on test networks only</div>
+<div class="ref-banner">
+  <b>EVM reference implementation.</b> This app runs the original DobDex mechanism on Unichain Sepolia testnet, where the auction, tiering and LP-fill logic were first built and tested.
+  <b>DobDex ships on Stellar</b> — the six Soroban contracts are in build.
+  <a href="/#how-it-works">Read the Soroban architecture &rarr;</a>
+</div>
 <div class="ambient"></div>
 
 <!-- ═══ NAV ═══ -->
@@ -987,7 +1007,7 @@
     </a>
     <div class="nav-links">
       <a href="demo.html" style="color:var(--accent-light);">Demo</a>
-      <a href="protocol.html">Protocol</a>
+      <a href="/#how-it-works">How it works</a>
       <a href="deck.html">Pitch</a>
       <a href="landing.html">About</a>
     </div>
@@ -1048,7 +1068,7 @@
   <button data-p="faucet">Get Tokens</button>
   <button data-p="pool">dUSDC</button>
   <div style="border-top:1px solid var(--border); margin:4px 0;"></div>
-  <a href="protocol.html">Protocol</a>
+  <a href="/#how-it-works">How it works</a>
   <a href="deck.html">Pitch</a>
   <a href="landing.html">About</a>
 </div>
@@ -1704,8 +1724,9 @@
 <div id="onboardModal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.7);backdrop-filter:blur(12px);place-items:center;" onclick="if(event.target===this)closeOnboard()">
   <div style="background:var(--bg-1);border:1px solid var(--border);border-radius:var(--r-xl);max-width:480px;width:90%;padding:32px;text-align:center;box-shadow:0 24px 80px rgba(0,0,0,0.5);">
     <div style="font-size:32px;margin-bottom:12px;">&#127968;</div>
-    <h2 style="font-size:20px;font-weight:900;letter-spacing:-0.5px;margin-bottom:8px;">Welcome to Dobhooks</h2>
-    <p style="font-size:12px;color:var(--text-3);line-height:1.6;margin-bottom:24px;">The LP-priced exit liquidity layer for tokenized real-world assets. Sell RWA tokens for USDC through Liquidity Nodes, or provide liquidity and earn discounted RWA.</p>
+    <h2 style="font-size:20px;font-weight:900;letter-spacing:-0.5px;margin-bottom:8px;">Welcome to the DobDex reference app</h2>
+    <p style="font-size:12px;color:var(--text-3);line-height:1.6;margin-bottom:12px;">The LP-priced exit liquidity layer for tokenized real-world assets. Sell RWA tokens for USDC through Liquidity Nodes, or provide liquidity and earn discounted RWA.</p>
+    <p style="font-size:11px;color:var(--text-3);line-height:1.6;margin-bottom:24px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;">This is the <strong style="color:var(--text-2)">EVM testnet reference implementation</strong>. The production DobDex is being built on <strong style="color:var(--text-2)">Stellar / Soroban</strong> — see <a href="/#how-it-works" style="color:var(--accent-light);text-decoration:none;">the Soroban architecture</a>.</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">
       <div onclick="closeOnboard();go('swap');swapMode('buy')" style="cursor:pointer;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 12px;transition:border-color 0.15s;">
         <div style="font-size:20px;margin-bottom:6px;">&#128200;</div>
@@ -1723,7 +1744,7 @@
       <button onclick="closeOnboard()" style="flex:1;padding:10px;border-radius:var(--r-md);border:1px solid var(--border);background:transparent;color:var(--text-2);font-size:12px;font-weight:600;cursor:pointer;">Skip</button>
     </div>
     <div style="font-size:10px;color:var(--text-3);">
-      <a href="protocol.html" style="color:var(--accent-light);text-decoration:none;">How it works</a> &middot;
+      <a href="/#how-it-works" style="color:var(--accent-light);text-decoration:none;">How it works</a> &middot;
       <a href="https://docs.dobprotocol.com/dex/overview" target="_blank" style="color:var(--accent-light);text-decoration:none;">Documentation</a> &middot;
       <a href="simulate.html" style="color:var(--accent-light);text-decoration:none;">Try Simulator</a>
     </div>
@@ -1737,13 +1758,13 @@
           <svg viewBox="0 0 89 89" fill="none"><circle cx="44.9" cy="44" r="44" fill="#597CE9"/><path d="M35.5 54.1C33.1 51.5 31.9 48.2 31.9 44C31.9 39.8 33.1 36.5 35.5 33.9C36.9 32.4 38.6 31.3 40.6 30.7V22C38 22.4 35.6 23.2 33.4 24.5C30.1 26.4 27.5 29 25.7 32.3C23.9 35.7 23 39.6 23 44.1C23 48.6 23.9 52.5 25.7 55.8C27.5 59.2 30.1 61.7 33.4 63.6C35.6 64.8 38 65.6 40.6 66V57.3C38.6 56.7 36.9 55.6 35.5 54.1Z" fill="#F9FAFE"/><path d="M64.1 32.3C62.2 29 59.7 26.4 56.4 24.5C54.2 23.2 51.8 22.4 49.2 22V30.7C51.2 31.4 52.9 32.4 54.3 34C56.7 36.6 57.9 39.9 57.9 44.1C57.9 48.3 56.7 51.5 54.3 54.1C52.9 55.6 51.2 56.7 49.2 57.3V66C51.8 65.6 54.2 64.8 56.4 63.6C59.7 61.7 62.2 59.1 64.1 55.8C65.9 52.5 66.9 48.6 66.9 44.1C66.9 39.6 65.9 35.7 64.1 32.3Z" fill="#F9FAFE"/><circle cx="44.9" cy="44" r="5.5" fill="#F9FAFE"/></svg>
           <span><em>dob</em>dex</span>
         </div>
-        <div style="font-size:11px; color:var(--text-3); line-height:1.5; max-width:260px;">LP-Priced Exit Liquidity for RWA. The Uniswap V4 hook layer for tokenized real-world assets.</div>
+        <div style="font-size:11px; color:var(--text-3); line-height:1.5; max-width:260px;">LP-priced exit liquidity for tokenized real-world assets. Shipping on Stellar &mdash; this app is the EVM reference implementation.</div>
       </div>
       <div>
         <div style="font-size:9px; font-weight:700; color:var(--text-3); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:10px;">Protocol</div>
         <div style="display:flex; flex-direction:column; gap:6px;">
           <a href="https://docs.dobprotocol.com" target="_blank">Docs</a>
-          <a href="protocol.html">Protocol</a>
+          <a href="/#how-it-works">How it works</a>
           <a href="deck.html">Pitch</a>
           <a href="demo.html">Demo</a>
         </div>
@@ -1758,7 +1779,7 @@
       </div>
     </div>
     <div style="border-top:1px solid var(--border); padding-top:14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-      <div style="font-size:10px; color:var(--text-3);">Built on Uniswap V4 &middot; Powered by Reactive Network</div>
+      <div style="font-size:10px; color:var(--text-3);">Reference build on Unichain Sepolia &middot; Production target: Stellar / Soroban, settled in USDC</div>
       <div class="ftags"><span>DobPegHook</span><span>DobRwaVault</span><span>DobValidatorRegistry</span><span>DobLPRegistry</span></div>
     </div>
   </div>

@@ -16,7 +16,12 @@
     gtag('config', 'G-1M2TNZYEZZ');
   </script>
   <meta name="description" content="Interactive protocol simulation for DobDex. Step through every mechanism: sell, buy, liquidation, LP lifecycle, LP-only mode, resale market, LP fallback, and pooled liquidity node." />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 89 89'><circle cx='44.9' cy='44' r='44' fill='%23597CE9'/></svg>">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="icon" type="image/svg+xml" href="/dob-logo.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -531,7 +536,7 @@
   </a>
   <div class="topnav-links">
     <a href="landing.html">Home</a>
-    <a href="protocol.html">Protocol</a>
+    <a href="/#how-it-works">How it works</a>
     <a href="index.html">App</a>
     <a href="demo.html">Demo</a>
     <a href="deck.html">Deck</a>
@@ -552,6 +557,13 @@
     <p class="hero-sub fade-up" style="transition-delay:0.25s;">Step through every DobDex mechanism interactively. See exactly how tokens flow between contracts.</p>
   </div>
 </section>
+
+<div style="background:#12141c;border-top:1px solid #2a2d3a;border-bottom:1px solid #2a2d3a;color:#9aa0b4;text-align:center;padding:12px 16px;font-size:12px;line-height:1.6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;position:relative;z-index:2;">
+  <strong style="color:#e8eaf2;font-weight:800;">EVM reference implementation.</strong>
+  This simulator steps through the original DobDex build on Unichain Sepolia testnet, where the mechanism was first proven.
+  <strong style="color:#e8eaf2;font-weight:800;">DobDex ships on Stellar</strong> &mdash; the six Soroban contracts are in build.
+  <a href="/#how-it-works" style="color:#975AFF;text-decoration:none;font-weight:700;border-bottom:1px solid rgba(151,90,255,0.4);">Read the Soroban architecture &rarr;</a>
+</div>
 
 <div class="section-divider"></div>
 
@@ -723,15 +735,15 @@
   <div class="cta-links fade-up" style="transition-delay:0.3s;">
     <a href="index.html">Launch App</a>
     <a href="demo.html">Product Demo</a>
-    <a href="protocol.html">Protocol Docs</a>
+    <a href="/#how-it-works">How it works</a>
     <a href="deck.html">Pitch Deck</a>
     <a href="https://github.com/Dobprotocol/Dobhooks" target="_blank">GitHub</a>
   </div>
   <div class="cta-built fade-up" style="transition-delay:0.4s;">
     Built by <a href="https://dobprotocol.com" target="_blank">Dobprotocol</a> &middot;
     <a href="https://docs.dobprotocol.com/dex/overview" target="_blank">Docs</a> &middot;
-    Deployed on <a href="https://unichain.org" target="_blank">Unichain</a> &middot;
-    Powered by <a href="https://reactive.network" target="_blank">Reactive Network</a>
+    Reference build on <a href="https://unichain.org" target="_blank">Unichain Sepolia</a> &middot;
+    Shipping on <a href="https://stellar.org" target="_blank">Stellar</a>
   </div>
   <div style="margin-top:48px;opacity:0.4;" class="fade-up" style="transition-delay:0.5s;">
     <svg viewBox="0 0 89 89" fill="none" width="40" height="40"><circle cx="44.9" cy="44" r="44" fill="#597CE9"/><path d="M35.5 54.1C33.1 51.5 31.9 48.2 31.9 44C31.9 39.8 33.1 36.5 35.5 33.9C36.9 32.4 38.6 31.3 40.6 30.7V22C38 22.4 35.6 23.2 33.4 24.5C30.1 26.4 27.5 29 25.7 32.3C23.9 35.7 23 39.6 23 44.1C23 48.6 23.9 52.5 25.7 55.8C27.5 59.2 30.1 61.7 33.4 63.6C35.6 64.8 38 65.6 40.6 66V57.3C38.6 56.7 36.9 55.6 35.5 54.1Z" fill="#F9FAFE"/><path d="M64.1 32.3C62.2 29 59.7 26.4 56.4 24.5C54.2 23.2 51.8 22.4 49.2 22V30.7C51.2 31.4 52.9 32.4 54.3 34C56.7 36.6 57.9 39.9 57.9 44.1C57.9 48.3 56.7 51.5 54.3 54.1C52.9 55.6 51.2 56.7 49.2 57.3V66C51.8 65.6 54.2 64.8 56.4 63.6C59.7 61.7 62.2 59.1 64.1 55.8C65.9 52.5 66.9 48.6 66.9 44.1C66.9 39.6 65.9 35.7 64.1 32.3Z" fill="#F9FAFE"/><circle cx="44.9" cy="44" r="5.5" fill="#F9FAFE"/></svg>

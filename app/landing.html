@@ -1,864 +1,1931 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DobDex — LP-Priced Exit Liquidity for Real-World Assets</title>
-  <link rel="canonical" href="https://dex.dobprotocol.com/" />
-  <!-- GA4 de dobprotocol.com. Mismo measurement ID que el apex a proposito:
-       GA4 trackea subdominios bajo una sola property; una property nueva
-       partiria el historico. dex. no reportaba NADA hasta ahora. -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-1M2TNZYEZZ"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-1M2TNZYEZZ');
-  </script>
-  <meta name="description" content="LP-priced exit liquidity for tokenized real-world assets. Liquidity Nodes set their own terms. Uniswap V4 Custom Accounting Hook on Unichain. Cross-chain oracle sync via Reactive Network." />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 89 89'><circle cx='44.9' cy='44' r='44' fill='%23597CE9'/></svg>">
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --bg: #0a0e1a;
-      --bg-card: rgba(89,124,233,0.03);
-      --bg-card-solid: #0f1524;
-      --bg-elevated: #161d2e;
-      --border: rgba(89,124,233,0.08);
-      --border-hover: rgba(89,124,233,0.3);
-      --text-0: #ffffff;
-      --text-1: #e0e6f4;
-      --text-2: #8d9ab8;
-      --text-3: #576380;
-      --accent: #597CE9;
-      --accent-hover: #6d8ef0;
-      --accent-soft: #3E54D3;
-      --accent-dim: rgba(89,124,233,0.08);
-      --accent-glow: rgba(89,124,233,0.18);
-      --purple: #975AFF;
-      --purple-dim: rgba(151,90,255,0.08);
-      --green: #40C057;
-      --green-dim: rgba(64,192,87,0.08);
-      --red: #F55252;
-      --amber: #F7A617;
-      --cyan: #34c4cf;
-      --grad-primary: linear-gradient(135deg, #597CE9 0%, #3E54D3 100%);
-      --grad-hero: linear-gradient(135deg, #2F46A8 0%, #4560D1 40%, #597CE9 100%);
-      --font: 'Inter', system-ui, -apple-system, sans-serif;
-      --ease: cubic-bezier(.4,0,.2,1);
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: var(--font);
-      background: var(--bg);
-      color: var(--text-1);
-      line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
-    }
-    ::selection { background: rgba(89,124,233,0.3); }
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 3px; }
-    a { text-decoration: none; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DobDex — Exit Liquidity for Real-World Assets on Stellar</title>
+<meta name="description" content="DobDex is the exit layer for tokenized real-world assets. A TRUFA score sets the risk tier, Liquidity Nodes price the exit, and settlement lands in USDC on Stellar. Six Soroban contracts in build.">
+<meta name="theme-color" content="#08090b">
+<link rel="canonical" href="https://dex.dobprotocol.com/">
 
-    /* ═══ PRELOADER ═══ */
-    #preloader {
-      position: fixed; inset: 0; z-index: 9999;
-      background: var(--bg);
-      display: flex; align-items: center; justify-content: center;
-      transition: opacity 0.6s var(--ease), visibility 0.6s;
-    }
-    #preloader.done { opacity: 0; visibility: hidden; pointer-events: none; }
-    .preloader-inner { text-align: center; }
-    .preloader-logo { width: 64px; height: 64px; margin: 0 auto 24px; animation: preloaderPulse 1.5s var(--ease) infinite; }
-    .preloader-bar { width: 120px; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin: 0 auto; }
-    .preloader-fill { height: 100%; background: var(--accent); border-radius: 2px; width: 0%; animation: preloaderFill 1.8s var(--ease) forwards; }
-    @keyframes preloaderPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.7;transform:scale(0.95)} }
-    @keyframes preloaderFill { 0%{width:0%} 100%{width:100%} }
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://dex.dobprotocol.com/">
+<meta property="og:title" content="DobDex — Exit Liquidity for Real-World Assets on Stellar">
+<meta property="og:description" content="Score the asset, tier the risk, let Liquidity Nodes price the exit, settle in USDC on Stellar.">
+<meta property="og:image" content="https://dex.dobprotocol.com/hero-banner.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="DobDex — Exit Liquidity for Real-World Assets on Stellar">
+<meta name="twitter:description" content="Score the asset, tier the risk, let Liquidity Nodes price the exit, settle in USDC on Stellar.">
+<meta name="twitter:image" content="https://dex.dobprotocol.com/hero-banner.png">
 
-    /* ═══ NAVBAR ═══ */
-    .navbar {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 40px; height: 64px;
-      background: rgba(10,14,26,0.82);
-      backdrop-filter: blur(20px) saturate(1.5);
-      border-bottom: 1px solid var(--border);
-      transition: transform 0.4s var(--ease);
-    }
-    .nav-logo { display: flex; align-items: center; gap: 10px; }
-    .nav-logo svg { width: 28px; height: 28px; }
-    .nav-logo span { font-size: 16px; font-weight: 800; color: var(--text-0); }
-    .nav-logo b { color: var(--accent); }
-    .nav-links { display: flex; align-items: center; gap: 32px; }
-    .nav-links a { color: var(--text-3); font-size: 13px; font-weight: 500; transition: color 0.15s; letter-spacing: 0.2px; }
-    .nav-links a:hover { color: var(--text-0); }
-    .nav-cta {
-      padding: 8px 22px; border-radius: 1.5em;
-      background: var(--grad-primary); color: white;
-      font-size: 13px; font-weight: 700;
-      transition: all 0.2s var(--ease);
-      box-shadow: 0 2px 8px rgba(89,124,233,0.25);
-    }
-    .nav-cta:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(89,124,233,0.35); }
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/svg+xml" href="/dob-logo.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
 
-    /* ═══ FADE-IN ANIMATION ═══ */
-    .fade-in {
-      opacity: 0; transform: translateY(20px);
-      transition: opacity 0.6s var(--ease), transform 0.6s var(--ease);
-    }
-    .fade-in.visible { opacity: 1; transform: translateY(0); }
-    .fade-in-left { opacity: 0; transform: translateX(-24px); transition: opacity 0.6s var(--ease), transform 0.6s var(--ease); }
-    .fade-in-left.visible { opacity: 1; transform: translateX(0); }
-    .fade-in-right { opacity: 0; transform: translateX(24px); transition: opacity 0.6s var(--ease), transform 0.6s var(--ease); }
-    .fade-in-right.visible { opacity: 1; transform: translateX(0); }
+<link rel="preload" href="/fonts/GeistVF.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="/fonts/GeistMonoVF.woff" as="font" type="font/woff" crossorigin>
 
-    /* ═══ HERO ═══ */
-    .hero {
-      min-height: 100vh; display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      text-align: center; padding: 120px 24px 80px;
-      position: relative; overflow: hidden;
-    }
-    .hero-bg {
-      position: absolute; inset: 0; z-index: 0;
-    }
-    .hero-glow {
-      position: absolute; border-radius: 50%; pointer-events: none;
-      filter: blur(140px);
-    }
-    .hero-glow-1 { background: var(--accent); width: 600px; height: 600px; top: -10%; left: 5%; opacity: 0.07; }
-    .hero-glow-2 { background: var(--purple); width: 500px; height: 500px; top: 5%; right: 0%; opacity: 0.05; }
-    .hero-glow-3 { background: var(--green); width: 400px; height: 400px; bottom: 10%; left: 30%; opacity: 0.03; }
-    .hero-grid-bg {
-      position: absolute; inset: 0; opacity: 0.03;
-      background-image:
-        linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px);
-      background-size: 80px 80px;
-      mask-image: radial-gradient(ellipse 70% 70% at 50% 40%, black 30%, transparent 70%);
-    }
-    .hero-content { position: relative; z-index: 1; max-width: 800px; }
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 6px 18px; border-radius: 999px;
-      background: var(--accent-dim); border: 1px solid rgba(89,124,233,0.15);
-      font-size: 12px; font-weight: 600; color: var(--accent);
-      margin-bottom: 28px; backdrop-filter: blur(8px);
-    }
-    .hero-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
-    .hero h1 {
-      font-size: 72px; font-weight: 900; letter-spacing: -3.5px;
-      line-height: 1.0; margin-bottom: 24px;
-    }
-    .hero h1 .grad {
-      background: linear-gradient(135deg, var(--accent) 0%, #8BA4F0 40%, var(--purple) 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .hero-sub {
-      font-size: 19px; color: var(--text-2); max-width: 560px;
-      line-height: 1.7; margin: 0 auto 40px;
-    }
-    .hero-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
-    .btn-primary {
-      padding: 14px 36px; border-radius: 1.5em; border: none;
-      background: var(--grad-primary); color: white;
-      font-family: var(--font); font-size: 15px; font-weight: 700;
-      cursor: pointer; transition: all 0.2s var(--ease);
-      box-shadow: 0 4px 20px rgba(89,124,233,0.3);
-    }
-    .btn-primary:hover { filter: brightness(1.1); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(89,124,233,0.4); }
-    .btn-secondary {
-      padding: 14px 36px; border-radius: 1.5em;
-      border: 1px solid var(--border); background: rgba(255,255,255,0.03);
-      color: var(--text-1); font-family: var(--font); font-size: 15px; font-weight: 600;
-      cursor: pointer; transition: all 0.2s var(--ease);
-      backdrop-filter: blur(8px);
-    }
-    .btn-secondary:hover { border-color: var(--accent); background: var(--accent-dim); }
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-1M2TNZYEZZ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-1M2TNZYEZZ');
+</script>
 
-    /* Hero Stats */
-    .hero-stats {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
-      margin-top: 64px; max-width: 680px; width: 100%;
-      background: var(--border); border-radius: 16px; overflow: hidden;
-    }
-    .hero-stat {
-      background: var(--bg); padding: 24px; text-align: center;
-    }
-    .hero-stat:first-child { border-radius: 16px 0 0 16px; }
-    .hero-stat:last-child { border-radius: 0 16px 16px 0; }
-    .hero-stat .val { font-size: 28px; font-weight: 900; letter-spacing: -1px; margin-bottom: 2px; }
-    .hero-stat .lbl { font-size: 11px; color: var(--text-3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+<style>
+/* ════════════════════════════════════════════════════════════════
+   FONTS — Geist, self-hosted variable (same stack as dobprotocol.com)
+   ════════════════════════════════════════════════════════════════ */
+@font-face{font-family:'Geist';src:url('/fonts/GeistVF.woff') format('woff');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Geist Mono';src:url('/fonts/GeistMonoVF.woff') format('woff');font-weight:100 900;font-style:normal;font-display:swap;}
 
-    /* ═══ SECTION SHARED ═══ */
-    .section {
-      padding: 120px 40px;
-      max-width: 1200px; margin: 0 auto;
-      position: relative;
-    }
-    .section-label {
-      display: inline-flex; align-items: center; gap: 8px;
-      font-size: 11px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 1.2px; color: var(--accent);
-      margin-bottom: 16px;
-    }
-    .section-label::before {
-      content: ''; width: 20px; height: 1px;
-      background: var(--accent);
-    }
-    .section h2 {
-      font-size: 48px; font-weight: 900; letter-spacing: -2px;
-      line-height: 1.1; margin-bottom: 16px;
-    }
-    .section .section-sub {
-      font-size: 17px; color: var(--text-2); max-width: 520px;
-      line-height: 1.7; margin-bottom: 56px;
-    }
-    .section-divider {
-      width: 100%; height: 1px; max-width: 1200px;
-      margin: 0 auto;
-      background: linear-gradient(90deg, transparent, var(--border), transparent);
-    }
+/* ════════════════════════════════════════════════════════════════
+   DESIGN TOKENS
+   ════════════════════════════════════════════════════════════════ */
+:root{
+  --s0:#08090b; --s1:#0e1014; --s2:#15181d; --s3:#1c2026;
+  --b1:#16191e; --b2:#23272e; --b3:#333942;
+  --t1:#f5f6f8; --t2:#99a1b0; --t3:#6a7382;
+  --br300:#9db0f5; --br400:#7b94f0; --br500:#597ce9; --br600:#4361d4;
+  --pos:#4ade80; --warn:#fbbf24; --neg:#f87171;
+  --cyan:#22d3ee; --violet:#a78bfa; --amber:#f7a617;
+  --sans:'Geist',-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;
+  --mono:'Geist Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  --max:1160px;
+  --ease:cubic-bezier(0.16,1,0.3,1);
+}
 
-    /* ═══ ECOSYSTEM PIPELINE ═══ */
-    .pipeline-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
-      position: relative;
-    }
-    .pipeline-card {
-      background: var(--bg-card); border: 1px solid var(--border);
-      border-radius: 20px; padding: 32px 28px;
-      backdrop-filter: blur(12px);
-      transition: all 0.3s var(--ease);
-      position: relative; overflow: hidden;
-      box-shadow: 0 1px 6px 0 rgba(0,0,0,0.12);
-    }
-    .pipeline-card:hover {
-      border-color: var(--border-hover);
-      box-shadow: 0 8px 17px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
-      transform: translateY(-4px);
-    }
-    .pipeline-card::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-      background: var(--grad-primary);
-      opacity: 0; transition: opacity 0.3s;
-    }
-    .pipeline-card:hover::before { opacity: 1; }
-    .pipeline-step {
-      display: flex; align-items: center; gap: 12px;
-      margin-bottom: 16px;
-    }
-    .pipeline-num {
-      font-size: 12px; font-weight: 700; font-family: monospace;
-      color: var(--accent);
-    }
-    .pipeline-line { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(89,124,233,0.3), transparent); }
-    .pipeline-card h3 { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
-    .pipeline-product { font-size: 13px; font-family: monospace; color: var(--accent); margin-bottom: 12px; }
-    .pipeline-card p { font-size: 14px; color: var(--text-2); line-height: 1.6; }
-    .pipeline-arrow {
-      position: absolute; top: 50%; right: -14px; transform: translateY(-50%);
-      z-index: 10; color: var(--accent); font-size: 18px; opacity: 0.4;
-    }
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;scroll-padding-top:84px;-webkit-text-size-adjust:100%;}
+body{
+  font-family:var(--sans);
+  background:var(--s0);
+  color:var(--t1);
+  line-height:1.6;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  font-feature-settings:'ss01' 1,'cv01' 1;
+}
+::selection{background:rgba(89,124,233,0.3);color:#fff;}
+a{color:inherit;}
+img,svg{display:block;max-width:100%;}
+code{font-family:var(--mono);font-size:0.92em;color:var(--br300);}
 
-    /* ═══ FEATURES ═══ */
-    .feat-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
-    }
-    .feat-card {
-      background: var(--bg-card); border: 1px solid var(--border);
-      border-radius: 16px; padding: 28px;
-      transition: all 0.3s var(--ease);
-      box-shadow: 0 1px 6px 0 rgba(0,0,0,0.12);
-    }
-    .feat-card:hover {
-      border-color: var(--border-hover);
-      transform: translateY(-3px);
-      box-shadow: 0 8px 17px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
-    }
-    .feat-icon {
-      width: 48px; height: 48px; border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 22px; margin-bottom: 18px;
-    }
-    .feat-card h3 { font-size: 16px; font-weight: 800; margin-bottom: 8px; }
-    .feat-card p { font-size: 13px; color: var(--text-2); line-height: 1.6; }
-    .feat-tag {
-      display: inline-block; margin-top: 14px;
-      padding: 3px 10px; border-radius: 6px;
-      font-size: 10px; font-weight: 700; font-family: monospace;
-      letter-spacing: 0.3px;
-    }
+/* ════════════════════════════════════════════════════════════════
+   SCROLL PROGRESS + PRELOADER
+   ════════════════════════════════════════════════════════════════ */
+#progress{position:fixed;top:0;left:0;height:2px;width:0;z-index:200;
+  background:linear-gradient(90deg,var(--br600),var(--br400),var(--cyan));
+  box-shadow:0 0 12px rgba(89,124,233,0.6);transition:width 0.1s linear;}
 
-    /* ═══ HOW IT WORKS ═══ */
-    .how-grid {
-      display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px;
-      position: relative;
-    }
-    .how-grid::before {
-      content: ''; position: absolute;
-      top: 24px; left: 12%; right: 12%; height: 2px;
-      background: linear-gradient(90deg, var(--accent), var(--purple), var(--green));
-      opacity: 0.15; z-index: 0;
-    }
-    .how-step {
-      text-align: center; position: relative; z-index: 1;
-    }
-    .how-num {
-      width: 48px; height: 48px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px; font-weight: 900; margin: 0 auto 20px;
-      background: var(--grad-primary); color: white;
-      box-shadow: 0 4px 16px rgba(89,124,233,0.3);
-    }
-    .how-step h4 { font-size: 15px; font-weight: 800; margin-bottom: 8px; }
-    .how-step p { font-size: 13px; color: var(--text-2); line-height: 1.5; max-width: 200px; margin: 0 auto; }
+#preloader{position:fixed;inset:0;z-index:9999;background:var(--s0);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;
+  transition:opacity 0.7s var(--ease),visibility 0.7s;}
+#preloader.done{opacity:0;visibility:hidden;pointer-events:none;}
+.pre-mark{width:52px;height:52px;animation:preFloat 2.2s ease-in-out infinite;}
+@keyframes preFloat{0%,100%{transform:translateY(0);opacity:1;}50%{transform:translateY(-8px);opacity:0.65;}}
+.pre-bar{width:120px;height:2px;background:var(--b2);border-radius:2px;overflow:hidden;}
+.pre-bar i{display:block;height:100%;width:40%;border-radius:2px;
+  background:linear-gradient(90deg,transparent,var(--br500),transparent);
+  animation:preSlide 1.1s ease-in-out infinite;}
+@keyframes preSlide{0%{transform:translateX(-100%);}100%{transform:translateX(320%);}}
 
-    /* ═══ MULTI-CHAIN ═══ */
-    .chain-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
-    }
-    .chain-card {
-      background: var(--bg-card); border: 1px solid var(--border);
-      border-radius: 16px; padding: 28px;
-      transition: all 0.3s var(--ease);
-      box-shadow: 0 1px 6px 0 rgba(0,0,0,0.12);
-      position: relative; overflow: hidden;
-    }
-    .chain-card:hover { border-color: var(--border-hover); transform: translateY(-3px); box-shadow: 0 8px 17px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19); }
-    .chain-card .chain-bar { position: absolute; top: 0; left: 0; right: 0; height: 2px; }
-    .chain-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
-    .chain-icon {
-      width: 40px; height: 40px; border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px; font-weight: 900; color: white;
-    }
-    .chain-card h3 { font-size: 16px; font-weight: 800; }
-    .chain-card .chain-sub { font-size: 11px; color: var(--text-3); }
-    .chain-card p { font-size: 13px; color: var(--text-2); line-height: 1.6; margin-bottom: 14px; }
-    .chain-tag {
-      display: inline-block; padding: 3px 10px; border-radius: 6px;
-      font-size: 10px; font-weight: 700;
-    }
+/* ════════════════════════════════════════════════════════════════
+   NAVBAR
+   ════════════════════════════════════════════════════════════════ */
+.nav{position:fixed;top:0;left:0;right:0;z-index:150;height:66px;
+  display:flex;align-items:center;
+  background:rgba(8,9,11,0.72);backdrop-filter:blur(18px) saturate(160%);
+  -webkit-backdrop-filter:blur(18px) saturate(160%);
+  border-bottom:1px solid transparent;
+  transition:border-color 0.35s var(--ease),background 0.35s var(--ease);}
+.nav.stuck{border-bottom-color:var(--b1);background:rgba(8,9,11,0.9);}
+.nav-in{width:100%;max-width:var(--max);margin:0 auto;padding:0 24px;
+  display:flex;align-items:center;justify-content:space-between;gap:24px;}
+.brand{display:flex;align-items:center;gap:9px;text-decoration:none;flex-shrink:0;}
+.brand svg{width:28px;height:28px;}
+.brand b{font-size:16.5px;font-weight:700;letter-spacing:-0.02em;color:var(--t1);}
+.brand em{font-style:normal;font-family:var(--mono);font-size:9.5px;font-weight:500;
+  letter-spacing:0.14em;text-transform:uppercase;color:var(--br400);
+  border:1px solid rgba(89,124,233,0.28);border-radius:5px;padding:2px 6px;margin-left:2px;}
+.nav-links{display:flex;align-items:center;gap:4px;}
+.nav-links a{font-size:13.5px;font-weight:450;color:var(--t2);text-decoration:none;
+  padding:7px 12px;border-radius:8px;transition:color 0.2s,background 0.2s;white-space:nowrap;}
+.nav-links a:hover{color:var(--t1);background:rgba(255,255,255,0.04);}
+.nav-cta{margin-left:8px;font-size:13.5px;font-weight:600;text-decoration:none;
+  color:#fff;background:var(--br500);padding:8px 18px;border-radius:999px;
+  transition:transform 0.25s var(--ease),box-shadow 0.25s var(--ease),background 0.2s;white-space:nowrap;}
+.nav-cta:hover{background:var(--br400);transform:translateY(-1px);
+  box-shadow:0 0 24px rgba(89,124,233,0.45);}
+.burger{display:none;width:38px;height:38px;border:1px solid var(--b2);border-radius:10px;
+  background:transparent;cursor:pointer;flex-direction:column;align-items:center;justify-content:center;gap:4px;}
+.burger span{display:block;width:15px;height:1.5px;background:var(--t1);border-radius:2px;
+  transition:transform 0.3s var(--ease),opacity 0.2s;}
+.burger.open span:nth-child(1){transform:translateY(5.5px) rotate(45deg);}
+.burger.open span:nth-child(2){opacity:0;}
+.burger.open span:nth-child(3){transform:translateY(-5.5px) rotate(-45deg);}
 
-    /* ═══ TRACTION ═══ */
-    .traction-grid {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
-    }
-    .traction-card {
-      background: var(--bg-card); border: 1px solid var(--border);
-      border-radius: 16px; padding: 28px; text-align: center;
-      transition: all 0.3s var(--ease);
-    }
-    .traction-card:hover { border-color: var(--border-hover); }
-    .traction-val { font-size: 36px; font-weight: 900; letter-spacing: -1.5px; margin-bottom: 4px; }
-    .traction-lbl { font-size: 12px; color: var(--text-3); font-weight: 500; }
+.mobile{position:fixed;top:66px;left:0;right:0;z-index:149;
+  background:rgba(8,9,11,0.97);backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--b1);padding:10px 24px 22px;
+  display:none;flex-direction:column;gap:2px;}
+.mobile.open{display:flex;animation:mDrop 0.3s var(--ease);}
+@keyframes mDrop{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:none;}}
+.mobile a{font-size:15px;color:var(--t2);text-decoration:none;padding:11px 2px;
+  border-bottom:1px solid var(--b1);}
+.mobile a:last-child{border-bottom:none;color:var(--br400);font-weight:600;}
 
-    /* ═══ BACKED BY ═══ */
-    .backers {
-      display: flex; align-items: center; justify-content: center;
-      gap: 56px; flex-wrap: wrap;
-    }
-    .backer {
-      font-size: 20px; font-weight: 800; color: var(--text-3);
-      transition: color 0.3s var(--ease);
-      letter-spacing: -0.5px;
-    }
-    .backer:hover { color: var(--text-1); }
+/* ════════════════════════════════════════════════════════════════
+   LAYOUT PRIMITIVES
+   ════════════════════════════════════════════════════════════════ */
+.wrap{max-width:var(--max);margin:0 auto;padding:0 24px;}
+.sec{padding:104px 0;position:relative;}
+.sec-tight{padding:72px 0;}
 
-    /* ═══ CTA ═══ */
-    .cta-section {
-      padding: 120px 40px; text-align: center;
-      position: relative;
-    }
-    .cta-box {
-      max-width: 680px; margin: 0 auto;
-      background: var(--bg-card); border: 1px solid var(--border);
-      border-radius: 24px; padding: 64px 48px;
-      backdrop-filter: blur(12px);
-      position: relative; overflow: hidden;
-    }
-    .cta-box::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-      background: linear-gradient(90deg, var(--accent), var(--purple));
-    }
-    .cta-glow {
-      position: absolute; width: 400px; height: 400px; border-radius: 50%;
-      filter: blur(120px); pointer-events: none; opacity: 0.06;
-      background: var(--accent); top: -40%; left: 50%; transform: translateX(-50%);
-    }
-    .cta-box h2 {
-      font-size: 36px; font-weight: 900; letter-spacing: -1.5px;
-      margin-bottom: 14px; position: relative;
-    }
-    .cta-box p {
-      font-size: 16px; color: var(--text-2); margin-bottom: 32px;
-      max-width: 420px; margin-left: auto; margin-right: auto;
-      line-height: 1.7; position: relative;
-    }
-    .cta-links {
-      display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
-      margin-top: 32px; position: relative;
-    }
-    .cta-links a {
-      padding: 8px 18px; border-radius: 1.5em;
-      background: var(--accent-dim); border: 1px solid rgba(89,124,233,0.1);
-      color: var(--accent); font-size: 12px; font-weight: 600;
-      transition: all 0.2s;
-    }
-    .cta-links a:hover { background: rgba(89,124,233,0.15); border-color: var(--accent); box-shadow: 0 2px 7px rgba(0,0,0,0.28); }
+/* Cinematic stage: a glass panel whose glow reacts to scroll position */
+.stage{position:relative;}
+.stage-glass{position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);
+  width:min(calc(100% - 24px),calc(var(--max) + 72px));border-radius:32px;
+  background:rgba(255,255,255,0.012);backdrop-filter:blur(2px);
+  border:1px solid rgba(255,255,255,0.025);
+  pointer-events:none;transition:box-shadow 0.15s linear;}
+.stage>.wrap{position:relative;z-index:1;}
 
-    /* ═══ FOOTER ═══ */
-    .footer {
-      max-width: 1200px; margin: 0 auto;
-      padding: 40px 40px; border-top: 1px solid var(--border);
-    }
-    .footer-inner {
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 20px;
-    }
-    .footer-logo { display: flex; align-items: center; gap: 8px; }
-    .footer-logo svg { width: 20px; height: 20px; }
-    .footer-logo span { font-size: 13px; font-weight: 700; color: var(--text-3); }
-    .footer-nav { display: flex; gap: 24px; }
-    .footer-nav a { font-size: 12px; color: var(--text-3); transition: color 0.15s; }
-    .footer-nav a:hover { color: var(--text-1); }
-    .footer-tags { display: flex; gap: 6px; flex-wrap: wrap; }
-    .footer-tags span {
-      padding: 3px 8px; border-radius: 4px;
-      background: var(--bg-elevated); font-family: monospace;
-      font-size: 10px; color: var(--text-3);
-    }
-    .footer-copy { font-size: 11px; color: var(--text-3); margin-top: 24px; text-align: center; }
+.eyebrow{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:0.2em;
+  text-transform:uppercase;color:var(--br400);margin-bottom:16px;display:block;}
+h2{font-size:clamp(28px,4.2vw,44px);font-weight:700;letter-spacing:-0.03em;
+  line-height:1.12;margin-bottom:16px;}
+h3{font-size:19px;font-weight:650;letter-spacing:-0.02em;line-height:1.3;}
+.lede{font-size:16.5px;color:var(--t2);max-width:660px;line-height:1.7;}
+.center{text-align:center;}
+.center .lede{margin-left:auto;margin-right:auto;}
 
-    /* ═══ RESPONSIVE ═══ */
-    @media (max-width: 900px) {
-      .navbar { padding: 0 20px; }
-      .nav-links { display: none; }
-      .hero h1 { font-size: 48px; letter-spacing: -2px; }
-      .hero-sub { font-size: 16px; }
-      .hero-stats { grid-template-columns: repeat(2, 1fr); max-width: 400px; }
-      .hero-stat:nth-child(1) { border-radius: 16px 0 0 0; }
-      .hero-stat:nth-child(2) { border-radius: 0 16px 0 0; }
-      .hero-stat:nth-child(3) { border-radius: 0 0 0 16px; }
-      .hero-stat:nth-child(4) { border-radius: 0 0 16px 0; }
-      .section { padding: 80px 24px; }
-      .section h2 { font-size: 36px; }
-      .pipeline-grid { grid-template-columns: 1fr; }
-      .pipeline-arrow { display: none; }
-      .feat-grid { grid-template-columns: 1fr; }
-      .how-grid { grid-template-columns: repeat(2, 1fr); }
-      .how-grid::before { display: none; }
-      .chain-grid { grid-template-columns: 1fr; }
-      .traction-grid { grid-template-columns: repeat(2, 1fr); }
-      .backers { gap: 32px; }
-      .footer { padding: 32px 24px; }
-    }
-    @media (max-width: 600px) {
-      .hero { padding: 100px 16px 60px; }
-      .hero h1 { font-size: 36px; letter-spacing: -1.5px; }
-      .hero-stats { grid-template-columns: repeat(2, 1fr); }
-      .how-grid { grid-template-columns: 1fr; }
-      .traction-grid { grid-template-columns: 1fr; }
-      .cta-box { padding: 40px 24px; }
-      .cta-box h2 { font-size: 28px; }
-      .section h2 { font-size: 28px; }
-    }
-  </style>
+/* Divider with a centered mono label */
+.divider{display:flex;align-items:center;gap:18px;max-width:var(--max);
+  margin:0 auto;padding:0 24px;}
+.divider i{flex:1;height:1px;border:0;
+  background:linear-gradient(90deg,transparent,var(--b2) 50%,transparent);}
+.divider span{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.22em;
+  text-transform:uppercase;color:var(--t3);white-space:nowrap;}
+
+/* Reveal animation */
+.rv{opacity:0;transform:translateY(26px);
+  transition:opacity 0.75s var(--ease),transform 0.75s var(--ease);}
+.rv.in{opacity:1;transform:none;}
+@media (prefers-reduced-motion:reduce){
+  .rv{opacity:1;transform:none;transition:none;}
+  html{scroll-behavior:auto;}
+  .pre-mark,.pre-bar i{animation:none;}
+}
+
+/* Cards */
+.card{background:var(--s1);border:1px solid var(--b2);border-radius:18px;padding:26px;
+  transition:border-color 0.3s var(--ease),transform 0.3s var(--ease),box-shadow 0.3s var(--ease);}
+.card:hover{border-color:var(--b3);transform:translateY(-3px);
+  box-shadow:0 0 34px rgba(89,124,233,0.13);}
+.card h4{font-size:15.5px;font-weight:650;letter-spacing:-0.015em;margin-bottom:8px;}
+.card p{font-size:13.5px;color:var(--t2);line-height:1.65;}
+.card-flat{background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:20px;}
+.mini{background:var(--s2);border:1px solid var(--b1);border-radius:11px;padding:15px 16px;}
+.mini .k{font-family:var(--mono);font-size:11px;color:var(--br400);margin-bottom:5px;}
+.mini .v{font-size:12.5px;color:var(--t2);line-height:1.6;}
+
+.chip-icon{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;
+  justify-content:center;font-size:18px;margin-bottom:14px;
+  background:rgba(89,124,233,0.1);border:1px solid rgba(89,124,233,0.16);}
+
+.codeline{font-family:var(--mono);font-size:11.5px;line-height:1.5;
+  background:var(--s2);border:1px solid var(--b1);border-radius:8px;
+  padding:9px 13px;color:var(--br300);overflow-x:auto;white-space:nowrap;}
+
+.pill{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:0.1em;
+  text-transform:uppercase;padding:3.5px 9px;border-radius:999px;white-space:nowrap;}
+.pill.build{background:rgba(251,191,36,0.12);color:var(--warn);border:1px solid rgba(251,191,36,0.22);}
+.pill.live{background:rgba(74,222,128,0.12);color:var(--pos);border:1px solid rgba(74,222,128,0.22);}
+.pill.ref{background:rgba(154,163,178,0.1);color:var(--t2);border:1px solid var(--b3);}
+
+.callout{display:flex;gap:14px;align-items:flex-start;border-radius:14px;padding:18px 20px;
+  background:rgba(89,124,233,0.06);border:1px solid rgba(89,124,233,0.16);}
+.callout .ic{font-size:17px;flex-shrink:0;line-height:1.3;}
+.callout .ti{font-size:13px;font-weight:650;color:var(--br300);margin-bottom:5px;}
+.callout .tx{font-size:13px;color:var(--t2);line-height:1.65;}
+.callout.warn{background:rgba(251,191,36,0.06);border-color:rgba(251,191,36,0.18);}
+.callout.warn .ti{color:var(--warn);}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;
+  text-decoration:none;padding:12px 26px;border-radius:999px;
+  transition:transform 0.25s var(--ease),box-shadow 0.25s var(--ease),background 0.2s,border-color 0.2s;}
+.btn-p{background:var(--br500);color:#fff;}
+.btn-p:hover{background:var(--br400);transform:translateY(-2px);box-shadow:0 0 34px rgba(89,124,233,0.5);}
+.btn-s{background:transparent;color:var(--t1);border:1px solid var(--b3);}
+.btn-s:hover{border-color:var(--br500);color:var(--br300);transform:translateY(-2px);}
+
+/* ════════════════════════════════════════════════════════════════
+   HERO
+   ════════════════════════════════════════════════════════════════ */
+.hero{position:relative;padding:150px 0 96px;overflow:hidden;}
+.hero-bg{position:absolute;inset:0;pointer-events:none;z-index:0;}
+.hero-bg .aur{position:absolute;border-radius:50%;filter:blur(110px);opacity:0.5;}
+.hero-bg .a1{width:620px;height:620px;top:-260px;left:-140px;background:rgba(67,97,212,0.34);
+  animation:drift 22s ease-in-out infinite;}
+.hero-bg .a2{width:520px;height:520px;top:-140px;right:-160px;background:rgba(34,211,238,0.16);
+  animation:drift 26s ease-in-out infinite reverse;}
+.hero-bg .a3{width:440px;height:440px;bottom:-220px;left:38%;background:rgba(167,139,250,0.13);
+  animation:drift 30s ease-in-out infinite;}
+@keyframes drift{0%,100%{transform:translate(0,0) scale(1);}50%{transform:translate(38px,-26px) scale(1.08);}}
+.hero-grid{position:absolute;inset:0;z-index:0;pointer-events:none;opacity:0.5;
+  background-image:linear-gradient(rgba(255,255,255,0.022) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,255,255,0.022) 1px,transparent 1px);
+  background-size:64px 64px;
+  -webkit-mask-image:radial-gradient(ellipse 90% 70% at 50% 22%,#000 20%,transparent 78%);
+  mask-image:radial-gradient(ellipse 90% 70% at 50% 22%,#000 20%,transparent 78%);}
+.hero-in{position:relative;z-index:1;display:grid;grid-template-columns:1.15fr 0.85fr;
+  gap:56px;align-items:center;}
+
+.badge{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11px;
+  font-weight:500;letter-spacing:0.06em;color:var(--t2);
+  background:rgba(255,255,255,0.028);border:1px solid var(--b2);
+  padding:7px 15px;border-radius:999px;margin-bottom:26px;}
+.badge .dot{width:6px;height:6px;border-radius:50%;background:var(--br400);
+  box-shadow:0 0 0 0 rgba(89,124,233,0.6);animation:ping 2.4s ease-out infinite;}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(89,124,233,0.55);}70%{box-shadow:0 0 0 9px rgba(89,124,233,0);}100%{box-shadow:0 0 0 0 rgba(89,124,233,0);}}
+
+.hero h1{font-size:clamp(38px,5.6vw,64px);font-weight:700;letter-spacing:-0.04em;
+  line-height:1.04;margin-bottom:22px;}
+.hero h1 .grad{background:linear-gradient(110deg,var(--br300) 0%,var(--br500) 45%,var(--cyan) 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.hero-sub{font-size:17px;color:var(--t2);line-height:1.68;max-width:560px;margin-bottom:26px;}
+
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-bottom:32px;
+  font-family:var(--mono);font-size:11px;letter-spacing:0.02em;}
+.chain b{font-weight:500;color:var(--t2);background:var(--s2);border:1px solid var(--b2);
+  padding:5px 11px;border-radius:7px;}
+.chain i{font-style:normal;color:var(--br500);}
+
+.hero-cta{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:44px;}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;
+  border-top:1px solid var(--b1);padding-top:26px;}
+.stat .n{font-size:27px;font-weight:700;letter-spacing:-0.03em;line-height:1;
+  font-variant-numeric:tabular-nums;margin-bottom:6px;}
+.stat .l{font-size:11.5px;color:var(--t3);line-height:1.4;}
+.stats-note{font-size:11.5px;color:var(--t3);margin-top:16px;}
+
+/* Hero panel — the live quote card */
+.hero-panel{position:relative;background:linear-gradient(160deg,var(--s2),var(--s1));
+  border:1px solid var(--b2);border-radius:22px;padding:24px;
+  box-shadow:0 24px 70px rgba(0,0,0,0.6);}
+.hero-panel::before{content:'';position:absolute;inset:-1px;border-radius:22px;padding:1px;
+  background:linear-gradient(150deg,rgba(89,124,233,0.4),transparent 45%,rgba(34,211,238,0.22));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;}
+.hp-head{display:flex;align-items:center;justify-content:space-between;
+  padding-bottom:14px;border-bottom:1px solid var(--b1);margin-bottom:16px;}
+.hp-head .t{font-family:var(--mono);font-size:10.5px;letter-spacing:0.16em;
+  text-transform:uppercase;color:var(--t3);}
+.hp-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;font-size:13px;}
+.hp-row .k{color:var(--t3);}
+.hp-row .v{font-family:var(--mono);font-weight:600;color:var(--t1);font-variant-numeric:tabular-nums;}
+.hp-row.total{border-top:1px solid var(--b1);margin-top:6px;padding-top:14px;}
+.hp-row.total .k{color:var(--t2);font-weight:600;}
+.hp-row.total .v{color:var(--pos);font-size:16px;}
+.hp-foot{margin-top:16px;padding-top:14px;border-top:1px solid var(--b1);
+  font-size:11.5px;color:var(--t3);line-height:1.55;}
+
+@media(max-width:960px){
+  .hero-in{grid-template-columns:1fr;gap:40px;}
+  .hero{padding:126px 0 72px;}
+  .nav-links{display:none;}
+  .burger{display:flex;}
+}
+@media(max-width:640px){
+  .sec{padding:76px 0;}
+  .stats{grid-template-columns:repeat(2,1fr);gap:18px;}
+  .stage-glass{margin:0 -8px;border-radius:22px;}
+}
+</style>
 </head>
 <body>
 
-<!-- Preloader -->
+<div id="progress"></div>
+
 <div id="preloader">
-  <div class="preloader-inner">
-    <div class="preloader-logo">
-      <svg viewBox="0 0 89 89" fill="none" width="64" height="64">
-        <circle cx="44.9" cy="44" r="44" fill="#597CE9"/>
-        <path d="M35.5 54.1C33.1 51.5 31.9 48.2 31.9 44C31.9 39.8 33.1 36.5 35.5 33.9C36.9 32.4 38.6 31.3 40.6 30.7V22C38 22.4 35.6 23.2 33.4 24.5C30.1 26.4 27.5 29 25.7 32.3C23.9 35.7 23 39.6 23 44.1C23 48.6 23.9 52.5 25.7 55.8C27.5 59.2 30.1 61.7 33.4 63.6C35.6 64.8 38 65.6 40.6 66V57.3C38.6 56.7 36.9 55.6 35.5 54.1Z" fill="#F9FAFE"/>
-        <path d="M64.1 32.3C62.2 29 59.7 26.4 56.4 24.5C54.2 23.2 51.8 22.4 49.2 22V30.7C51.2 31.4 52.9 32.4 54.3 34C56.7 36.6 57.9 39.9 57.9 44.1C57.9 48.3 56.7 51.5 54.3 54.1C52.9 55.6 51.2 56.7 49.2 57.3V66C51.8 65.6 54.2 64.8 56.4 63.6C59.7 61.7 62.2 59.1 64.1 55.8C65.9 52.5 66.9 48.6 66.9 44.1C66.9 39.6 65.9 35.7 64.1 32.3Z" fill="#F9FAFE"/>
-        <circle cx="44.9" cy="44" r="5.5" fill="#F9FAFE"/>
-      </svg>
-    </div>
-    <div class="preloader-bar"><div class="preloader-fill"></div></div>
-  </div>
+  <svg class="pre-mark" viewBox="0 0 89 89" fill="none" aria-hidden="true"><circle cx="44.9" cy="44" r="44" fill="#597CE9"/><path d="M35.5 54.1C33.1 51.5 31.9 48.2 31.9 44C31.9 39.8 33.1 36.5 35.5 33.9C36.9 32.4 38.6 31.3 40.6 30.7V22C38 22.4 35.6 23.2 33.4 24.5C30.1 26.4 27.5 29 25.7 32.3C23.9 35.7 23 39.6 23 44.1C23 48.6 23.9 52.5 25.7 55.8C27.5 59.2 30.1 61.7 33.4 63.6C35.6 64.8 38 65.6 40.6 66V57.3C38.6 56.7 36.9 55.6 35.5 54.1Z" fill="#F9FAFE"/><path d="M64.1 32.3C62.2 29 59.7 26.4 56.4 24.5C54.2 23.2 51.8 22.4 49.2 22V30.7C51.2 31.4 52.9 32.4 54.3 34C56.7 36.6 57.9 39.9 57.9 44.1C57.9 48.3 56.7 51.5 54.3 54.1C52.9 55.6 51.2 56.7 49.2 57.3V66C51.8 65.6 54.2 64.8 56.4 63.6C59.7 61.7 62.2 59.1 64.1 55.8C65.9 52.5 66.9 48.6 66.9 44.1C66.9 39.6 65.9 35.7 64.1 32.3Z" fill="#F9FAFE"/><circle cx="44.9" cy="44" r="5.5" fill="#F9FAFE"/></svg>
+  <div class="pre-bar"><i></i></div>
 </div>
 
-<!-- Navbar -->
-<nav class="navbar">
-  <a class="nav-logo" href="#">
-    <svg viewBox="0 0 89 89" fill="none"><circle cx="44.9" cy="44" r="44" fill="#597CE9"/><path d="M35.5 54.1C33.1 51.5 31.9 48.2 31.9 44C31.9 39.8 33.1 36.5 35.5 33.9C36.9 32.4 38.6 31.3 40.6 30.7V22C38 22.4 35.6 23.2 33.4 24.5C30.1 26.4 27.5 29 25.7 32.3C23.9 35.7 23 39.6 23 44.1C23 48.6 23.9 52.5 25.7 55.8C27.5 59.2 30.1 61.7 33.4 63.6C35.6 64.8 38 65.6 40.6 66V57.3C38.6 56.7 36.9 55.6 35.5 54.1Z" fill="#F9FAFE"/><path d="M64.1 32.3C62.2 29 59.7 26.4 56.4 24.5C54.2 23.2 51.8 22.4 49.2 22V30.7C51.2 31.4 52.9 32.4 54.3 34C56.7 36.6 57.9 39.9 57.9 44.1C57.9 48.3 56.7 51.5 54.3 54.1C52.9 55.6 51.2 56.7 49.2 57.3V66C51.8 65.6 54.2 64.8 56.4 63.6C59.7 61.7 62.2 59.1 64.1 55.8C65.9 52.5 66.9 48.6 66.9 44.1C66.9 39.6 65.9 35.7 64.1 32.3Z" fill="#F9FAFE"/><circle cx="44.9" cy="44" r="5.5" fill="#F9FAFE"/></svg>
-    <span><b>Dob</b>Dex</span>
-  </a>
-  <div class="nav-links">
-    <a href="#ecosystem">Ecosystem</a>
-    <a href="#features">Features</a>
-    <a href="#how">How it Works</a>
-    <a href="#chains">Chains</a>
-    <a href="protocol.html">Protocol</a>
-    <a href="https://docs.dobprotocol.com/dex/overview" target="_blank">Docs</a>
-    <a href="demo.html">Demo</a>
-    <a href="simulate.html">Simulator</a>
-    <a href="deck.html">Pitch</a>
+<!-- ═══════════════ NAV ═══════════════ -->
+<nav class="nav" id="nav">
+  <div class="nav-in">
+    <a class="brand" href="/">
+      <svg viewBox="0 0 89 89" fill="none" aria-hidden="true"><circle cx="44.9" cy="44" r="44" fill="#597CE9"/><path d="M35.5 54.1C33.1 51.5 31.9 48.2 31.9 44C31.9 39.8 33.1 36.5 35.5 33.9C36.9 32.4 38.6 31.3 40.6 30.7V22C38 22.4 35.6 23.2 33.4 24.5C30.1 26.4 27.5 29 25.7 32.3C23.9 35.7 23 39.6 23 44.1C23 48.6 23.9 52.5 25.7 55.8C27.5 59.2 30.1 61.7 33.4 63.6C35.6 64.8 38 65.6 40.6 66V57.3C38.6 56.7 36.9 55.6 35.5 54.1Z" fill="#F9FAFE"/><path d="M64.1 32.3C62.2 29 59.7 26.4 56.4 24.5C54.2 23.2 51.8 22.4 49.2 22V30.7C51.2 31.4 52.9 32.4 54.3 34C56.7 36.6 57.9 39.9 57.9 44.1C57.9 48.3 56.7 51.5 54.3 54.1C52.9 55.6 51.2 56.7 49.2 57.3V66C51.8 65.6 54.2 64.8 56.4 63.6C59.7 61.7 62.2 59.1 64.1 55.8C65.9 52.5 66.9 48.6 66.9 44.1C66.9 39.6 65.9 35.7 64.1 32.3Z" fill="#F9FAFE"/><circle cx="44.9" cy="44" r="5.5" fill="#F9FAFE"/></svg>
+      <b>DobDex</b><em>Stellar</em>
+    </a>
+    <div class="nav-links">
+      <a href="#how-it-works">How it works</a>
+      <a href="#quote">Exit quote</a>
+      <a href="#stellar">Stellar</a>
+      <a href="#roadmap">Roadmap</a>
+      <a href="https://docs.dobprotocol.com/dex/overview" target="_blank" rel="noopener">Docs</a>
+      <a class="nav-cta" href="simulate.html">Try the simulator</a>
+    </div>
+    <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
   </div>
-  <a class="nav-cta" href="index.html">Launch App</a>
 </nav>
+<div class="mobile" id="mobile">
+  <a href="#how-it-works">How it works</a>
+  <a href="#quote">Exit quote</a>
+  <a href="#stellar">Stellar</a>
+  <a href="#traction">Traction</a>
+  <a href="#roadmap">Roadmap</a>
+  <a href="https://docs.dobprotocol.com/dex/overview" target="_blank" rel="noopener">Documentation</a>
+  <a href="simulate.html">Try the simulator</a>
+</div>
 
-<!-- ═══════════════════════════════════════════
-     HERO
-     ═══════════════════════════════════════════ -->
-<section class="hero">
-  <div class="hero-bg">
-    <div class="hero-glow hero-glow-1"></div>
-    <div class="hero-glow hero-glow-2"></div>
-    <div class="hero-glow hero-glow-3"></div>
-    <div class="hero-grid-bg"></div>
-  </div>
-  <div class="hero-content">
-    <div class="hero-badge fade-in"><span class="dot"></span> Live on Unichain &middot; Powered by Reactive Network</div>
-    <h1 class="fade-in" style="transition-delay:0.1s">Turn Real Assets Into<br><span class="grad">On-Chain Capital</span></h1>
-    <p class="hero-sub fade-in" style="transition-delay:0.2s">Tokenize real-world assets. Sell them instantly through Liquidity Nodes who price the exit. LPs set their own discount, conditions, and exposure. Powered by Uniswap V4 Custom Accounting &mdash; no AMM curve, no impermanent loss.</p>
-    <div class="hero-btns fade-in" style="transition-delay:0.3s">
-      <a class="btn-primary" href="index.html">Launch App</a>
-      <a class="btn-secondary" href="demo.html">Watch Demo</a>
+<!-- ═══════════════ HERO ═══════════════ -->
+<header class="hero">
+  <div class="hero-bg"><div class="aur a1"></div><div class="aur a2"></div><div class="aur a3"></div></div>
+  <div class="hero-grid"></div>
+  <div class="wrap hero-in">
+    <div>
+      <div class="badge rv"><span class="dot"></span> Building on Stellar &middot; Soroban &middot; SCF #45</div>
+      <h1 class="rv" style="transition-delay:0.06s">The exit layer for<br><span class="grad">real-world assets</span></h1>
+      <p class="hero-sub rv" style="transition-delay:0.12s">
+        Tokenizing an asset is the easy half. DobDex is the other half: a venue where a holder
+        can actually sell the position, at a price set by capital that competes for it &mdash;
+        not by a number the issuer picked.
+      </p>
+      <div class="chain rv" style="transition-delay:0.18s">
+        <b>TRUFA score</b><i>&rarr;</i><b>risk tier</b><i>&rarr;</i><b>LP quote</b><i>&rarr;</i><b>USDC on Stellar</b><i>&rarr;</i><b>anchor off-ramp</b>
+      </div>
+      <div class="hero-cta rv" style="transition-delay:0.24s">
+        <a class="btn btn-p" href="#how-it-works">See how it works</a>
+        <a class="btn btn-s" href="#quote">Model an exit quote</a>
+      </div>
+      <div class="stats rv" style="transition-delay:0.3s">
+        <div class="stat"><div class="n" style="color:var(--br400);" data-count="125">0</div><div class="l">Live pools on Stellar mainnet</div></div>
+        <div class="stat"><div class="n" style="color:var(--violet);" data-count="878">0</div><div class="l">Registered users</div></div>
+        <div class="stat"><div class="n" style="color:var(--pos);" data-count="147">0</div><div class="l">Marketplace listings</div></div>
+        <div class="stat"><div class="n" style="color:var(--warn);" data-count="412">0</div><div class="l">Indexed contract events</div></div>
+      </div>
+      <p class="stats-note rv" style="transition-delay:0.34s">Live figures from Dobprotocol's Stellar mainnet production database. The DobDex exit contracts are in build.</p>
     </div>
-    <div class="hero-stats fade-in" style="transition-delay:0.4s">
-      <div class="hero-stat"><div class="val" style="color:var(--accent)">3</div><div class="lbl">Chains Live</div></div>
-      <div class="hero-stat"><div class="val" style="color:var(--purple)">10+</div><div class="lbl">RWA Tokens</div></div>
-      <div class="hero-stat"><div class="val" style="color:var(--green)">LP</div><div class="lbl">Priced Exits</div></div>
-      <div class="hero-stat"><div class="val" style="color:var(--accent)">176</div><div class="lbl">Tests Passing</div></div>
-    </div>
-  </div>
-</section>
 
-<div class="section-divider"></div>
-
-<!-- ═══════════════════════════════════════════
-     ECOSYSTEM PIPELINE
-     ═══════════════════════════════════════════ -->
-<section class="section" id="ecosystem">
-  <div class="section-label fade-in">Ecosystem</div>
-  <h2 class="fade-in" style="transition-delay:0.05s">Full-Stack RWA Infrastructure</h2>
-  <p class="section-sub fade-in" style="transition-delay:0.1s">Three products, one pipeline. From real-world asset validation to on-chain liquidity.</p>
-
-  <div class="pipeline-grid">
-    <div class="pipeline-card fade-in" style="transition-delay:0.15s">
-      <div class="pipeline-step"><span class="pipeline-num">01</span><div class="pipeline-line"></div></div>
-      <h3>Validate</h3>
-      <div class="pipeline-product">DOBVALIDATOR</div>
-      <p>AI-powered validation of real-world assets. Creates oracle price feeds that power the entire protocol. Autonomous validator agents update prices in real-time.</p>
-      <div class="pipeline-arrow">&#10132;</div>
-    </div>
-    <div class="pipeline-card fade-in" style="transition-delay:0.25s">
-      <div class="pipeline-step"><span class="pipeline-num">02</span><div class="pipeline-line"></div></div>
-      <h3>Tokenize</h3>
-      <div class="pipeline-product">Token Studio</div>
-      <p>Validated assets are tokenized into ERC-20 participation tokens (DCT, SFT, RET, PWG). Each token represents fractional ownership of a verified real-world asset.</p>
-      <div class="pipeline-arrow">&#10132;</div>
-    </div>
-    <div class="pipeline-card fade-in" style="transition-delay:0.35s">
-      <div class="pipeline-step"><span class="pipeline-num">03</span><div class="pipeline-line"></div></div>
-      <h3>Trade</h3>
-      <div class="pipeline-product">DobDex</div>
-      <p>Sell tokenized assets through Liquidity Nodes who price the exit. LPs earn discounted RWA tokens for providing capital. Pooled LN lets anyone co-invest. Built on Uniswap V4.</p>
+    <div class="hero-panel rv" style="transition-delay:0.2s">
+      <div class="hp-head">
+        <span class="t">Exit quote</span>
+        <span class="pill build">Illustrative</span>
+      </div>
+      <div class="hp-row"><span class="k">Position</span><span class="v">$25,000</span></div>
+      <div class="hp-row"><span class="k">TRUFA score</span><span class="v">82 &middot; <span style="color:var(--br400);">Tier B</span></span></div>
+      <div class="hp-row"><span class="k">Tier spread band</span><span class="v">120 &ndash; 300 bps</span></div>
+      <div class="hp-row"><span class="k">Clearing LP bid</span><span class="v">178 bps</span></div>
+      <div class="hp-row"><span class="k">Route</span><span class="v" style="color:var(--cyan);">Hot reserve</span></div>
+      <div class="hp-row total"><span class="k">You receive</span><span class="v">24,493 USDC</span></div>
+      <div class="hp-foot">
+        The oracle prices the <em style="font-style:normal;color:var(--t2);">asset</em>. Liquidity Nodes price the
+        <em style="font-style:normal;color:var(--t2);">exit</em>. Every number above is a worked example, not a quote.
+      </div>
     </div>
   </div>
-</section>
+</header>
 
-<div class="section-divider"></div>
+<div class="divider"><i></i><span>The problem</span><i></i></div>
 
-<!-- ═══════════════════════════════════════════
-     FEATURES
-     ═══════════════════════════════════════════ -->
-<section class="section" id="features">
-  <div class="section-label fade-in">Core Protocol</div>
-  <h2 class="fade-in" style="transition-delay:0.05s">Built for Every Participant</h2>
-  <p class="section-sub fade-in" style="transition-delay:0.1s">Asset owners get capital. Investors earn real-world yield. Liquidity providers earn from every trade.</p>
-
-  <div class="feat-grid">
-    <div class="feat-card fade-in" style="transition-delay:0.15s">
-      <div class="feat-icon" style="background:var(--accent-dim);">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#597CE9" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      </div>
-      <h3>LP-Priced Exit Liquidity</h3>
-      <p>Sellers pay a market discount to Liquidity Nodes for instant exit. No AMM curve, no impermanent loss. Uniswap V4 Custom Accounting Hook bypasses the bonding curve &mdash; LPs set their own terms.</p>
-      <span class="feat-tag" style="background:var(--accent-dim);color:var(--accent);">DobPegHook.sol</span>
+<!-- ═══════════════ PROBLEM ═══════════════ -->
+<section class="sec stage" id="problem">
+  <div class="stage-glass" data-glow></div>
+  <div class="wrap">
+    <div class="center" style="margin-bottom:52px;">
+      <span class="eyebrow rv">Why this exists</span>
+      <h2 class="rv" style="transition-delay:0.05s">A token nobody will buy<br>is not a liquid asset</h2>
+      <p class="lede rv" style="transition-delay:0.1s">
+        The industry solved issuance and declared victory. But an investor who cannot get out of a
+        position in a solar plant or a fleet of machines has not bought a liquid instrument &mdash;
+        they have bought a private placement with a nicer interface.
+      </p>
     </div>
-    <div class="feat-card fade-in" style="transition-delay:0.2s">
-      <div class="feat-icon" style="background:var(--purple-dim);">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#975AFF" stroke-width="2" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 12h.01"/><path d="M17 12h.01"/><path d="M7 12h.01"/></svg>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;" class="p-grid">
+      <div class="card rv" style="transition-delay:0.12s">
+        <div class="chip-icon" style="background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.18);">&#128683;</div>
+        <h4>No secondary market</h4>
+        <p>A holder who needs cash before maturity has one option: find a private buyer themselves,
+        negotiate blind, and hope. Most simply hold something they no longer want.</p>
       </div>
-      <h3>Instant Capital via dUSDC</h3>
-      <p>Deposit your tokenized asset, instantly receive dUSDC at oracle price. Redeem for USDC anytime. Asset owners unlock capital without selling ownership of the underlying asset.</p>
-      <span class="feat-tag" style="background:var(--purple-dim);color:var(--purple);">DobRwaVault.sol</span>
+      <div class="card rv" style="transition-delay:0.17s">
+        <div class="chip-icon" style="background:rgba(251,191,36,0.1);border-color:rgba(251,191,36,0.18);">&#127922;</div>
+        <h4>Prices nobody stands behind</h4>
+        <p>Where a price exists it is usually the issuer's own valuation. Nobody has committed
+        capital at that number, so it tells you what the seller hopes, not what the asset is worth.</p>
+      </div>
+      <div class="card rv" style="transition-delay:0.22s">
+        <div class="chip-icon" style="background:rgba(89,124,233,0.1);">&#128184;</div>
+        <h4>AMMs are the wrong shape</h4>
+        <p>A constant-product curve prices a token against inventory. It has no view on whether the
+        machine still runs, whether the operator still reports, or whether the cashflow arrived.</p>
+      </div>
     </div>
-    <div class="feat-card fade-in" style="transition-delay:0.25s">
-      <div class="feat-icon" style="background:var(--green-dim);">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#40C057" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+    <div class="callout rv" style="margin-top:26px;transition-delay:0.26s">
+      <span class="ic">&#128161;</span>
+      <div>
+        <div class="ti">The exit is what makes the entry investable</div>
+        <div class="tx">Retail capital buys an RWA for its yield &mdash; but only if it believes it can get out.
+        Build a credible exit and you have not just added a feature; you have made the primary
+        market work. That is the whole thesis of DobDex.</div>
       </div>
-      <h3>Liquidity Nodes</h3>
-      <p>Provide exit liquidity for token holders and earn discounted RWA tokens in return. Choose which assets to back, set your own discount terms. First in line, first to earn.</p>
-      <span class="feat-tag" style="background:var(--green-dim);color:var(--green);">DobLPRegistry.sol</span>
-    </div>
-    <div class="feat-card fade-in" style="transition-delay:0.3s">
-      <div class="feat-icon" style="background:rgba(247,166,23,0.08);">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F7A617" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      </div>
-      <h3>AI-Powered Oracles</h3>
-      <p>Dobprotocol's AI validator agents continuously assess and price every asset. Automatic staleness checks, price change bounds, and emergency controls protect against manipulation.</p>
-      <span class="feat-tag" style="background:rgba(247,166,23,0.08);color:var(--amber);">DobValidatorRegistry.sol</span>
-    </div>
-    <div class="feat-card fade-in" style="transition-delay:0.35s">
-      <div class="feat-icon" style="background:rgba(245,82,82,0.08);">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F55252" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-      </div>
-      <h3>Risk-Priced Exits</h3>
-      <p>If an asset shows distress, Dobprotocol sets a risk-adjusted discount. LPs who accepted that risk level earn the spread. Cascading exits are blocked by reserve holds and timelocks.</p>
-      <span class="feat-tag" style="background:rgba(245,82,82,0.08);color:var(--red);">Penalty + FIFO</span>
-    </div>
-    <div class="feat-card fade-in" style="transition-delay:0.4s">
-      <div class="feat-icon" style="background:var(--accent-dim);">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#597CE9" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      </div>
-      <h3>LP-Only Mode</h3>
-      <p>Riskier assets can be flagged so that sells only go through LPs who explicitly chose to back them. Protects the protocol's reserves while letting the market price the exit.</p>
-      <span class="feat-tag" style="background:var(--accent-dim);color:var(--accent);">setLpOnlyMode()</span>
-    </div>
-    <div class="feat-card fade-in" style="transition-delay:0.45s">
-      <div class="feat-icon" style="background:var(--purple-dim);">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#975AFF" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-      </div>
-      <h3>RWA Resale Market</h3>
-      <p>List your RWA tokens for sale at oracle price. Buyers pay USDC directly to you. A built-in secondary market where yield-bearing assets change hands peer-to-peer.</p>
-      <span class="feat-tag" style="background:var(--purple-dim);color:var(--purple);">listRwaForSale()</span>
-    </div>
-    <div class="feat-card fade-in" style="transition-delay:0.5s">
-      <div class="feat-icon" style="background:rgba(245,82,82,0.08);">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F55252" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
-      </div>
-      <h3>Institutional-Grade Security</h3>
-      <p>Emergency pause on all contracts, oracle price bounds, slippage protection, flash-loan guards, 24h withdrawal timelocks, per-asset caps, and reentrancy protection.</p>
-      <span class="feat-tag" style="background:rgba(245,82,82,0.08);color:var(--red);">Built-in Security</span>
-    </div>
-    <div class="feat-card fade-in" style="transition-delay:0.55s">
-      <div class="feat-icon" style="background:var(--green-dim);">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#40C057" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
-      </div>
-      <h3>Pooled Liquidity Node</h3>
-      <p>Co-invest with Dobprotocol in a shared liquidity pool. Earn proportional RWA tokens when the pool fills sell orders. Dynamic discount rates adjusted by AI.</p>
-      <span class="feat-tag" style="background:var(--green-dim);color:var(--green);">Pooled LN</span>
     </div>
   </div>
 </section>
 
-<div class="section-divider"></div>
+<div class="divider"><i></i><span>How it works</span><i></i></div>
 
-<!-- ═══════════════════════════════════════════
-     HOW IT WORKS
-     ═══════════════════════════════════════════ -->
-<section class="section" id="how">
-  <div class="section-label fade-in">Process</div>
-  <h2 class="fade-in" style="transition-delay:0.05s">How It Works</h2>
-  <p class="section-sub fade-in" style="transition-delay:0.1s">From real-world asset to on-chain yield in five steps.</p>
+<style>
+/* ════════════════════════════════════════════════════════════════
+   HOW IT WORKS — the single consolidated protocol explainer
+   ════════════════════════════════════════════════════════════════ */
+#how-it-works{padding:96px 0 60px;}
+.hiw-head{text-align:center;max-width:760px;margin:0 auto 20px;}
+.hiw-head h2{font-size:clamp(32px,5vw,52px);}
 
-  <div class="how-grid fade-in" style="transition-delay:0.2s">
-    <div class="how-step">
-      <div class="how-num">1</div>
-      <h4>Tokenize RWA Asset</h4>
-      <p>Asset owners register and validate real-world assets through DOBVALIDATOR. Tokenized into ERC-20 participation tokens. Asset owner receives capital.</p>
-    </div>
-    <div class="how-step">
-      <div class="how-num">2</div>
-      <h4>Mint dUSDC</h4>
-      <p>Deposit tokenized RWA into DobRwaVault. Receive dUSDC stablecoin minted 1:1 at the oracle-verified price of your asset.</p>
-    </div>
-    <div class="how-step">
-      <div class="how-num">3</div>
-      <h4>Trade on DEX</h4>
-      <p>Sell RWA tokens through Liquidity Nodes at a market discount, or buy at oracle price. LPs provide the exit capital and set their own terms.</p>
-    </div>
-    <div class="how-step">
-      <div class="how-num">4</div>
-      <h4>Provide Exit Liquidity</h4>
-      <p>Join a Pooled Liquidity Node to co-invest with Dobprotocol, or run an Individual LP with custom parameters. Back specific assets with your own conditions.</p>
-    </div>
-    <div class="how-step">
-      <div class="how-num" style="background:var(--purple);">5</div>
-      <h4>Earn from Fills + RWA APR</h4>
-      <p>LPs earn discounted RWA tokens from sell fills and liquidations. Resell on the secondary market at oracle price, or hold for underlying asset APR.</p>
+/* Sticky chapter rail */
+.rail{position:sticky;top:66px;z-index:90;margin:40px 0 8px;
+  background:rgba(8,9,11,0.86);backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  border-top:1px solid var(--b1);border-bottom:1px solid var(--b1);}
+.rail-in{max-width:var(--max);margin:0 auto;padding:0 24px;
+  display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;}
+.rail-in::-webkit-scrollbar{display:none;}
+.rail a{flex-shrink:0;display:flex;align-items:center;gap:8px;text-decoration:none;
+  padding:13px 14px;font-size:12.5px;color:var(--t3);white-space:nowrap;
+  border-bottom:2px solid transparent;transition:color 0.25s,border-color 0.25s;}
+.rail a b{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.08em;
+  color:var(--b3);transition:color 0.25s;}
+.rail a:hover{color:var(--t1);}
+.rail a.on{color:var(--t1);border-bottom-color:var(--br500);}
+.rail a.on b{color:var(--br500);}
+
+/* Chapter */
+.chapter{padding:76px 0;border-bottom:1px solid var(--b1);scroll-margin-top:120px;}
+.chapter:last-of-type{border-bottom:none;}
+.ch-head{display:flex;align-items:baseline;gap:16px;margin-bottom:14px;flex-wrap:wrap;}
+.ch-num{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:0.2em;
+  color:var(--br500);text-transform:uppercase;}
+.ch-line{flex:1;height:1px;min-width:40px;
+  background:linear-gradient(90deg,rgba(89,124,233,0.32),rgba(89,124,233,0.04));}
+.chapter h3.ch-title{font-size:clamp(24px,3.4vw,34px);font-weight:700;
+  letter-spacing:-0.03em;line-height:1.15;margin-bottom:14px;}
+.ch-lede{font-size:15.5px;color:var(--t2);line-height:1.72;max-width:720px;margin-bottom:34px;}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+
+/* Pipeline */
+.pipe{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;position:relative;}
+.pipe-node{background:var(--s1);border:1px solid var(--b2);border-radius:16px;padding:22px 20px;
+  position:relative;transition:border-color 0.3s var(--ease),box-shadow 0.3s var(--ease);}
+.pipe-node:hover{border-color:var(--b3);box-shadow:0 0 30px rgba(89,124,233,0.12);}
+.pipe-node .st{font-family:var(--mono);font-size:9.5px;letter-spacing:0.16em;text-transform:uppercase;
+  color:var(--t3);margin-bottom:10px;}
+.pipe-node h4{font-size:14.5px;font-weight:650;margin-bottom:7px;}
+.pipe-node p{font-size:12.5px;color:var(--t2);line-height:1.6;}
+.pipe-node.here{border-color:rgba(89,124,233,0.45);background:linear-gradient(160deg,rgba(89,124,233,0.07),var(--s1));}
+.pipe-node.here .st{color:var(--br400);}
+.pipe-arrow{position:absolute;top:50%;right:-11px;transform:translateY(-50%);
+  color:var(--b3);font-size:14px;z-index:2;}
+
+/* Numbered timeline (scoring, flow) */
+.tl{display:grid;grid-template-columns:auto 1fr;gap:0;}
+.tl-rail{display:flex;flex-direction:column;align-items:center;padding-right:22px;}
+.tl-dot{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:12px;font-weight:700;color:#fff;flex-shrink:0;}
+.tl-bar{width:1.5px;flex:1;margin:8px 0;border-radius:2px;}
+.tl-body{padding-bottom:30px;min-width:0;}
+.tl-kicker{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.16em;
+  text-transform:uppercase;margin-bottom:6px;}
+.tl-body h4{font-size:16px;font-weight:650;letter-spacing:-0.015em;margin-bottom:8px;}
+.tl-body p{font-size:13.5px;color:var(--t2);line-height:1.68;margin-bottom:11px;}
+
+/* Tier table */
+.tier-wrap{display:grid;grid-template-columns:0.95fr 1.05fr;gap:20px;}
+#tierTable{display:flex;flex-direction:column;gap:8px;}
+.tier-row{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;
+  background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:14px 16px;
+  cursor:pointer;text-align:left;font-family:inherit;color:inherit;
+  transition:border-color 0.25s,background 0.25s,transform 0.25s var(--ease);}
+.tier-row:hover{border-color:var(--b3);transform:translateX(3px);}
+.tier-row.active{border-color:rgba(89,124,233,0.5);background:var(--s2);
+  box-shadow:0 0 26px rgba(89,124,233,0.12);}
+.tier-badge{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;font-family:var(--mono);font-size:14px;font-weight:700;color:#0b0d10;flex-shrink:0;}
+.tier-name{font-size:14px;font-weight:600;}
+.tier-score{font-family:var(--mono);font-size:11px;color:var(--t3);}
+.tier-spread{font-family:var(--mono);font-size:12.5px;font-weight:600;white-space:nowrap;}
+#tierDetail{background:var(--s1);border:1px solid var(--b2);border-radius:18px;padding:26px;
+  align-self:start;position:sticky;top:130px;}
+.tier-detail-head{display:flex;gap:14px;align-items:center;margin-bottom:14px;}
+.tier-detail-head h3{font-size:18px;font-weight:650;}
+.tier-detail-head .sub{font-family:var(--mono);font-size:11px;color:var(--t3);margin-top:3px;}
+#tierDetail p{font-size:13.5px;color:var(--t2);line-height:1.72;margin-bottom:18px;}
+.tier-facts{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.tier-fact{background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:12px 14px;}
+.tier-fact .k{font-family:var(--mono);font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--t3);margin-bottom:4px;}
+.tier-fact .v{font-size:13px;font-weight:600;color:var(--t1);}
+
+/* Contract cards */
+.ct{background:var(--s1);border:1px solid var(--b2);border-radius:16px;padding:22px;
+  transition:border-color 0.3s var(--ease),transform 0.3s var(--ease),box-shadow 0.3s var(--ease);}
+.ct:hover{border-color:var(--b3);transform:translateY(-3px);box-shadow:0 0 32px rgba(89,124,233,0.13);}
+.ct-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
+.ct-name{font-family:var(--mono);font-size:13.5px;font-weight:600;}
+.ct p{font-size:13px;color:var(--t2);line-height:1.65;margin-bottom:12px;}
+.ct-fn{font-family:var(--mono);font-size:11px;color:var(--t3);background:var(--s2);
+  border:1px solid var(--b1);border-radius:7px;padding:7px 11px;overflow-x:auto;white-space:nowrap;}
+
+/* Events */
+.ev-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+.ev{background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:15px 17px;
+  transition:border-color 0.25s;}
+.ev:hover{border-color:var(--b3);}
+.ev code{display:block;font-size:12.5px;font-weight:600;color:var(--cyan);margin-bottom:5px;}
+.ev span{font-size:12.5px;color:var(--t2);line-height:1.6;}
+
+/* Queue visual */
+.qv{display:flex;align-items:center;justify-content:center;gap:26px;flex-wrap:wrap;
+  background:var(--s1);border:1px solid var(--b2);border-radius:18px;padding:30px 24px;margin-bottom:20px;}
+.qv-box{text-align:center;min-width:150px;}
+.qv-box .val{font-size:30px;font-weight:700;letter-spacing:-0.03em;font-variant-numeric:tabular-nums;}
+.qv-box .lbl{font-size:12px;color:var(--t3);margin-top:5px;}
+.qv-arrow{text-align:center;color:var(--t3);}
+.qv-arrow .arr{font-size:22px;display:block;line-height:1;}
+.qv-arrow span:last-child{font-family:var(--mono);font-size:10px;letter-spacing:0.12em;text-transform:uppercase;}
+
+/* Safety */
+.safe{background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:20px;
+  transition:border-color 0.25s,transform 0.25s var(--ease);}
+.safe:hover{border-color:var(--b3);transform:translateY(-2px);}
+.safe .si{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-size:16px;margin-bottom:12px;}
+.safe h4{font-size:14px;font-weight:650;margin-bottom:6px;}
+.safe p{font-size:12.5px;color:var(--t2);line-height:1.6;margin-bottom:11px;}
+.safe .sv{font-family:var(--mono);font-size:10.5px;color:var(--br400);
+  background:var(--s2);border-radius:6px;padding:6px 9px;overflow-x:auto;white-space:nowrap;}
+
+@media(max-width:960px){
+  .g3,.g4,.pipe,.tier-wrap,.ev-grid{grid-template-columns:1fr 1fr;}
+  #tierDetail{position:static;}
+  .pipe-arrow{display:none;}
+}
+@media(max-width:640px){
+  .g2,.g3,.g4,.pipe,.tier-wrap,.ev-grid,.tier-facts{grid-template-columns:1fr;}
+  .p-grid{grid-template-columns:1fr !important;}
+  .chapter{padding:56px 0;}
+  .qv{gap:16px;}
+}
+</style>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     HOW IT WORKS — one page, seven chapters, no duplication
+     ═══════════════════════════════════════════════════════════════ -->
+<section id="how-it-works" class="stage">
+  <div class="stage-glass" data-glow></div>
+  <div class="wrap">
+    <div class="hiw-head">
+      <span class="eyebrow rv">The protocol</span>
+      <h2 class="rv" style="transition-delay:0.05s">How DobDex works</h2>
+      <p class="lede rv" style="transition-delay:0.1s">
+        One asset, one score, one tier, one exit. Everything below is the whole mechanism in the
+        order it actually happens &mdash; from how an asset gets priced to what occurs on the day
+        nobody wants to buy.
+      </p>
     </div>
   </div>
-</section>
 
-<div class="section-divider"></div>
+  <div class="rail" id="rail">
+    <div class="rail-in">
+      <a href="#ch-overview" data-ch="ch-overview"><b>00</b> Overview</a>
+      <a href="#ch-scoring" data-ch="ch-scoring"><b>01</b> Scoring</a>
+      <a href="#ch-tiers" data-ch="ch-tiers"><b>02</b> Risk tiers</a>
+      <a href="#ch-exit" data-ch="ch-exit"><b>03</b> The exit</a>
+      <a href="#ch-nodes" data-ch="ch-nodes"><b>04</b> Liquidity Nodes</a>
+      <a href="#ch-queue" data-ch="ch-queue"><b>05</b> When nobody bids</a>
+      <a href="#ch-contracts" data-ch="ch-contracts"><b>06</b> Contracts &amp; events</a>
+      <a href="#ch-safety" data-ch="ch-safety"><b>07</b> Safety rails</a>
+    </div>
+  </div>
 
-<!-- ═══════════════════════════════════════════
-     MULTI-CHAIN
-     ═══════════════════════════════════════════ -->
-<section class="section" id="chains">
-  <div class="section-label fade-in">Infrastructure</div>
-  <h2 class="fade-in" style="transition-delay:0.05s">Partner Integrations</h2>
-  <p class="section-sub fade-in" style="transition-delay:0.1s">Built on best-in-class DeFi infrastructure from day one.</p>
+  <div class="wrap">
 
-  <div class="chain-grid">
-    <div class="chain-card fade-in" style="transition-delay:0.15s">
-      <div class="chain-bar" style="background:linear-gradient(90deg,#FF007A,var(--purple));"></div>
-      <div class="chain-header">
-        <div class="chain-icon" style="background:#FF007A;">U</div>
-        <div><h3>Unichain</h3><div class="chain-sub">Uniswap V4 Hooks</div></div>
+  <!-- ─────────── 00 · OVERVIEW ─────────── -->
+  <div class="chapter" id="ch-overview">
+    <div class="ch-head rv"><span class="ch-num">Chapter 00</span><span class="ch-line"></span></div>
+    <h3 class="ch-title rv" style="transition-delay:0.04s">Where DobDex sits</h3>
+    <p class="ch-lede rv" style="transition-delay:0.08s">
+      DobDex is not a standalone exchange. It is the last stage of a pipeline that already runs on
+      Stellar mainnet: an asset gets validated, tokenized, and starts distributing yield. DobDex is
+      what lets the holder of that position leave before maturity.
+    </p>
+
+    <div class="pipe">
+      <div class="pipe-node rv" style="transition-delay:0.1s">
+        <div class="st">Stage 01 &middot; Live</div>
+        <h4>DobValidator</h4>
+        <p>Validation agents review the operator's documents, contracts and reported cashflow, and
+        produce a TRUFA score from 0 to 100.</p>
+        <span class="pipe-arrow">&#9654;</span>
       </div>
-      <p>DobPegHook deployed on Uniswap's own L2. Native V4 Custom Accounting Hook routes sells through Liquidity Nodes. 200ms Flashblocks for real-time oracle updates.</p>
-      <span class="chain-tag" style="background:rgba(255,0,122,0.1);color:#FF007A;">6 Contracts</span>
-    </div>
-    <div class="chain-card fade-in" style="transition-delay:0.25s">
-      <div class="chain-bar" style="background:linear-gradient(90deg,#00D395,#00A3FF);"></div>
-      <div class="chain-header">
-        <div class="chain-icon" style="background:#00D395;">R</div>
-        <div><h3>Reactive Network</h3><div class="chain-sub">Cross-Chain Oracle Sync</div></div>
+      <div class="pipe-node rv" style="transition-delay:0.15s">
+        <div class="st">Stage 02 &middot; Live</div>
+        <h4>Token Studio</h4>
+        <p>The validated asset is tokenized into a pool with participation shares. This is where an
+        investor buys in.</p>
+        <span class="pipe-arrow">&#9654;</span>
       </div>
-      <p>ReactiveOracleSync subscribes to on-chain price events and triggers automated liquidation alerts cross-chain. No off-chain bots needed.</p>
-      <span class="chain-tag" style="background:rgba(0,211,149,0.1);color:#00D395;">2 Contracts</span>
+      <div class="pipe-node rv" style="transition-delay:0.2s">
+        <div class="st">Stage 03 &middot; Live</div>
+        <h4>Distribution</h4>
+        <p>Revenue from the asset is paid out to shareholders in USDC through the distribution
+        contracts, on a schedule.</p>
+        <span class="pipe-arrow">&#9654;</span>
+      </div>
+      <div class="pipe-node here rv" style="transition-delay:0.25s">
+        <div class="st">Stage 04 &middot; In build</div>
+        <h4>DobDex</h4>
+        <p>The holder opens an exit. Liquidity Nodes price it, the settlement router pays USDC, and
+        an anchor turns that into local currency.</p>
+      </div>
+    </div>
+
+    <div class="g2" style="margin-top:26px;">
+      <div class="card-flat rv" style="transition-delay:0.28s">
+        <div class="eyebrow" style="color:var(--pos);margin-bottom:8px;">What DobDex is</div>
+        <p style="font-size:13.5px;color:var(--t2);line-height:1.7;">
+          A <strong style="color:var(--t1);font-weight:600;">secondary exit venue</strong>. Holders sell positions they
+          already own, for USDC, to Liquidity Nodes who choose to buy them. The protocol's job is to
+          make that trade fair, bounded and observable &mdash; not to be the counterparty.
+        </p>
+      </div>
+      <div class="card-flat rv" style="transition-delay:0.32s">
+        <div class="eyebrow" style="color:var(--warn);margin-bottom:8px;">What DobDex is not</div>
+        <p style="font-size:13.5px;color:var(--t2);line-height:1.7;">
+          Not a redemption window, not a pegged swap, and not a promise of instant liquidity. The
+          oracle prices the <em style="font-style:normal;color:var(--t1);">asset</em>; the exit price is whatever a
+          Liquidity Node will actually pay for it today.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── 01 · SCORING ─────────── -->
+  <div class="chapter" id="ch-scoring">
+    <div class="ch-head rv"><span class="ch-num">Chapter 01</span><span class="ch-line"></span></div>
+    <h3 class="ch-title rv" style="transition-delay:0.04s">How an asset gets priced</h3>
+    <p class="ch-lede rv" style="transition-delay:0.08s">
+      Assets do not price themselves. The TRUFA score is produced off-chain by DobValidator,
+      published on-chain with a timestamp, and consumed by the exit contracts under a hard
+      freshness rule.
+    </p>
+
+    <div class="card rv" style="transition-delay:0.12s;padding:32px 28px;">
+      <div class="tl">
+        <div class="tl-rail">
+          <div class="tl-dot" style="background:var(--warn);color:#241a00;">1</div>
+          <div class="tl-bar" style="background:linear-gradient(180deg,var(--warn),var(--br500));"></div>
+        </div>
+        <div class="tl-body">
+          <div class="tl-kicker" style="color:var(--warn);">Assessment</div>
+          <h4>DobValidator scores the asset</h4>
+          <p>Validation agents review the operator's documentation, contracts and reported cash flows
+          and produce a TRUFA score from 0 to 100. The score answers one question: how much should a
+          stranger trust what this asset says about itself?</p>
+          <div class="codeline" style="color:var(--warn);">trufa_score: u32  // 0 .. 100</div>
+        </div>
+
+        <div class="tl-rail">
+          <div class="tl-dot" style="background:var(--br500);">2</div>
+          <div class="tl-bar" style="background:linear-gradient(180deg,var(--br500),var(--pos));"></div>
+        </div>
+        <div class="tl-body">
+          <div class="tl-kicker" style="color:var(--br400);">Publication</div>
+          <h4>The score is written on-chain with a timestamp</h4>
+          <p>Only the validator authority can publish, and every publication carries the ledger
+          timestamp. Anyone can read the current score and its age &mdash; the input to every exit
+          price is public before any exit is opened.</p>
+          <div class="codeline">score_reader.publish_score(asset, score, ledger_ts)</div>
+        </div>
+
+        <div class="tl-rail">
+          <div class="tl-dot" style="background:var(--pos);color:#052e13;">3</div>
+          <div class="tl-bar" style="background:linear-gradient(180deg,var(--pos),var(--neg));"></div>
+        </div>
+        <div class="tl-body">
+          <div class="tl-kicker" style="color:var(--pos);">Classification</div>
+          <h4>The classifier turns the score into a tier</h4>
+          <p>The tier determines the spread band Liquidity Nodes may bid inside, whether the hot
+          reserve can be touched, and whether the asset is restricted to LP-only routing. A score
+          change that crosses a boundary re-prices every future exit on that asset immediately.</p>
+          <div class="codeline" style="color:var(--pos);">(tier, min_bps, max_bps, policy) = classify(score)</div>
+        </div>
+
+        <div class="tl-rail">
+          <div class="tl-dot" style="background:var(--neg);color:#3b0a0a;">4</div>
+        </div>
+        <div class="tl-body" style="padding-bottom:0;">
+          <div class="tl-kicker" style="color:var(--neg);">Freshness gate</div>
+          <h4>A stale score blocks the exit &mdash; it does not guess</h4>
+          <p>If the last publication is older than <code>STALENESS_SECS</code>, <code>score_reader</code>
+          reverts and no exit can be opened on that asset until the validator refreshes it. Refusing
+          to quote is a safer failure than quoting on data nobody stands behind.</p>
+          <div class="codeline" style="color:var(--neg);">STALENESS_SECS = 86_400  // 24h, multisig-configurable</div>
+        </div>
+      </div>
+
+      <div class="callout warn" style="margin-top:24px;">
+        <span class="ic">&#9888;</span>
+        <div>
+          <div class="ti">The score prices the asset. It does not price the exit.</div>
+          <div class="tx">A TRUFA score tells you how much confidence the asset's reported performance
+          deserves. It does not tell you what someone will pay you for your position today &mdash;
+          that is a liquidity question, answered by Liquidity Nodes bidding real USDC. DobDex keeps
+          these two things separate on purpose, and does not offer a pegged or guaranteed redemption
+          at score value.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── 02 · TIERS ─────────── -->
+  <div class="chapter" id="ch-tiers">
+    <div class="ch-head rv"><span class="ch-num">Chapter 02</span><span class="ch-line"></span></div>
+    <h3 class="ch-title rv" style="transition-delay:0.04s">Five tiers, five different exits</h3>
+    <p class="ch-lede rv" style="transition-delay:0.08s">
+      The tier is the contract between the protocol and its users: it fixes in advance what a given
+      score band is allowed to cost and how fast it can settle. Select a tier to see how it routes.
+    </p>
+
+    <div class="tier-wrap rv" style="transition-delay:0.12s">
+      <div id="tierTable" role="tablist" aria-label="Risk tiers"></div>
+      <div id="tierDetail" role="tabpanel"></div>
+    </div>
+
+    <div class="g2" style="margin-top:20px;">
+      <div class="card-flat rv" style="transition-delay:0.16s">
+        <div class="eyebrow" style="margin-bottom:8px;">A band, not a price</div>
+        <p style="font-size:13px;color:var(--t2);line-height:1.68;">The tier fixes the range a bid may
+        fall in. Where inside the range it lands depends on how much capital is competing for that
+        exit, how large the position is, and how deep the vault is for that tier. Two identical
+        scores can clear at different prices on different days &mdash; that is the market working,
+        not a bug.</p>
+      </div>
+      <div class="card-flat rv" style="transition-delay:0.2s">
+        <div class="eyebrow" style="color:var(--pos);margin-bottom:8px;">Downgrades are not retroactive</div>
+        <p style="font-size:13px;color:var(--t2);line-height:1.68;">A tier change applies to exits
+        opened after it. An exit already inside its auction window keeps the band it opened with, so
+        a seller cannot have the terms moved underneath them mid-auction. Settled exits are final.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── 03 · THE EXIT ─────────── -->
+  <div class="chapter" id="ch-exit">
+    <div class="ch-head rv"><span class="ch-num">Chapter 03</span><span class="ch-line"></span></div>
+    <h3 class="ch-title rv" style="transition-delay:0.04s">Anatomy of an exit</h3>
+    <p class="ch-lede rv" style="transition-delay:0.08s">
+      Every exit takes one of three paths, decided by the tier and the size of the position.
+      Buying into an asset in the first place happens on
+      <a href="https://tokenize.dobprotocol.com" target="_blank" rel="noopener" style="color:var(--br400);text-decoration:none;border-bottom:1px solid rgba(89,124,233,0.3);">Token Studio</a>;
+      DobDex only handles the way out.
+    </p>
+
+    <div class="g3" style="margin-bottom:34px;">
+      <div class="card rv" style="transition-delay:0.1s">
+        <div class="eyebrow" style="color:var(--pos);margin-bottom:8px;">Path 1</div>
+        <h4>Instant from reserve</h4>
+        <p>High score, small ticket, healthy reserve. The vault fills at the tier's floor spread and
+        the seller has USDC in under a minute. Available only while the reserve stays above
+        <code>hot_reserve_floor</code>.</p>
+      </div>
+      <div class="card rv" style="transition-delay:0.14s">
+        <div class="eyebrow" style="margin-bottom:8px;">Path 2</div>
+        <h4>Auctioned to Liquidity Nodes</h4>
+        <p>The default for anything larger or lower-scored. Nodes bid inside the tier band for 30
+        minutes; the best bid wins. The seller sees the clearing discount before signing the
+        settlement.</p>
+      </div>
+      <div class="card rv" style="transition-delay:0.18s">
+        <div class="eyebrow" style="color:var(--neg);margin-bottom:8px;">Path 3</div>
+        <h4>Queued, publicly</h4>
+        <p>No acceptable bid arrived. The exit takes a numbered FIFO position visible on-chain and is
+        served when capital enters that tier. The seller can walk away from the queue at any time.</p>
+      </div>
+    </div>
+
+    <div class="card rv" style="transition-delay:0.2s;padding:32px 28px;">
+      <div class="eyebrow" style="margin-bottom:20px;">Step by step</div>
+      <div class="tl">
+        <div class="tl-rail">
+          <div class="tl-dot" style="background:var(--warn);color:#241a00;">1</div>
+          <div class="tl-bar" style="background:linear-gradient(180deg,var(--warn),var(--br500));"></div>
+        </div>
+        <div class="tl-body">
+          <div class="tl-kicker" style="color:var(--warn);">Open</div>
+          <h4>The holder opens an exit from their wallet</h4>
+          <p>The seller signs with Freighter (or any Soroban-compatible wallet) to authorize the
+          position for exit. <code>exit_auction.open_exit</code> immediately calls
+          <code>score_reader</code>: a stale or missing score stops the exit right here, before
+          anything is locked.</p>
+          <div class="codeline">exit_auction.open_exit(asset, amount, min_accept_bps)</div>
+        </div>
+
+        <div class="tl-rail">
+          <div class="tl-dot" style="background:var(--br500);">2</div>
+          <div class="tl-bar" style="background:linear-gradient(180deg,var(--br500),var(--violet));"></div>
+        </div>
+        <div class="tl-body">
+          <div class="tl-kicker" style="color:var(--br400);">Classify</div>
+          <h4>The classifier assigns the tier and the band</h4>
+          <p>The fresh score goes to <code>risk_classifier</code>, which returns the tier, the spread
+          band in basis points and the routing policy. From this moment the exit's price ceiling and
+          floor are fixed and public &mdash; nobody can bid outside them, including the protocol.</p>
+          <div class="codeline">tier B &rarr; band [120, 300] bps &rarr; reserve: eligible</div>
+        </div>
+
+        <div class="tl-rail">
+          <div class="tl-dot" style="background:var(--violet);color:#1e1235;">3</div>
+          <div class="tl-bar" style="background:linear-gradient(180deg,var(--violet),var(--pos));"></div>
+        </div>
+        <div class="tl-body">
+          <div class="tl-kicker" style="color:var(--violet);">Price</div>
+          <h4>Liquidity Nodes bid, or the reserve fills</h4>
+          <p>If the exit qualifies for instant settlement and the reserve is above its floor, the
+          vault fills it at the tier floor and the flow jumps to step 5. Otherwise the auction window
+          opens for <code>AUCTION_WINDOW</code> and every Node whose appetite covers this tier can
+          post a discount. Bids outside the band are rejected on entry, so the published band is
+          enforced by the contract rather than by convention.</p>
+          <div class="codeline">exit_auction.place_bid(exit_id, discount_bps)  // must sit inside the band</div>
+        </div>
+
+        <div class="tl-rail">
+          <div class="tl-dot" style="background:var(--pos);color:#052e13;">4</div>
+          <div class="tl-bar" style="background:linear-gradient(180deg,var(--pos),var(--cyan));"></div>
+        </div>
+        <div class="tl-body">
+          <div class="tl-kicker" style="color:var(--pos);">Clear</div>
+          <h4>Best bid wins &mdash; or the exit is queued</h4>
+          <p>When the window closes, the lowest discount wins and is compared against the seller's
+          <code>min_accept_bps</code>. If no bid clears that threshold, the exit is not force-filled
+          at a bad price: it moves to <code>fifo_queue</code> with a public position and waits for
+          capital. The seller keeps their tokens and their option to cancel.</p>
+          <div class="codeline">no bid &rarr; fifo_queue.enqueue(exit_id) &rarr; emits exit.queued</div>
+        </div>
+
+        <div class="tl-rail">
+          <div class="tl-dot" style="background:var(--cyan);color:#062a30;">5</div>
+        </div>
+        <div class="tl-body" style="padding-bottom:0;">
+          <div class="tl-kicker" style="color:var(--cyan);">Settle</div>
+          <h4>One transaction moves everything</h4>
+          <p><code>settlement_router.settle</code> transfers the participation tokens to the winning
+          Liquidity Node, the USDC to the seller net of the discount and protocol fee, and emits
+          <code>exit.settled</code> with the full breakdown. Soroban's atomicity means there is no
+          state where one leg happened and the other did not. A seller who wants fiat continues into
+          an <strong style="color:var(--t1);font-weight:600;">Anchor Platform</strong> withdrawal from the same USDC balance.</p>
+          <div class="codeline">settle(exit_id) &rarr; tokens &rarr; LP | USDC &rarr; seller | fee &rarr; treasury</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── 04 · LIQUIDITY NODES ─────────── -->
+  <div class="chapter" id="ch-nodes">
+    <div class="ch-head rv"><span class="ch-num">Chapter 04</span><span class="ch-line"></span></div>
+    <h3 class="ch-title rv" style="transition-delay:0.04s">Who provides the exit capital</h3>
+    <p class="ch-lede rv" style="transition-delay:0.08s">
+      A Liquidity Node is anyone willing to buy someone else's RWA position at a discount they set
+      themselves. Permissionless to join, explicit about risk appetite, and never forced into a tier
+      they did not opt into.
+    </p>
+
+    <div class="g4" style="margin-bottom:26px;">
+      <div class="card rv" style="transition-delay:0.1s">
+        <div class="eyebrow" style="color:var(--pos);margin-bottom:8px;">Phase 1</div>
+        <h4>Deposit</h4>
+        <p>Send USDC to <code>lp_vault</code> and become a Node. Capital sits idle-yield-bearing until
+        it is used to fill an exit.</p>
+        <div class="codeline" style="margin-top:12px;">USDC on Stellar</div>
+      </div>
+      <div class="card rv" style="transition-delay:0.14s">
+        <div class="eyebrow" style="color:var(--pos);margin-bottom:8px;">Phase 2</div>
+        <h4>Declare appetite</h4>
+        <p>Choose which tiers you serve, the minimum discount you require, and your maximum exposure
+        per asset. You are never matched outside this.</p>
+        <div class="codeline" style="margin-top:12px;">tiers &middot; min_bps &middot; max_exposure</div>
+      </div>
+      <div class="card rv" style="transition-delay:0.18s">
+        <div class="eyebrow" style="color:var(--pos);margin-bottom:8px;">Phase 3</div>
+        <h4>Bid &amp; win</h4>
+        <p>Bid on open exits inside the tier band. Win and you receive the participation tokens at
+        your discount &mdash; a yield-bearing position bought below score value.</p>
+        <div class="codeline" style="margin-top:12px;">exit.bid &rarr; exit.settled</div>
+      </div>
+      <div class="card rv" style="transition-delay:0.22s">
+        <div class="eyebrow" style="color:var(--pos);margin-bottom:8px;">Phase 4</div>
+        <h4>Hold or re-exit</h4>
+        <p>Keep collecting the asset's distributions, or open your own exit later and let the next
+        Node price it. Nodes are not locked into what they buy.</p>
+        <div class="codeline" style="margin-top:12px;">distributions in USDC</div>
+      </div>
+    </div>
+
+    <div class="card rv" style="transition-delay:0.24s;margin-bottom:18px;">
+      <h4 style="margin-bottom:14px;">Node parameters</h4>
+      <div class="g2">
+        <div class="mini"><div class="k">served_tiers</div><div class="v">The risk bands you are willing to
+          underwrite. A Node that only serves A and B will never be shown a distressed exit, and its
+          capital is not counted toward that tier's depth.</div></div>
+        <div class="mini"><div class="k">min_discount_bps</div><div class="v">The floor return you require
+          to part with capital. Bids you place are your own number &mdash; the protocol only enforces
+          that it falls inside the tier's published band.</div></div>
+        <div class="mini"><div class="k">max_exposure</div><div class="v">A per-asset ceiling on how much
+          of a single RWA you can accumulate, so one asset going bad cannot take the whole position
+          with it.</div></div>
+        <div class="mini"><div class="k">reserve_contribution</div><div class="v">How much of your deposit
+          may be used for instant hot-reserve fills. Opt in for higher utilisation, opt out to bid
+          only where you have chosen to.</div></div>
+      </div>
+    </div>
+
+    <div class="card rv" style="transition-delay:0.27s;margin-bottom:34px;">
+      <h4 style="margin-bottom:14px;">Withdrawing capital</h4>
+      <div class="g2">
+        <div class="mini" style="border-left:2px solid var(--pos);">
+          <div class="k" style="color:var(--pos);">Uncommitted capital</div>
+          <div class="v">Anything not backing an open bid or an in-flight settlement can be withdrawn
+          after the standard timelock. The delay exists so a Node cannot pull liquidity between
+          bidding and settling.</div>
+        </div>
+        <div class="mini" style="border-left:2px solid var(--warn);">
+          <div class="k" style="color:var(--warn);">Reserve-committed capital</div>
+          <div class="v">Capital pledged to the hot reserve cannot be withdrawn below
+          <code>hot_reserve_floor</code> while exits are settling against it. Instant settlement is
+          only credible if the buffer cannot evaporate at the moment it is needed.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ch-head rv"><span class="ch-num">Chapter 04b</span><span class="ch-line"></span></div>
+    <h3 class="ch-title rv" style="transition-delay:0.04s;font-size:clamp(21px,2.8vw,27px);">The Pooled Liquidity Node</h3>
+    <p class="ch-lede rv" style="transition-delay:0.08s">
+      Not everyone wants to manage tier appetites and bid on individual exits. The Pooled Node is a
+      shared vault position that does it on behalf of its depositors.
+    </p>
+
+    <div class="g2" style="margin-bottom:18px;">
+      <div class="card rv" style="transition-delay:0.1s">
+        <div class="eyebrow" style="margin-bottom:8px;">How it works</div>
+        <h4>One position, many depositors</h4>
+        <p>The Pooled Node registers as a single Liquidity Node in <code>lp_vault</code>. Depositors
+        contribute USDC and receive shares; the operator sets the tier appetite and bidding strategy
+        for the whole position. Depositors get exposure to exit spreads without running a bidding
+        operation.</p>
+      </div>
+      <div class="card rv" style="transition-delay:0.14s">
+        <div class="eyebrow" style="color:var(--pos);margin-bottom:8px;">Share-based</div>
+        <h4>Proportional in, proportional out</h4>
+        <p>Positions acquired through winning bids, and the distributions they generate, accrue to
+        shareholders in proportion to their shares. Redemption is against the pool's share of vault
+        capital plus the assets it currently holds.</p>
+      </div>
+    </div>
+
+    <div class="g3">
+      <div class="card rv" style="transition-delay:0.16s;text-align:center;">
+        <div class="chip-icon" style="margin:0 auto 12px;">&#128176;</div>
+        <h4>Passive participation</h4>
+        <p>Deposit USDC, receive shares. No bidding, no per-asset parameters to maintain.</p>
+      </div>
+      <div class="card rv" style="transition-delay:0.2s;text-align:center;">
+        <div class="chip-icon" style="margin:0 auto 12px;background:rgba(74,222,128,0.1);border-color:rgba(74,222,128,0.16);">&#128200;</div>
+        <h4>Managed strategy</h4>
+        <p>The operator adjusts which tiers to serve and at what discount as conditions change.</p>
+      </div>
+      <div class="card rv" style="transition-delay:0.24s;text-align:center;">
+        <div class="chip-icon" style="margin:0 auto 12px;background:rgba(167,139,250,0.1);border-color:rgba(167,139,250,0.16);">&#127760;</div>
+        <h4>Multiple pools</h4>
+        <p>Nothing stops several Pooled Nodes existing side by side with different risk mandates.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── 05 · QUEUE ─────────── -->
+  <div class="chapter" id="ch-queue">
+    <div class="ch-head rv"><span class="ch-num">Chapter 05</span><span class="ch-line"></span></div>
+    <h3 class="ch-title rv" style="transition-delay:0.04s">When nobody bids</h3>
+    <p class="ch-lede rv" style="transition-delay:0.08s">
+      Most RWA venues have no answer for this case, which is why their liquidity claims break the
+      first time an asset gets uncomfortable. DobDex makes the unfilled case an explicit, public
+      protocol state.
+    </p>
+
+    <div class="qv rv" style="transition-delay:0.1s">
+      <div class="qv-box">
+        <div class="val" style="color:var(--br400);">30 min</div>
+        <div class="lbl">auction window closes</div>
+      </div>
+      <div class="qv-arrow">
+        <span class="arr" style="color:var(--neg);">&#8594;</span>
+        <span>no bid</span>
+      </div>
+      <div class="qv-box">
+        <div class="val" style="color:var(--warn);">#4</div>
+        <div class="lbl">public FIFO position</div>
+      </div>
+    </div>
+
+    <div class="g3" style="margin-bottom:20px;">
+      <div class="card-flat rv" style="transition-delay:0.14s">
+        <div class="eyebrow" style="color:var(--pos);margin-bottom:6px;">You keep your tokens</div>
+        <p style="font-size:13px;color:var(--t2);line-height:1.65;">A queued position is still yours and
+        still earns whatever the underlying asset distributes while it waits.</p>
+      </div>
+      <div class="card-flat rv" style="transition-delay:0.18s">
+        <div class="eyebrow" style="margin-bottom:6px;">Your position is visible</div>
+        <p style="font-size:13px;color:var(--t2);line-height:1.65;">Queue depth and your place in it are
+        readable on-chain by anyone. No private list, no discretionary reordering.</p>
+      </div>
+      <div class="card-flat rv" style="transition-delay:0.22s">
+        <div class="eyebrow" style="color:var(--violet);margin-bottom:6px;">You can leave</div>
+        <p style="font-size:13px;color:var(--t2);line-height:1.65;">Withdraw from the queue at any time and
+        re-open later at a different threshold, or hold the asset to maturity.</p>
+      </div>
+    </div>
+
+    <div class="callout rv" style="transition-delay:0.26s">
+      <span class="ic">&#128161;</span>
+      <div>
+        <div class="ti">Why a visible queue matters more than a bigger promise</div>
+        <div class="tx">A venue that always claims instant liquidity is making a promise it cannot keep
+        on a bad day, and the moment it breaks, everyone learns their exit was never real. A queue
+        with a public position is a smaller promise that survives contact with reality &mdash; and it
+        is the honest input a buyer needs when deciding what an asset is worth in the first place.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── 06 · CONTRACTS & EVENTS ─────────── -->
+  <div class="chapter" id="ch-contracts">
+    <div class="ch-head rv"><span class="ch-num">Chapter 06</span><span class="ch-line"></span></div>
+    <h3 class="ch-title rv" style="transition-delay:0.04s">Six Soroban contracts</h3>
+    <p class="ch-lede rv" style="transition-delay:0.08s">
+      The exit layer is deliberately small and separable. Each contract owns one decision, emits
+      typed events, and is gated by multisig for every parameter that can move money.
+    </p>
+
+    <div class="g3" style="margin-bottom:22px;">
+      <div class="ct rv" style="transition-delay:0.1s">
+        <div class="ct-head"><span class="ct-name" style="color:var(--br400);">score_reader</span><span class="pill build">In build</span></div>
+        <h4 style="font-size:15px;font-weight:650;margin-bottom:8px;">Score Reader</h4>
+        <p>Reads the TRUFA validation score published for an asset and exposes it on-chain with an
+        explicit staleness window. A score older than <code>STALENESS_SECS</code> stops being usable
+        for pricing instead of quietly going stale.</p>
+        <div class="ct-fn">get_score(asset) &rarr; (score, age)</div>
+      </div>
+      <div class="ct rv" style="transition-delay:0.14s">
+        <div class="ct-head"><span class="ct-name" style="color:var(--violet);">risk_classifier</span><span class="pill build">In build</span></div>
+        <h4 style="font-size:15px;font-weight:650;margin-bottom:8px;">Risk Classifier</h4>
+        <p>Maps a score to one of five tiers and to the spread band, reserve access and settlement
+        path that tier is allowed. The tier table is a stored parameter, so policy can be tuned
+        without redeploying the pricing path.</p>
+        <div class="ct-fn">classify(score) &rarr; (tier, band, policy)</div>
+      </div>
+      <div class="ct rv" style="transition-delay:0.18s">
+        <div class="ct-head"><span class="ct-name" style="color:var(--pos);">lp_vault</span><span class="pill build">In build</span></div>
+        <h4 style="font-size:15px;font-weight:650;margin-bottom:8px;">LP Liquidity Vault</h4>
+        <p>Where Liquidity Nodes deposit USDC and declare which assets and tiers they will back.
+        Enforces a hot-reserve floor so a single large exit cannot empty the vault, and routes idle
+        capital to yield strategies.</p>
+        <div class="ct-fn">deposit / withdraw / set_appetite</div>
+      </div>
+      <div class="ct rv" style="transition-delay:0.22s">
+        <div class="ct-head"><span class="ct-name" style="color:var(--amber);">exit_auction</span><span class="pill build">In build</span></div>
+        <h4 style="font-size:15px;font-weight:650;margin-bottom:8px;">Exit Auction Engine</h4>
+        <p>Opens a bounded <code>AUCTION_WINDOW</code> in which Liquidity Nodes bid to fill the exit.
+        Best bid wins; the window is short enough to feel immediate and long enough to stop a single
+        LP from dictating the price.</p>
+        <div class="ct-fn">open_exit / place_bid / close</div>
+      </div>
+      <div class="ct rv" style="transition-delay:0.26s">
+        <div class="ct-head"><span class="ct-name" style="color:var(--cyan);">settlement_router</span><span class="pill build">In build</span></div>
+        <h4 style="font-size:15px;font-weight:650;margin-bottom:8px;">Settlement Router</h4>
+        <p>Moves the participation token to the winning LP and USDC to the seller in a single atomic
+        Soroban transaction, then emits the settlement event the indexer and the seller's receipt
+        both read from.</p>
+        <div class="ct-fn">settle(exit_id)</div>
+      </div>
+      <div class="ct rv" style="transition-delay:0.3s">
+        <div class="ct-head"><span class="ct-name" style="color:var(--neg);">fifo_queue</span><span class="pill build">In build</span></div>
+        <h4 style="font-size:15px;font-weight:650;margin-bottom:8px;">FIFO Queue Manager</h4>
+        <p>When demand for the door exceeds available liquidity, exits enter a first-in-first-out
+        queue instead of racing. Position is public, cancellation is allowed, and nobody can pay to
+        jump the line.</p>
+        <div class="ct-fn">enqueue / position_of / cancel</div>
+      </div>
+    </div>
+
+    <h4 class="rv" style="transition-delay:0.32s;font-size:16px;font-weight:650;margin:34px 0 8px;">Typed events, indexed end to end</h4>
+    <p class="rv" style="transition-delay:0.34s;font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:18px;max-width:720px;">
+      Every state change emits a typed Soroban event. An indexer subscribed to Soroban RPC
+      reconstructs the entire history of exits, bids and vault movements without trusting our API.
+    </p>
+
+    <div class="ev-grid rv" style="transition-delay:0.36s">
+      <div class="ev"><code>exit.opened</code><span>A holder opened an exit. Carries asset, amount, tier, spread band and the seller's minimum acceptable discount.</span></div>
+      <div class="ev"><code>exit.bid</code><span>A Liquidity Node posted a bid. Carries the Node, the discount in bps and the ledger it landed on.</span></div>
+      <div class="ev"><code>exit.settled</code><span>The exit cleared. Carries the winning discount, USDC paid to the seller, the protocol fee and the counterparty.</span></div>
+      <div class="ev"><code>exit.queued</code><span>No acceptable bid. Carries the FIFO position assigned and the queue depth at that moment.</span></div>
+      <div class="ev"><code>exit.cancelled</code><span>The seller withdrew before settlement, from the auction or from the queue.</span></div>
+      <div class="ev"><code>vault.deposit</code><span>A Liquidity Node added USDC. Carries the Node, the amount and the resulting tier depth.</span></div>
+      <div class="ev"><code>vault.withdraw</code><span>Capital left the vault, after the timelock and the reserve-floor check.</span></div>
+      <div class="ev"><code>vault.yield</code><span>Yield accrued to vault capital while idle, and how it was attributed across Nodes.</span></div>
+    </div>
+
+    <div class="callout rv" style="margin-top:20px;transition-delay:0.4s">
+      <span class="ic">&#9889;</span>
+      <div>
+        <div class="ti">Already proven on this stack</div>
+        <div class="tx">The Soroban event indexer is not speculative work &mdash; Dobprotocol already runs
+        one against Stellar mainnet for its tokenization contracts, with
+        <strong style="color:var(--t1);font-weight:600;">412 contract events indexed</strong> across 125 live pools.
+        The DobDex build extends that same pipeline to the exit contracts rather than starting a new one.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── 07 · SAFETY ─────────── -->
+  <div class="chapter" id="ch-safety">
+    <div class="ch-head rv"><span class="ch-num">Chapter 07</span><span class="ch-line"></span></div>
+    <h3 class="ch-title rv" style="transition-delay:0.04s">Safety rails</h3>
+    <p class="ch-lede rv" style="transition-delay:0.08s">
+      The failure modes that matter for an exit venue are stale data, drained reserves, front-run
+      settlements and a governance key that can quietly change the rules. Each has a specific rail.
+    </p>
+
+    <div class="g3" style="margin-bottom:22px;">
+      <div class="safe rv" style="transition-delay:0.1s">
+        <div class="si" style="background:rgba(251,191,36,0.1);">&#128336;</div>
+        <h4>Staleness gate</h4>
+        <p>No exit can be opened on an asset whose TRUFA score is older than the configured window.
+        The contract refuses to quote rather than quoting on data nobody currently stands behind.</p>
+        <div class="sv">STALENESS_SECS: 24 hours</div>
+      </div>
+      <div class="safe rv" style="transition-delay:0.13s">
+        <div class="si" style="background:rgba(74,222,128,0.1);">&#128737;</div>
+        <h4>Hot reserve floor</h4>
+        <p>Instant settlement stops automatically once the reserve reaches its floor. The buffer that
+        makes fast exits credible cannot be drained to zero by a run of instant fills.</p>
+        <div class="sv">hot_reserve_floor (per tier)</div>
+      </div>
+      <div class="safe rv" style="transition-delay:0.16s">
+        <div class="si" style="background:rgba(89,124,233,0.1);">&#9201;</div>
+        <h4>Fixed auction window</h4>
+        <p>The window is a protocol constant, not a per-exit choice. Nobody can shorten a window to
+        squeeze out competing bids or extend one to wait for a friendlier counterparty.</p>
+        <div class="sv">AUCTION_WINDOW: 30 minutes</div>
+      </div>
+      <div class="safe rv" style="transition-delay:0.19s">
+        <div class="si" style="background:rgba(89,124,233,0.1);">&#128274;</div>
+        <h4>Band enforcement</h4>
+        <p>Bids outside the tier's published spread band are rejected at entry. The band a seller was
+        shown when they opened the exit is the band the contract enforces at settlement.</p>
+        <div class="sv">min_bps &le; bid &le; max_bps</div>
+      </div>
+      <div class="safe rv" style="transition-delay:0.22s">
+        <div class="si" style="background:rgba(248,113,113,0.1);">&#128101;</div>
+        <h4>Seller floor price</h4>
+        <p>Every exit carries the seller's <code>min_accept_bps</code>. A bid worse than that cannot
+        settle &mdash; the exit queues instead. Sellers are never force-filled at a price they did
+        not accept.</p>
+        <div class="sv">min_accept_bps in open_exit</div>
+      </div>
+      <div class="safe rv" style="transition-delay:0.25s">
+        <div class="si" style="background:rgba(251,191,36,0.1);">&#128273;</div>
+        <h4>Multisig-governed parameters</h4>
+        <p>Tier boundaries, spread bands, the auction window, the staleness limit and the reserve
+        floor are all on-chain values behind a multisig. Changing the rules is a public, signed,
+        observable event.</p>
+        <div class="sv">multisig-gated config</div>
+      </div>
+      <div class="safe rv" style="transition-delay:0.28s">
+        <div class="si" style="background:rgba(74,222,128,0.1);">&#9203;</div>
+        <h4>Withdrawal timelock</h4>
+        <p>Node withdrawals are time-delayed so liquidity cannot be pulled between placing a bid and
+        settling it, and cannot be yanked out of the reserve the moment an exit needs it.</p>
+        <div class="sv">delayed withdraw request</div>
+      </div>
+      <div class="safe rv" style="transition-delay:0.31s">
+        <div class="si" style="background:rgba(167,139,250,0.1);">&#128202;</div>
+        <h4>Per-asset exposure caps</h4>
+        <p>Each Node sets a maximum exposure per asset, and each tier carries a protocol cap.
+        Concentration risk is bounded on both sides rather than discovered afterwards.</p>
+        <div class="sv">max_exposure per node &amp; tier</div>
+      </div>
+      <div class="safe rv" style="transition-delay:0.34s">
+        <div class="si" style="background:rgba(248,113,113,0.1);">&#9208;</div>
+        <h4>Emergency pause</h4>
+        <p>Exit opening and settlement can be halted under multisig authority in a security incident.
+        Pausing never strands assets: queued and unsettled positions remain the seller's property.</p>
+        <div class="sv">pause() / unpause()</div>
+      </div>
+    </div>
+
+    <div class="card rv" style="transition-delay:0.37s">
+      <h4 style="margin-bottom:10px;">Audit &amp; monitoring plan</h4>
+      <p style="font-size:13.5px;color:var(--t2);line-height:1.72;">The build includes a written threat
+      model covering oracle manipulation, reserve draining, bid front-running and governance-key
+      compromise, plus an on-chain monitoring plan: alerting on reserve-floor breaches, abnormal
+      queue growth, score-publication gaps and any parameter change. Contracts are open source and
+      the event stream is public, so the monitoring we run is monitoring anyone can reproduce.</p>
+    </div>
+  </div>
+
+  </div><!-- /wrap -->
+</section>
+
+<div class="divider"><i></i><span>Try it</span><i></i></div>
+
+<style>
+/* ════════════════════════════════════════════════════════════════
+   QUOTE SIMULATOR
+   ════════════════════════════════════════════════════════════════ */
+.sim{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:44px;}
+.sim-inputs,.sim-output{background:var(--s1);border:1px solid var(--b2);border-radius:20px;padding:28px;}
+.sim-field{margin-bottom:26px;}
+.sim-field label{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:12px;}
+.sim-field .cur{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--br300);
+  font-variant-numeric:tabular-nums;}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:4px;
+  background:var(--b2);outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;
+  border-radius:50%;background:var(--br500);border:2px solid var(--s0);cursor:pointer;
+  box-shadow:0 0 0 0 rgba(89,124,233,0.35);transition:box-shadow 0.2s,transform 0.2s;}
+input[type=range]::-webkit-slider-thumb:hover{box-shadow:0 0 0 7px rgba(89,124,233,0.16);transform:scale(1.08);}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--br500);
+  border:2px solid var(--s0);cursor:pointer;}
+.sim-scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;
+  color:var(--t3);margin-top:9px;}
+.sim-chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px;}
+.sim-chip{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--t2);
+  background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:6px 12px;cursor:pointer;
+  transition:color 0.2s,border-color 0.2s,background 0.2s;}
+.sim-chip:hover{color:var(--t1);border-color:var(--b3);}
+.sim-chip.on{color:#fff;background:var(--br500);border-color:var(--br500);}
+.sim-note{background:var(--s2);border:1px solid var(--b1);border-radius:12px;padding:16px 18px;}
+.sim-note .t{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.14em;
+  text-transform:uppercase;color:var(--t3);margin-bottom:10px;}
+.sim-note ul{list-style:none;display:flex;flex-direction:column;gap:9px;}
+.sim-note li{font-size:12px;color:var(--t2);line-height:1.6;padding-left:15px;position:relative;}
+.sim-note li::before{content:'';position:absolute;left:0;top:7px;width:5px;height:5px;
+  border-radius:50%;background:var(--br500);}
+.sim-note b{color:var(--t1);font-weight:600;}
+
+.sim-quote{text-align:center;padding-bottom:22px;border-bottom:1px solid var(--b1);margin-bottom:18px;}
+.sim-quote .k{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.16em;
+  text-transform:uppercase;color:var(--t3);margin-bottom:10px;}
+.sim-quote .v{font-size:44px;font-weight:700;letter-spacing:-0.035em;line-height:1;color:var(--pos);
+  font-variant-numeric:tabular-nums;display:flex;align-items:baseline;justify-content:center;gap:9px;}
+.sim-quote .u{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--t3);letter-spacing:0;}
+.sim-quote .sub{font-size:12px;color:var(--t3);margin-top:9px;}
+.sim-rows{display:flex;flex-direction:column;gap:2px;margin-bottom:16px;}
+.sim-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;font-size:13px;}
+.sim-row .k{color:var(--t3);}
+.sim-row .v{font-family:var(--mono);font-weight:600;color:var(--t1);font-variant-numeric:tabular-nums;}
+.sim-path{background:rgba(89,124,233,0.06);border:1px solid rgba(89,124,233,0.16);border-radius:12px;
+  padding:15px 17px;font-size:12.5px;color:var(--t2);line-height:1.68;}
+.sim-path b{color:var(--br300);font-weight:600;}
+.sim-disclaimer{font-size:11px;color:var(--t3);line-height:1.6;margin-top:14px;}
+
+/* ════════════════════════════════════════════════════════════════
+   STELLAR / TRACTION / ROADMAP / CTA / FOOTER
+   ════════════════════════════════════════════════════════════════ */
+.integ{background:var(--s1);border:1px solid var(--b2);border-radius:16px;padding:22px;
+  transition:border-color 0.3s var(--ease),transform 0.3s var(--ease),box-shadow 0.3s var(--ease);}
+.integ:hover{border-color:var(--b3);transform:translateY(-3px);box-shadow:0 0 32px rgba(34,211,238,0.11);}
+.integ .ih{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+.integ h4{font-size:15px;font-weight:650;}
+.integ p{font-size:13px;color:var(--t2);line-height:1.65;margin-bottom:12px;}
+.integ .why{font-family:var(--mono);font-size:10px;letter-spacing:0.13em;text-transform:uppercase;
+  color:var(--t3);border-top:1px solid var(--b1);padding-top:11px;}
+
+.tr-card{background:var(--s1);border:1px solid var(--b2);border-radius:16px;padding:24px 20px;
+  text-align:center;transition:border-color 0.3s,transform 0.3s var(--ease);}
+.tr-card:hover{border-color:var(--b3);transform:translateY(-3px);}
+.tr-card .v{font-size:34px;font-weight:700;letter-spacing:-0.035em;line-height:1;
+  font-variant-numeric:tabular-nums;margin-bottom:9px;}
+.tr-card .l{font-size:12px;color:var(--t3);line-height:1.5;}
+
+.road{background:var(--s1);border:1px solid var(--b2);border-radius:18px;padding:26px;
+  transition:border-color 0.3s,transform 0.3s var(--ease),box-shadow 0.3s var(--ease);}
+.road:hover{border-color:var(--b3);transform:translateY(-3px);box-shadow:0 0 32px rgba(89,124,233,0.12);}
+.road-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;}
+.road-num{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.16em;
+  text-transform:uppercase;color:var(--br500);}
+.road h4{font-size:17px;font-weight:650;letter-spacing:-0.02em;margin-bottom:5px;}
+.road-when{font-family:var(--mono);font-size:11px;color:var(--t3);margin-bottom:16px;}
+.road ul{list-style:none;display:flex;flex-direction:column;gap:10px;}
+.road li{font-size:13px;color:var(--t2);line-height:1.6;padding-left:18px;position:relative;}
+.road li::before{content:'';position:absolute;left:0;top:8px;width:6px;height:6px;border-radius:50%;
+  background:rgba(89,124,233,0.45);}
+
+.backers{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;}
+.backer{font-family:var(--mono);font-size:12px;letter-spacing:0.05em;color:var(--t2);
+  background:var(--s1);border:1px solid var(--b2);border-radius:999px;padding:9px 20px;
+  transition:border-color 0.25s,color 0.25s;}
+.backer:hover{border-color:var(--br500);color:var(--t1);}
+
+.cta-sec{padding:104px 0;}
+.cta-box{position:relative;overflow:hidden;text-align:center;
+  background:linear-gradient(165deg,var(--s2),var(--s1));border:1px solid var(--b2);
+  border-radius:28px;padding:64px 40px;}
+.cta-glow{position:absolute;top:-160px;left:50%;transform:translateX(-50%);
+  width:560px;height:340px;border-radius:50%;filter:blur(100px);
+  background:rgba(89,124,233,0.3);pointer-events:none;}
+.cta-box h2{position:relative;margin-bottom:14px;}
+.cta-box p{position:relative;font-size:16px;color:var(--t2);max-width:560px;margin:0 auto 30px;line-height:1.7;}
+.cta-links{position:relative;display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:28px;}
+.cta-links a{font-size:12.5px;color:var(--t3);text-decoration:none;padding:7px 14px;border-radius:8px;
+  border:1px solid var(--b1);transition:color 0.22s,border-color 0.22s;}
+.cta-links a:hover{color:var(--t1);border-color:var(--b3);}
+
+.footer{border-top:1px solid var(--b1);padding:52px 0 34px;}
+.footer-in{max-width:var(--max);margin:0 auto;padding:0 24px;
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:24px;}
+.footer-logo{display:flex;align-items:center;gap:9px;}
+.footer-logo svg{width:26px;height:26px;}
+.footer-logo span{font-size:15px;font-weight:650;letter-spacing:-0.02em;}
+.footer-nav{display:flex;flex-wrap:wrap;gap:6px;}
+.footer-nav a{font-size:12.5px;color:var(--t3);text-decoration:none;padding:5px 10px;border-radius:7px;
+  transition:color 0.2s,background 0.2s;}
+.footer-nav a:hover{color:var(--t1);background:rgba(255,255,255,0.04);}
+.footer-tags{display:flex;flex-wrap:wrap;gap:6px;}
+.footer-tags span{font-family:var(--mono);font-size:10px;color:var(--t3);
+  background:var(--s1);border:1px solid var(--b1);border-radius:6px;padding:4px 9px;}
+.footer-copy{max-width:var(--max);margin:30px auto 0;padding:22px 24px 0;
+  border-top:1px solid var(--b1);font-size:11.5px;color:var(--t3);line-height:1.7;text-align:center;}
+
+@media(max-width:960px){
+  .sim{grid-template-columns:1fr;}
+  .integ-grid,.tr-grid,.road-grid{grid-template-columns:1fr 1fr !important;}
+}
+@media(max-width:640px){
+  .integ-grid,.tr-grid,.road-grid{grid-template-columns:1fr !important;}
+  .sim-quote .v{font-size:36px;}
+  .cta-box{padding:48px 24px;border-radius:22px;}
+  .footer-in{flex-direction:column;align-items:flex-start;}
+}
+</style>
+
+<!-- ═══════════════ QUOTE SIMULATOR ═══════════════ -->
+<section class="sec stage" id="quote">
+  <div class="stage-glass" data-glow></div>
+  <div class="wrap">
+    <div class="center">
+      <span class="eyebrow rv">Interactive</span>
+      <h2 class="rv" style="transition-delay:0.05s">Price your exit</h2>
+      <p class="lede rv" style="transition-delay:0.1s">Move the score and the ticket size to see how
+      DobDex would route and price the exit. Same logic the Exit Auction Engine applies on-chain,
+      run here in your browser.</p>
+    </div>
+
+    <div class="sim rv" style="transition-delay:0.15s">
+      <div class="sim-inputs">
+        <div class="sim-field">
+          <label for="simScore">TRUFA score <span class="cur" id="simScoreVal">82</span></label>
+          <input type="range" id="simScore" min="10" max="100" value="82" step="1" aria-describedby="simScoreVal">
+          <div class="sim-scale"><span>10 &middot; distressed</span><span>100 &middot; institutional</span></div>
+        </div>
+        <div class="sim-field">
+          <label for="simAmount">Exit size <span class="cur" id="simAmountVal">$25,000</span></label>
+          <input type="range" id="simAmount" min="500" max="500000" value="25000" step="500" aria-describedby="simAmountVal">
+          <div class="sim-scale"><span>$500</span><span>$500,000</span></div>
+          <div class="sim-chips" id="simPresets">
+            <button class="sim-chip" data-amt="1000">$1K</button>
+            <button class="sim-chip on" data-amt="25000">$25K</button>
+            <button class="sim-chip" data-amt="100000">$100K</button>
+            <button class="sim-chip" data-amt="400000">$400K</button>
+          </div>
+        </div>
+        <div class="sim-field">
+          <label>Pool liquidity depth <span class="cur" id="simDepthVal">Normal</span></label>
+          <div class="sim-chips" id="simDepth">
+            <button class="sim-chip" data-depth="0.8">Deep</button>
+            <button class="sim-chip on" data-depth="1">Normal</button>
+            <button class="sim-chip" data-depth="1.35">Thin</button>
+          </div>
+        </div>
+        <div class="sim-note">
+          <div class="t">What this model assumes</div>
+          <ul>
+            <li>The <b>TRUFA score</b> comes from DobValidator and is read on-chain by <b>score_reader</b>. A score older than <b>STALENESS_SECS</b> (24h) is rejected, not extrapolated.</li>
+            <li>The tier spread is a <b>band</b>, not a price. Liquidity Nodes bid inside it; the auction clears at the best bid received in the <b>AUCTION_WINDOW</b> (30 min).</li>
+            <li>Instant settlement only draws from the hot reserve while it stays above <b>hot_reserve_floor</b>. Below the floor, the exit is auctioned or queued.</li>
+            <li>Every position settles in <b>USDC on Stellar</b> and can leave through an Anchor Platform off-ramp.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="sim-output">
+        <div class="sim-quote">
+          <div class="k">Estimated net proceeds</div>
+          <div class="v"><span id="simNet">24,813</span><span class="u">USDC</span></div>
+          <div class="sub" id="simVs">on a $25,000 position</div>
+        </div>
+        <div class="sim-rows">
+          <div class="sim-row"><span class="k">Risk tier</span><span class="v" id="simTier">B &middot; Standard</span></div>
+          <div class="sim-row"><span class="k">Tier spread</span><span class="v" id="simSpread">2.00%</span></div>
+          <div class="sim-row"><span class="k">Size impact</span><span class="v" id="simSize">0.33%</span></div>
+          <div class="sim-row"><span class="k">Protocol fee</span><span class="v" id="simFee">0.25%</span></div>
+          <div class="sim-row" style="padding-top:12px;border-top:1px solid var(--b1);"><span class="k" style="color:var(--t1);font-weight:600;">Total discount</span><span class="v" id="simTotal">2.58%</span></div>
+          <div class="sim-row"><span class="k">Settlement path</span><span class="v" id="simRoute">Hot reserve</span></div>
+          <div class="sim-row"><span class="k">Expected time to cash</span><span class="v" id="simTime">&lt; 1 min</span></div>
+        </div>
+        <div class="sim-path" id="simExplain"></div>
+        <div class="sim-disclaimer">Illustrative model. Spread bands, the auction window and the
+        hot-reserve floor are multisig-configurable protocol parameters and are not final. Real
+        quotes are posted by Liquidity Nodes and can differ; DobDex does not guarantee a price or a
+        fill.</div>
+      </div>
     </div>
   </div>
 </section>
 
-<div class="section-divider"></div>
+<div class="divider"><i></i><span>Built on Stellar</span><i></i></div>
 
-<!-- ═══════════════════════════════════════════
-     TRACTION
-     ═══════════════════════════════════════════ -->
-<section class="section" id="traction">
-  <div style="text-align:center;">
-    <div class="section-label fade-in" style="justify-content:center;">Technical Readiness</div>
-    <h2 class="fade-in" style="transition-delay:0.05s;text-align:center;">Built for Production</h2>
-    <p class="section-sub fade-in" style="transition-delay:0.1s;margin-left:auto;margin-right:auto;text-align:center;">Fully tested, multi-chain deployed, hackathon-ready infrastructure.</p>
-  </div>
+<!-- ═══════════════ STELLAR ═══════════════ -->
+<section class="sec stage" id="stellar">
+  <div class="stage-glass" data-glow></div>
+  <div class="wrap">
+    <div class="center" style="margin-bottom:48px;">
+      <span class="eyebrow rv">Ecosystem</span>
+      <h2 class="rv" style="transition-delay:0.05s">What we build on</h2>
+      <p class="lede rv" style="transition-delay:0.1s">DobDex is deliberately not a self-contained
+      island. Each piece of the exit path that Stellar already solves well is delegated to the
+      ecosystem primitive that solves it.</p>
+    </div>
 
-  <div class="traction-grid">
-    <div class="traction-card fade-in" style="transition-delay:0.15s">
-      <div class="traction-val" style="color:var(--green);">176</div>
-      <div class="traction-lbl">Tests Passing</div>
-    </div>
-    <div class="traction-card fade-in" style="transition-delay:0.2s">
-      <div class="traction-val" style="color:var(--accent);">7</div>
-      <div class="traction-lbl">Smart Contracts</div>
-    </div>
-    <div class="traction-card fade-in" style="transition-delay:0.25s">
-      <div class="traction-val" style="color:var(--purple);">3</div>
-      <div class="traction-lbl">Chains Deployed</div>
-    </div>
-    <div class="traction-card fade-in" style="transition-delay:0.3s">
-      <div class="traction-val" style="color:var(--amber);">10</div>
-      <div class="traction-lbl">RWA Tokens / Chain</div>
+    <div class="g3 integ-grid">
+      <div class="integ rv" style="transition-delay:0.12s">
+        <div class="ih"><h4>Soroban</h4><span class="pill build">Build target</span></div>
+        <p>All six contracts are Rust on Soroban. Atomic multi-step settlement, typed events and
+        predictable fees are the reason the exit path can be a single transaction instead of a
+        choreography.</p>
+        <div class="why">execution layer</div>
+      </div>
+      <div class="integ rv" style="transition-delay:0.16s">
+        <div class="ih"><h4>DeFindex</h4><span class="pill build">Integration</span></div>
+        <p>Liquidity Node capital sitting in the vault waiting for exits should not sit dead. DeFindex
+        strategies put idle reserve capital to work, so the opportunity cost of standing ready is
+        lower &mdash; which is what makes deeper reserves economically rational.</p>
+        <div class="why">idle capital yield</div>
+      </div>
+      <div class="integ rv" style="transition-delay:0.2s">
+        <div class="ih"><h4>Blend v2</h4><span class="pill build">Integration</span></div>
+        <p>A Node that wants to bid on an exit without unwinding another position needs credit. Blend
+        lets Nodes source short-term liquidity against collateral instead of keeping every dollar of
+        bidding power idle in the vault.</p>
+        <div class="why">node leverage</div>
+      </div>
+      <div class="integ rv" style="transition-delay:0.24s">
+        <div class="ih"><h4>Anchor Platform</h4><span class="pill build">Integration</span></div>
+        <p>An exit that ends in USDC is only half an exit for an investor who needs local currency.
+        The settlement router hands off to Anchor withdrawal flows so the last mile is fiat in a bank
+        account, not another token to figure out.</p>
+        <div class="why">fiat off-ramp</div>
+      </div>
+      <div class="integ rv" style="transition-delay:0.28s">
+        <div class="ih"><h4>USDC on Stellar</h4><span class="pill live">Live</span></div>
+        <p>The single settlement asset for the entire protocol. Bids, fills, fees and queue positions
+        are all denominated in it, so there is no second exchange-rate risk hidden inside the exit.</p>
+        <div class="why">settlement asset</div>
+      </div>
+      <div class="integ rv" style="transition-delay:0.32s">
+        <div class="ih"><h4>EVM reference build</h4><span class="pill ref">Reference only</span></div>
+        <p>An earlier version of this design was built and tested against EVM. It de-risks the
+        mechanism &mdash; the auction, tiering and queue logic have run before &mdash; but it is not
+        the production target and is not where DobDex ships. Stellar is.</p>
+        <div class="why">prior art</div>
+      </div>
     </div>
   </div>
 </section>
 
-<div class="section-divider"></div>
+<div class="divider"><i></i><span>Where we are</span><i></i></div>
 
-<!-- ═══════════════════════════════════════════
-     BACKED BY
-     ═══════════════════════════════════════════ -->
-<section class="section" style="padding-top:80px;padding-bottom:80px;">
-  <div style="text-align:center;">
-    <div class="section-label fade-in" style="justify-content:center;">Backed By</div>
-    <div class="backers fade-in" style="transition-delay:0.1s;margin-top:32px;">
-      <span class="backer">Uniswap Foundation</span>
+<!-- ═══════════════ TRACTION ═══════════════ -->
+<section class="sec sec-tight" id="traction">
+  <div class="wrap">
+    <div class="center" style="margin-bottom:44px;">
+      <span class="eyebrow rv">Traction</span>
+      <h2 class="rv" style="transition-delay:0.05s">Not starting from zero</h2>
+      <p class="lede rv" style="transition-delay:0.1s">DobDex is being built on top of a protocol
+      that already runs on Stellar mainnet. These are production database figures, not projections.</p>
+    </div>
+    <div class="g4 tr-grid">
+      <div class="tr-card rv" style="transition-delay:0.12s"><div class="v" style="color:var(--br400);">125</div><div class="l">Live pools on Stellar mainnet</div></div>
+      <div class="tr-card rv" style="transition-delay:0.16s"><div class="v" style="color:var(--violet);">878</div><div class="l">Registered users &middot; 482 managed wallets</div></div>
+      <div class="tr-card rv" style="transition-delay:0.2s"><div class="v" style="color:var(--pos);">147</div><div class="l">Marketplace listings &amp; settled purchases</div></div>
+      <div class="tr-card rv" style="transition-delay:0.24s"><div class="v" style="color:var(--warn);">412</div><div class="l">Indexed Stellar contract events</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"><i></i><span>Roadmap</span><i></i></div>
+
+<!-- ═══════════════ ROADMAP ═══════════════ -->
+<section class="sec stage" id="roadmap">
+  <div class="stage-glass" data-glow></div>
+  <div class="wrap">
+    <div class="center" style="margin-bottom:48px;">
+      <span class="eyebrow rv">Three milestones</span>
+      <h2 class="rv" style="transition-delay:0.05s">What we are building</h2>
+      <p class="lede rv" style="transition-delay:0.1s">Three milestones from a working MVP to
+      mainnet, each ending in something verifiable on-chain rather than a status update.</p>
+    </div>
+    <div class="g3 road-grid">
+      <div class="road rv" style="transition-delay:0.12s">
+        <div class="road-head"><span class="road-num">Milestone 01</span><span class="pill build">Next</span></div>
+        <h4>MVP &amp; core contracts</h4>
+        <div class="road-when">Soroban testnet</div>
+        <ul>
+          <li>Score Reader and Risk Classifier deployed, with the five-tier table as a stored parameter</li>
+          <li>LP Liquidity Vault accepting USDC deposits with an enforced hot-reserve floor</li>
+          <li>Exit request &rarr; tier &rarr; quote path working end to end against test pools</li>
+          <li>Exit interface and LP dashboard wired to Freighter</li>
+        </ul>
+      </div>
+      <div class="road rv" style="transition-delay:0.16s">
+        <div class="road-head"><span class="road-num">Milestone 02</span><span class="pill ref">Then</span></div>
+        <h4>Auctions, queue &amp; integrations</h4>
+        <div class="road-when">Full testnet build</div>
+        <ul>
+          <li>Exit Auction Engine with a bounded window and competitive LP bidding</li>
+          <li>FIFO Queue Manager for the case where demand exceeds available liquidity</li>
+          <li>DeFindex yield routing on idle vault capital; Blend v2 reserve venue</li>
+          <li>Soroban RPC event indexer plus the onchain monitoring plan and threat model</li>
+        </ul>
+      </div>
+      <div class="road rv" style="transition-delay:0.2s">
+        <div class="road-head"><span class="road-num">Milestone 03</span><span class="pill ref">Then</span></div>
+        <h4>Mainnet &amp; off-ramp</h4>
+        <div class="road-when">Stellar mainnet</div>
+        <ul>
+          <li>All six contracts on mainnet behind multisig-gated parameters</li>
+          <li>Anchor Platform integration closing the loop from USDC to local currency</li>
+          <li>Real exits from live Dobprotocol pools with real Liquidity Node capital</li>
+          <li>Public dashboards for fills, spreads, queue depth and reserve health</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ BACKED BY ═══════════════ -->
+<section class="sec sec-tight">
+  <div class="wrap center">
+    <span class="eyebrow rv">Backed by</span>
+    <div class="backers rv" style="transition-delay:0.08s;margin-top:24px;">
       <span class="backer">Stellar</span>
       <span class="backer">Draper University</span>
+      <span class="backer">Uniswap Foundation</span>
       <span class="backer">eHive</span>
     </div>
   </div>
 </section>
 
-<div class="section-divider"></div>
-
-<!-- ═══════════════════════════════════════════
-     CTA
-     ═══════════════════════════════════════════ -->
-<section class="cta-section">
-  <div class="cta-box fade-in">
-    <div class="cta-glow"></div>
-    <h2>Start Using DobDex</h2>
-    <p>Connect your wallet, deposit RWAs, and experience LP-priced exit liquidity for real-world assets on testnet.</p>
-    <a class="btn-primary" href="index.html" style="position:relative;">Launch App</a>
-    <div class="cta-links">
-      <a href="demo.html">Interactive Demo</a>
-      <a href="protocol.html">Protocol Deep Dive</a>
-      <a href="https://docs.dobprotocol.com/dex/overview" target="_blank">Documentation</a>
-      <a href="deck.html">Pitch Deck</a>
-      <a href="https://github.com/Dobprotocol/Dobhooks" target="_blank">GitHub</a>
+<!-- ═══════════════ CTA ═══════════════ -->
+<section class="cta-sec">
+  <div class="wrap">
+    <div class="cta-box rv">
+      <div class="cta-glow"></div>
+      <h2>Exit liquidity, on Stellar</h2>
+      <p>Step through the mechanism in the simulator, watch the product walkthrough, or explore the
+      live Dobprotocol pools that DobDex is being built to serve.</p>
+      <div style="position:relative;display:flex;flex-wrap:wrap;gap:12px;justify-content:center;">
+        <a class="btn btn-p" href="simulate.html">Open the simulator</a>
+        <a class="btn btn-s" href="#how-it-works">Read how it works</a>
+      </div>
+      <div class="cta-links">
+        <a href="demo.html">Product walkthrough</a>
+        <a href="https://docs.dobprotocol.com/dex/overview" target="_blank" rel="noopener">Documentation</a>
+        <a href="https://docs.dobprotocol.com/dobdex-architecture.pdf" target="_blank" rel="noopener">Architecture PDF</a>
+        <a href="https://tokenize.dobprotocol.com" target="_blank" rel="noopener">Token Studio</a>
+        <a href="https://github.com/Dobprotocol/Dobhooks" target="_blank" rel="noopener">GitHub</a>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════
-     FOOTER
-     ═══════════════════════════════════════════ -->
+<!-- ═══════════════ FOOTER ═══════════════ -->
 <footer class="footer">
-  <div class="footer-inner">
+  <div class="footer-in">
     <div class="footer-logo">
-      <svg viewBox="0 0 89 89" fill="none"><circle cx="44.9" cy="44" r="44" fill="#597CE9"/><path d="M35.5 54.1C33.1 51.5 31.9 48.2 31.9 44C31.9 39.8 33.1 36.5 35.5 33.9C36.9 32.4 38.6 31.3 40.6 30.7V22C38 22.4 35.6 23.2 33.4 24.5C30.1 26.4 27.5 29 25.7 32.3C23.9 35.7 23 39.6 23 44.1C23 48.6 23.9 52.5 25.7 55.8C27.5 59.2 30.1 61.7 33.4 63.6C35.6 64.8 38 65.6 40.6 66V57.3C38.6 56.7 36.9 55.6 35.5 54.1Z" fill="#F9FAFE"/><path d="M64.1 32.3C62.2 29 59.7 26.4 56.4 24.5C54.2 23.2 51.8 22.4 49.2 22V30.7C51.2 31.4 52.9 32.4 54.3 34C56.7 36.6 57.9 39.9 57.9 44.1C57.9 48.3 56.7 51.5 54.3 54.1C52.9 55.6 51.2 56.7 49.2 57.3V66C51.8 65.6 54.2 64.8 56.4 63.6C59.7 61.7 62.2 59.1 64.1 55.8C65.9 52.5 66.9 48.6 66.9 44.1C66.9 39.6 65.9 35.7 64.1 32.3Z" fill="#F9FAFE"/><circle cx="44.9" cy="44" r="5.5" fill="#F9FAFE"/></svg>
+      <svg viewBox="0 0 89 89" fill="none" aria-hidden="true"><circle cx="44.9" cy="44" r="44" fill="#597CE9"/><path d="M35.5 54.1C33.1 51.5 31.9 48.2 31.9 44C31.9 39.8 33.1 36.5 35.5 33.9C36.9 32.4 38.6 31.3 40.6 30.7V22C38 22.4 35.6 23.2 33.4 24.5C30.1 26.4 27.5 29 25.7 32.3C23.9 35.7 23 39.6 23 44.1C23 48.6 23.9 52.5 25.7 55.8C27.5 59.2 30.1 61.7 33.4 63.6C35.6 64.8 38 65.6 40.6 66V57.3C38.6 56.7 36.9 55.6 35.5 54.1Z" fill="#F9FAFE"/><path d="M64.1 32.3C62.2 29 59.7 26.4 56.4 24.5C54.2 23.2 51.8 22.4 49.2 22V30.7C51.2 31.4 52.9 32.4 54.3 34C56.7 36.6 57.9 39.9 57.9 44.1C57.9 48.3 56.7 51.5 54.3 54.1C52.9 55.6 51.2 56.7 49.2 57.3V66C51.8 65.6 54.2 64.8 56.4 63.6C59.7 61.7 62.2 59.1 64.1 55.8C65.9 52.5 66.9 48.6 66.9 44.1C66.9 39.6 65.9 35.7 64.1 32.3Z" fill="#F9FAFE"/><circle cx="44.9" cy="44" r="5.5" fill="#F9FAFE"/></svg>
       <span>DobDex</span>
     </div>
     <div class="footer-nav">
-      <a href="index.html">App</a>
-      <a href="protocol.html">Protocol</a>
-      <a href="https://docs.dobprotocol.com/dex/overview" target="_blank">Docs</a>
-      <a href="demo.html">Demo</a>
-      <a href="deck.html">Deck</a>
-      <a href="https://github.com/Dobprotocol/Dobhooks" target="_blank">GitHub</a>
+      <a href="#how-it-works">How it works</a>
+      <a href="#quote">Exit quote</a>
+      <a href="simulate.html">Simulator</a>
+      <a href="demo.html">Walkthrough</a>
+      <a href="https://docs.dobprotocol.com/dex/overview" target="_blank" rel="noopener">Docs</a>
+      <a href="index.html">EVM reference app</a>
+      <a href="https://github.com/Dobprotocol/Dobhooks" target="_blank" rel="noopener">GitHub</a>
     </div>
     <div class="footer-tags">
-      <span>DobPegHook</span>
-      <span>DobRwaVault</span>
-      <span>DobValidatorRegistry</span>
-      <span>DobLPRegistry</span>
-      <span>DobDirectSwap</span>
+      <span>score_reader</span><span>risk_classifier</span><span>lp_vault</span>
+      <span>exit_auction</span><span>settlement_router</span><span>fifo_queue</span>
     </div>
   </div>
-  <div class="footer-copy">&copy; 2026 Dobprotocol. Built on Unichain &middot; Powered by Reactive Network.</div>
+  <div class="footer-copy">
+    &copy; 2026 Dobprotocol. Built on Stellar &middot; Soroban smart contracts &middot; Settled in USDC.<br>
+    DobDex exit contracts are under development. Nothing here is an offer, a price guarantee, or investment advice.
+  </div>
 </footer>
 
 <script>
-// Preloader
-setTimeout(() => {
-  const pl = document.getElementById('preloader');
-  if (pl) pl.classList.add('done');
-}, 2000);
+/* ─────────────── Preloader ─────────────── */
+(function () {
+  var pl = document.getElementById('preloader');
+  var hide = function () { if (pl) pl.classList.add('done'); revealHero(); };
+  var t = setTimeout(hide, 1100);
+  window.addEventListener('load', function () { clearTimeout(t); setTimeout(hide, 300); });
+})();
 
-// Scroll fade-in
-const obs = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      e.target.classList.add('visible');
-      obs.unobserve(e.target);
-    }
+function revealHero() {
+  document.querySelectorAll('.hero .rv').forEach(function (el) { el.classList.add('in'); });
+  runCounters();
+}
+
+/* ─────────────── Scroll reveal ─────────────── */
+var obs = new IntersectionObserver(function (entries) {
+  entries.forEach(function (e) {
+    if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target); }
   });
-}, { threshold: 0.1 });
+}, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.rv').forEach(function (el) { obs.observe(el); });
 
-document.querySelectorAll('.fade-in, .fade-in-left, .fade-in-right').forEach(el => obs.observe(el));
+/* ─────────────── Hero counters ─────────────── */
+var countersRan = false;
+function runCounters() {
+  if (countersRan) return; countersRan = true;
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.querySelectorAll('[data-count]').forEach(function (el) {
+    var target = parseInt(el.getAttribute('data-count'), 10);
+    if (reduce) { el.textContent = target.toLocaleString('en-US'); return; }
+    var start = null, dur = 1150;
+    function step(ts) {
+      if (!start) start = ts;
+      var p = Math.min((ts - start) / dur, 1);
+      var eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(target * eased).toLocaleString('en-US');
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+}
 
-// Hero elements auto-reveal after preloader
-setTimeout(() => {
-  document.querySelectorAll('.hero .fade-in').forEach(el => el.classList.add('visible'));
-}, 2100);
-
-// Navbar scroll shadow
-let lastScroll = 0;
-window.addEventListener('scroll', () => {
-  const navbar = document.querySelector('.navbar');
-  if (window.scrollY > 100) {
-    navbar.style.boxShadow = '0 4px 24px rgba(0,0,0,0.3)';
-  } else {
-    navbar.style.boxShadow = 'none';
-  }
+/* ─────────────── Nav ─────────────── */
+var burger = document.getElementById('burger');
+var mobile = document.getElementById('mobile');
+burger.addEventListener('click', function () {
+  var open = mobile.classList.toggle('open');
+  burger.classList.toggle('open', open);
+  burger.setAttribute('aria-expanded', open ? 'true' : 'false');
 });
+mobile.querySelectorAll('a').forEach(function (a) {
+  a.addEventListener('click', function () {
+    mobile.classList.remove('open');
+    burger.classList.remove('open');
+    burger.setAttribute('aria-expanded', 'false');
+  });
+});
+
+/* ─────────────── Scroll: progress, nav state, cinematic glow, chapter rail ─────────────── */
+var nav = document.getElementById('nav');
+var progress = document.getElementById('progress');
+var glows = Array.prototype.slice.call(document.querySelectorAll('[data-glow]'));
+var railLinks = Array.prototype.slice.call(document.querySelectorAll('.rail a'));
+var chapters = railLinks.map(function (a) { return document.getElementById(a.dataset.ch); });
+var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var ticking = false;
+
+function onScroll() {
+  var y = window.scrollY;
+  var vh = window.innerHeight;
+
+  nav.classList.toggle('stuck', y > 40);
+
+  var h = document.documentElement.scrollHeight - vh;
+  progress.style.width = (h > 0 ? (y / h) * 100 : 0) + '%';
+
+  /* Cinematic glow: a panel lights up as its centre approaches the viewport centre.
+     Same easing as the dobprotocol.com landing sections. */
+  if (!reduceMotion) {
+    glows.forEach(function (g) {
+      var host = g.parentElement;
+      var r = host.getBoundingClientRect();
+      var d = Math.abs((r.top + r.height / 2) - vh / 2) / (vh / 2);
+      var s = Math.max(0, 1 - d);
+      g.style.boxShadow = '0 0 ' + (20 + s * 46) + 'px rgba(89,124,233,' + (0.04 + s * 0.17).toFixed(3) + ')';
+    });
+  }
+
+  /* Chapter rail: highlight the chapter currently crossing the upper third */
+  var active = -1;
+  for (var i = 0; i < chapters.length; i++) {
+    if (chapters[i] && chapters[i].getBoundingClientRect().top <= vh * 0.35) active = i;
+  }
+  railLinks.forEach(function (a, i) { a.classList.toggle('on', i === active); });
+  if (active > -1) {
+    var el = railLinks[active];
+    var rail = el.parentElement;
+    var want = el.offsetLeft - rail.clientWidth / 2 + el.clientWidth / 2;
+    if (Math.abs(rail.scrollLeft - want) > 40) rail.scrollTo({ left: want, behavior: 'smooth' });
+  }
+  ticking = false;
+}
+window.addEventListener('scroll', function () {
+  if (!ticking) { ticking = true; requestAnimationFrame(onScroll); }
+}, { passive: true });
+window.addEventListener('resize', onScroll, { passive: true });
+onScroll();
+
+/* ─────────────── Risk tiers ─────────────── */
+var TIERS = [
+  {
+    id: 'A', name: 'Institutional', color: '#4ade80', min: 90, max: 100,
+    spread: '0.3% – 1.2%', bandBps: [30, 120],
+    blurb: 'Fully documented, cash-flowing assets with a current validation and no open findings. These exits are filled straight from the hot reserve because the collateral is the easiest thing in the vault to re-sell.',
+    facts: [['Settlement', 'Hot reserve'], ['Time to cash', '< 1 min'], ['Reserve access', 'Full'], ['LP-only mode', 'Off']]
+  },
+  {
+    id: 'B', name: 'Standard', color: '#597ce9', min: 75, max: 89,
+    spread: '1.2% – 3.0%', bandBps: [120, 300],
+    blurb: 'Solid assets with minor documentation or performance gaps. Small tickets clear instantly; larger ones open a short auction so Liquidity Nodes can compete rather than the reserve absorbing the whole position.',
+    facts: [['Settlement', 'Reserve / auction'], ['Time to cash', '< 5 min'], ['Reserve access', 'Capped'], ['LP-only mode', 'Off']]
+  },
+  {
+    id: 'C', name: 'Watch', color: '#fbbf24', min: 60, max: 74,
+    spread: '3.0% – 6.5%', bandBps: [300, 650],
+    blurb: 'Something in the validation moved the wrong way: a late report, weaker cashflow, a maintenance flag. The asset is still financeable, but the exit goes to auction so the spread is set by whoever is actually willing to hold it.',
+    facts: [['Settlement', 'Auction'], ['Time to cash', '~30 min'], ['Reserve access', 'Limited'], ['LP-only mode', 'Off']]
+  },
+  {
+    id: 'D', name: 'Elevated', color: '#f5824f', min: 45, max: 59,
+    spread: '6.5% – 13%', bandBps: [650, 1300],
+    blurb: 'Material stress. The hot reserve is protected and only Liquidity Nodes who explicitly opted into this tier may bid. If bids do not cover the position, the remainder enters the FIFO queue instead of being force-filled.',
+    facts: [['Settlement', 'Auction + queue'], ['Time to cash', '30 min – hours'], ['Reserve access', 'Blocked'], ['LP-only mode', 'On']]
+  },
+  {
+    id: 'E', name: 'Distressed', color: '#f87171', min: 0, max: 44,
+    spread: '13% – 25%+', bandBps: [1300, 2500],
+    blurb: 'Default, abandonment, or a validation stale past its window. The protocol will not quote a price it cannot honour: exits are LP-only, queued, and priced by whoever is willing to take the workout risk. The alternative is not a better price — it is no bid at all.',
+    facts: [['Settlement', 'LP-only, queued'], ['Time to cash', 'Hours – days'], ['Reserve access', 'Blocked'], ['LP-only mode', 'Forced']]
+  }
+];
+
+var tierTable = document.getElementById('tierTable');
+var tierDetail = document.getElementById('tierDetail');
+
+TIERS.forEach(function (t, i) {
+  var b = document.createElement('button');
+  b.className = 'tier-row' + (i === 1 ? ' active' : '');
+  b.type = 'button';
+  b.setAttribute('role', 'tab');
+  b.setAttribute('aria-selected', i === 1 ? 'true' : 'false');
+  b.innerHTML =
+    '<span class="tier-badge" style="background:' + t.color + '">' + t.id + '</span>' +
+    '<span><span class="tier-name">' + t.name + '</span><br><span class="tier-score">score ' + t.min + '–' + t.max + '</span></span>' +
+    '<span class="tier-spread" style="color:' + t.color + '">' + t.spread + '</span>';
+  b.addEventListener('click', function () { selectTier(i); });
+  tierTable.appendChild(b);
+});
+
+function selectTier(i) {
+  var t = TIERS[i];
+  Array.prototype.forEach.call(tierTable.children, function (c, j) {
+    c.classList.toggle('active', j === i);
+    c.setAttribute('aria-selected', j === i ? 'true' : 'false');
+  });
+  tierDetail.innerHTML =
+    '<div class="tier-detail-head">' +
+      '<span class="tier-badge" style="background:' + t.color + '">' + t.id + '</span>' +
+      '<div><h3>Tier ' + t.id + ' &middot; ' + t.name + '</h3>' +
+      '<div class="sub">TRUFA score ' + t.min + '–' + t.max + ' &middot; spread ' + t.spread + '</div></div>' +
+    '</div>' +
+    '<p>' + t.blurb + '</p>' +
+    '<div class="tier-facts">' + t.facts.map(function (f) {
+      return '<div class="tier-fact"><div class="k">' + f[0] + '</div><div class="v">' + f[1] + '</div></div>';
+    }).join('') + '</div>';
+}
+selectTier(1);
+
+/* ─────────────── Exit quote simulator ─────────────── */
+var elScore = document.getElementById('simScore');
+var elAmount = document.getElementById('simAmount');
+var elScoreVal = document.getElementById('simScoreVal');
+var elAmountVal = document.getElementById('simAmountVal');
+var elDepthVal = document.getElementById('simDepthVal');
+var depthFactor = 1;
+
+function tierForScore(s) {
+  for (var i = 0; i < TIERS.length; i++) { if (s >= TIERS[i].min) return TIERS[i]; }
+  return TIERS[TIERS.length - 1];
+}
+function money(n) { return n.toLocaleString('en-US', { maximumFractionDigits: 0 }); }
+
+function quote() {
+  var score = parseInt(elScore.value, 10);
+  var amount = parseInt(elAmount.value, 10);
+  var t = tierForScore(score);
+
+  // Tier spread: a score at the top of its band prices at the tight end, bottom at the wide end.
+  var span = Math.max(1, t.max - t.min);
+  var pos = Math.min(1, Math.max(0, (score - t.min) / span));      // 0 = bottom of tier, 1 = top
+  var tierBps = t.bandBps[1] - (t.bandBps[1] - t.bandBps[0]) * pos;
+
+  // Size impact: a bigger ticket consumes more of the available book. Reported separately so the
+  // tier spread always stays inside the band shown in the tier table.
+  var sizeBps = Math.min(650, Math.pow(amount / 1000, 0.72) * 3.2) * depthFactor;
+
+  var feeBps = 25;                                                  // illustrative protocol fee
+  var bps = tierBps + sizeBps;
+  var net = amount * (1 - (bps + feeBps) / 10000);
+
+  var route, time, explain;
+  var instant = (t.id === 'A' || t.id === 'B') && amount <= 50000 && depthFactor <= 1;
+  if (instant) {
+    route = 'Hot reserve';
+    time = '< 1 min';
+    explain = 'Tier <b>' + t.id + '</b> at this size clears directly against the vault’s hot reserve. No auction is opened and the Settlement Router pays out in the same Soroban transaction.';
+  } else if (t.id === 'D' || t.id === 'E') {
+    route = t.id === 'E' ? 'LP-only, queued' : 'Auction + queue';
+    time = t.id === 'E' ? 'Hours – days' : '30 min – hours';
+    explain = 'Tier <b>' + t.id + '</b> is <b>LP-only</b>: the hot reserve is protected and only Liquidity Nodes who opted into this risk band may bid. Anything the auction does not fill enters the <b>FIFO queue</b> at a public position rather than being force-filled at a price the vault cannot honour.';
+  } else {
+    route = 'Auction (30 min)';
+    time = '~30 min';
+    explain = 'This exit opens a bounded <b>30-minute auction</b>. Liquidity Nodes backing this asset bid against each other and the best bid settles. Competition, not a curve, sets the spread.';
+  }
+
+  elScoreVal.textContent = score;
+  elAmountVal.textContent = '$' + money(amount);
+  document.getElementById('simNet').textContent = money(Math.round(net));
+  document.getElementById('simVs').textContent = 'on a $' + money(amount) + ' position';
+  document.getElementById('simTier').textContent = t.id + ' · ' + t.name;
+  document.getElementById('simTier').style.color = t.color;
+  document.getElementById('simSpread').textContent = (tierBps / 100).toFixed(2) + '%';
+  document.getElementById('simSize').textContent = (sizeBps / 100).toFixed(2) + '%';
+  document.getElementById('simFee').textContent = (feeBps / 100).toFixed(2) + '%';
+  document.getElementById('simTotal').textContent = ((bps + feeBps) / 100).toFixed(2) + '%';
+  document.getElementById('simRoute').textContent = route;
+  document.getElementById('simTime').innerHTML = time;
+  document.getElementById('simExplain').innerHTML = explain;
+}
+
+elScore.addEventListener('input', quote);
+elAmount.addEventListener('input', function () {
+  document.querySelectorAll('#simPresets .sim-chip').forEach(function (c) {
+    c.classList.toggle('on', parseInt(c.dataset.amt, 10) === parseInt(elAmount.value, 10));
+  });
+  quote();
+});
+document.querySelectorAll('#simPresets .sim-chip').forEach(function (c) {
+  c.addEventListener('click', function () {
+    elAmount.value = c.dataset.amt;
+    document.querySelectorAll('#simPresets .sim-chip').forEach(function (x) { x.classList.remove('on'); });
+    c.classList.add('on');
+    quote();
+  });
+});
+document.querySelectorAll('#simDepth .sim-chip').forEach(function (c) {
+  c.addEventListener('click', function () {
+    depthFactor = parseFloat(c.dataset.depth);
+    document.querySelectorAll('#simDepth .sim-chip').forEach(function (x) { x.classList.remove('on'); });
+    c.classList.add('on');
+    elDepthVal.textContent = c.textContent;
+    quote();
+  });
+});
+quote();
 </script>
 </body>
 </html>

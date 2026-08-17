@@ -16,7 +16,12 @@
     gtag('js', new Date());
     gtag('config', 'G-1M2TNZYEZZ');
   </script>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 89 89'><circle cx='44.9' cy='44' r='44' fill='%23597CE9'/></svg>">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="icon" type="image/svg+xml" href="/dob-logo.svg">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -1168,7 +1173,7 @@
   </a>
   <div class="topnav-links">
     <a href="index.html">App</a>
-    <a href="protocol.html">Protocol</a>
+    <a href="/#how-it-works">How it works</a>
     <a href="simulate.html">Simulator</a>
     <a href="deck.html">Deck</a>
     <a href="https://github.com/Dobprotocol/Dobhooks" target="_blank">GitHub</a>
@@ -1185,7 +1190,7 @@
   <div class="glow glow-blue" style="width:500px;height:500px;top:10%;right:0%;"></div>
   <div class="content" style="text-align:center;">
     <div class="hero-tag anim-target fade-up" style="transition-delay:0.1s;">
-      Live on Unichain &middot; Powered by Reactive Network
+      Reference build on Unichain Sepolia &middot; Production target: Stellar / Soroban
     </div>
     <h1 class="hero-title anim-target fade-up" style="transition-delay:0.2s;">
       <span class="grad">DobDex</span>
@@ -1197,7 +1202,7 @@
       LP-Routed Exits &middot; Permissionless Liquidity &middot; Multi-Chain
     </p>
     <div class="hero-badges anim-target fade-up" style="transition-delay:0.55s;">
-      <span class="hero-badge-item purple">Unichain + Reactive</span>
+      <span class="hero-badge-item purple">Stellar / Soroban</span>
       <span class="hero-badge-item blue">10 RWA Tokens</span>
       <span class="hero-badge-item green">176 Tests Passing</span>
       <span class="hero-badge-item amber">$340k Hackathon</span>
@@ -1223,17 +1228,24 @@
           <span class="mockup-row-val accent">$100.00</span>
         </div>
         <div class="mockup-row">
-          <span class="mockup-row-label">You Receive</span>
-          <span class="mockup-row-val green">1,000 dUSDC</span>
+          <span class="mockup-row-label">LP Spread &middot; Tier B</span>
+          <span class="mockup-row-val">180 bps</span>
         </div>
         <div class="mockup-row">
-          <span class="mockup-row-label">Slippage</span>
-          <span class="mockup-row-val green">0.00%</span>
+          <span class="mockup-row-label">You Receive</span>
+          <span class="mockup-row-val green">982 dUSDC</span>
         </div>
       </div>
     </div>
   </div>
 </section>
+
+<div style="background:#12141c;border-top:1px solid #2a2d3a;border-bottom:1px solid #2a2d3a;color:#9aa0b4;text-align:center;padding:12px 16px;font-size:12px;line-height:1.6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;position:relative;z-index:2;">
+  <strong style="color:#e8eaf2;font-weight:800;">EVM reference implementation.</strong>
+  This walkthrough documents the original DobDex build on Unichain Sepolia testnet, where the mechanism was first proven.
+  <strong style="color:#e8eaf2;font-weight:800;">DobDex ships on Stellar</strong> &mdash; the six Soroban contracts are in build.
+  <a href="/#how-it-works" style="color:#975AFF;text-decoration:none;font-weight:700;border-bottom:1px solid rgba(151,90,255,0.4);">Read the Soroban architecture &rarr;</a>
+</div>
 
 
 <!-- ════════════════════════════════════════════
@@ -1965,7 +1977,7 @@
         <div class="roadmap-num">4</div>
         <div>
           <h4>Mainnet Deployment</h4>
-          <p>Unichain mainnet launch with institutional-grade oracle feeds and full audit completion.</p>
+          <p>Stellar mainnet launch of the six Soroban exit contracts, with DeFindex, Blend v2 and Anchor Platform on the rails, plus a completed audit.</p>
         </div>
       </div>
     </div>
@@ -2005,7 +2017,7 @@
           <p>Open-source on GitHub</p>
         </div>
       </a>
-      <a class="cta-link anim-target fade-up" style="transition-delay:0.5s;" href="protocol.html">
+      <a class="cta-link anim-target fade-up" style="transition-delay:0.5s;" href="/#how-it-works">
         <div class="cta-link-icon green">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#40C057" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         </div>
@@ -2027,7 +2039,7 @@
     <div class="cta-built anim-target fade-up" style="transition-delay:0.7s;">
       Built by <a href="https://dobprotocol.com" target="_blank">Dobprotocol</a> &middot;
       <a href="https://docs.dobprotocol.com/dex/overview" target="_blank">Docs</a> &middot;
-      Deployed on <a href="https://unichain.org" target="_blank">Unichain</a> &middot; Powered by <a href="https://reactive.network" target="_blank">Reactive Network</a>
+      Reference build on <a href="https://unichain.org" target="_blank">Unichain Sepolia</a> &middot; Shipping on <a href="https://stellar.org" target="_blank">Stellar</a>
     </div>
 
     <!-- Footer logo -->
