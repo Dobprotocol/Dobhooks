@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DobDex — App</title>
-  <meta name="description" content="The DobDex app: open an exit on a tokenized real-world asset, run a Liquidity Node, and watch the auction settle. Reference build on Unichain Sepolia; production target Stellar / Soroban, settled in USDC." />
+  <meta name="description" content="The DobDex app: open an exit on a tokenized real-world asset, run a Liquidity Node, and watch the auction settle in USDC." />
   <meta name="theme-color" content="#08090b" />
   <link rel="canonical" href="https://dex.dobprotocol.com/app.html" />
   <meta name="robots" content="noindex,follow" />
@@ -895,11 +895,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.umd.min.js"></script>
 </head>
 <body>
-<div class="ctxbar">
-  <span class="tag">Testnet</span>
-  <span><b>EVM reference build</b> on Unichain Sepolia &mdash; the auction, tiering and LP-fill logic, running end to end. DobDex ships on Stellar; the six Soroban contracts are in build.
-  <a href="protocol.html">Read the architecture &rarr;</a></span>
-</div>
 <div class="ambient"></div>
 
 <!-- ═══ NAV ═══ -->
@@ -1628,7 +1623,7 @@
     <div style="font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent-light);margin-bottom:14px;">DobDex &middot; Reference build</div>
     <h2 style="font-size:20px;font-weight:600;letter-spacing:-0.03em;margin-bottom:10px;">The exit layer for real-world assets</h2>
     <p style="font-size:12.5px;color:var(--text-2);line-height:1.65;margin-bottom:14px;">Sell an RWA position for USDC through Liquidity Nodes that bid for it, or put up the capital and buy those positions at a discount.</p>
-    <p style="font-size:11px;color:var(--text-3);line-height:1.6;margin-bottom:24px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;">This app runs on <strong style="color:var(--text-2)">Unichain Sepolia testnet</strong> &mdash; the mechanism, end to end. The production build ships on <strong style="color:var(--text-2)">Stellar / Soroban</strong>, settled in USDC. <a href="protocol.html" style="color:var(--accent-light);text-decoration:none;">See the architecture</a>.</p>
+    <p style="font-size:11px;color:var(--text-3);line-height:1.6;margin-bottom:24px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;">Runs on testnet with test tokens &mdash; the mechanism, end to end. <a href="protocol.html" style="color:var(--accent-light);text-decoration:none;">See the architecture</a>.</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">
       <div onclick="closeOnboard();go('swap');swapMode('buy')" style="cursor:pointer;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 12px;transition:border-color 0.15s;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="margin:0 auto 8px;color:var(--accent-light);"><path d="M3 17l6-6 4 4 7-7M21 8v5h-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1681,8 +1676,8 @@
       </div>
     </div>
     <div style="border-top:1px solid var(--border); padding-top:14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-      <div style="font-size:10px; color:var(--text-3);">Reference build on Unichain Sepolia &middot; Production target: Stellar / Soroban, settled in USDC</div>
-      <div class="ftags"><span>DobPegHook</span><span>DobRwaVault</span><span>DobValidatorRegistry</span><span>DobLPRegistry</span></div>
+      <div style="font-size:10px; color:var(--text-3);">&copy; 2026 Dobprotocol &middot; Settled in USDC</div>
+      <a href="protocol.html" style="font-size:10px; color:var(--text-3); text-decoration:none;">How it works &rarr;</a>
     </div>
   </div>
 </footer>

@@ -189,11 +189,6 @@ img,svg,video{display:block;max-width:100%;}
 .hero-sub{margin-top:1.5rem;max-width:34rem;color:rgba(255,255,255,0.72) !important;text-wrap:pretty;}
 .hero-cta{margin-top:2.25rem;display:flex;flex-direction:column;gap:0.75rem;}
 @media(min-width:640px){.hero-cta{flex-direction:row;}}
-.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;margin-bottom:1.25rem;
-  color:rgba(157,176,245,0.9);}
-.hero-eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--pos);
-  box-shadow:0 0 10px var(--pos);animation:pulse 2.4s ease-in-out infinite;}
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.35;}}
 
 /* ── The exit-quote card: the product, front and centre ──────────── */
 .quote{position:relative;background:linear-gradient(160deg,rgba(28,32,38,0.92),rgba(14,16,20,0.96));
@@ -204,12 +199,10 @@ img,svg,video{display:block;max-width:100%;}
   background:linear-gradient(150deg,rgba(89,124,233,0.45),transparent 45%,rgba(34,211,238,0.24));
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;}
-.q-head{display:flex;align-items:center;justify-content:space-between;gap:12px;
+.q-head{display:flex;align-items:center;gap:12px;
   padding-bottom:14px;border-bottom:1px solid var(--b1);margin-bottom:6px;}
 .q-head .t{font-family:var(--mono);font-size:10.5px;letter-spacing:0.16em;
   text-transform:uppercase;color:var(--t3);}
-.q-pill{font-family:var(--mono);font-size:9px;letter-spacing:0.09em;text-transform:uppercase;
-  border:1px solid rgba(251,191,36,0.3);color:var(--warn);border-radius:999px;padding:3px 9px;}
 .q-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 0;font-size:13px;}
 .q-row .k{color:var(--t3);}
 .q-row .v{font-family:var(--mono);font-weight:500;color:var(--t1);font-variant-numeric:tabular-nums;}
@@ -389,9 +382,78 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
   html{scroll-behavior:auto;}
   .rv{opacity:1;transform:none;transition:none;}
   .hero-media img,.hero-media video{animation:none;transform:none;}
-  .hero-eyebrow .dot{animation:none;}
   .moves-line i{transition:none;width:100%;}
 }
+
+/* ════════════════════════════════════════════════════════════════
+   DIAGRAMS — hand-built inline SVG. Wide, so each one scrolls
+   inside its own container on narrow screens rather than shrinking
+   its labels into illegibility.
+   ════════════════════════════════════════════════════════════════ */
+.dg-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding-bottom:4px;}
+.dg-scroll svg{display:block;width:100%;height:auto;}
+.dg-scroll::-webkit-scrollbar{height:6px;}
+.dg-scroll::-webkit-scrollbar-thumb{background:var(--b3);border-radius:3px;}
+
+/* ── Timeline: fifteen years of yield, one holder who needs out ── */
+.tl svg{min-width:820px;}
+.tl-axis{stroke:var(--b3);stroke-width:1.5;}
+.tl-bar{fill:var(--br600);opacity:0.42;}
+.tl-bar.paid{fill:var(--br400);opacity:0.95;}
+.tl-mark{stroke:var(--warn);stroke-width:1.5;stroke-dasharray:5 6;}
+.tl-chip{fill:rgba(251,191,36,0.10);stroke:rgba(251,191,36,0.38);}
+.tl-chip-t{fill:var(--warn);font:500 14px var(--sans);}
+.tl-lock-t{fill:var(--t3);font:500 12px var(--mono);letter-spacing:0.18em;text-transform:uppercase;}
+.tl-yr{fill:var(--t3);font:400 12px var(--mono);}
+.tl-cap{margin-top:18px;font-size:14px;color:var(--t3);}
+
+/* ── The three facts, as chips instead of paragraphs ─────────────── */
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:34px;}
+.fact{display:flex;align-items:center;gap:14px;border:1px solid var(--b1);border-radius:14px;
+  background:var(--s1);padding:18px 20px;}
+.fact .ico{flex-shrink:0;width:38px;height:38px;border-radius:10px;display:grid;place-items:center;
+  background:rgba(248,113,113,0.09);color:var(--neg);}
+.fact b{display:block;font-size:15px;font-weight:600;color:var(--t1);letter-spacing:-0.01em;}
+.fact span{display:block;margin-top:3px;font-size:12.5px;color:var(--t3);}
+@media(max-width:820px){.facts{grid-template-columns:1fr;}}
+
+/* ── Mechanism flow ─────────────────────────────────────────────── */
+.dg-flow svg{min-width:1000px;}
+.dg-card{fill:var(--s1);stroke:var(--b2);transition:fill 0.3s var(--ease),stroke 0.3s var(--ease);}
+.st{cursor:pointer;}
+.st:focus{outline:none;}
+.st:focus-visible .dg-card{stroke:var(--br400);}
+.st .accent{fill:var(--br500);opacity:0;transition:opacity 0.3s var(--ease);}
+.st.on .dg-card{fill:var(--s2);stroke:var(--br600);}
+.st.on .accent{opacity:1;}
+.st:hover .dg-card{stroke:var(--b3);}
+.dg-n{fill:var(--t3);font:500 11px var(--mono);letter-spacing:0.14em;}
+.st.on .dg-n{fill:var(--br400);}
+.dg-t{fill:var(--t1);font:600 18px var(--sans);letter-spacing:-0.01em;}
+.dg-c{fill:var(--br300);font:500 12px var(--mono);}
+.dg-chip{fill:var(--s1);stroke:var(--b1);}
+.dg-chip.win{fill:rgba(74,222,128,0.07);stroke:rgba(74,222,128,0.35);}
+.dg-chip.out{fill:rgba(89,124,233,0.07);stroke:rgba(89,124,233,0.3);}
+.dg-chip-t{fill:var(--t2);font:400 13px var(--sans);}
+.dg-chip-t.mono{font:500 12px var(--mono);fill:var(--t3);}
+.dg-cap{fill:var(--t3);font:500 10.5px var(--mono);letter-spacing:0.16em;text-transform:uppercase;}
+.dg-link{stroke:var(--b3);stroke-width:1.5;fill:none;}
+.dg-link.dash{stroke-dasharray:5 6;stroke:var(--b3);}
+.dg-pulse{stroke:var(--br500);stroke-width:2;fill:none;stroke-dasharray:7 9;
+  animation:dgdash 1.1s linear infinite;}
+@keyframes dgdash{to{stroke-dashoffset:-32;}}
+.dg-detail{display:grid;grid-template-columns:auto 1fr;gap:18px;margin-top:26px;
+  border:1px solid var(--b1);border-radius:16px;background:var(--s1);padding:20px 22px;}
+.dgd-n{font-family:var(--mono);font-size:12px;color:var(--br400);padding-top:3px;}
+.dgd-h{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:7px;}
+.dgd-t{font-size:16px;font-weight:600;color:var(--t1);letter-spacing:-0.01em;}
+.dgd-c{font-family:var(--mono);font-size:11.5px;color:var(--br300);border:1px solid var(--b2);
+  border-radius:6px;padding:3px 9px;}
+.dgd-p{font-size:14.5px;color:var(--t2);line-height:1.65;max-width:56rem;}
+.dg-hint{margin-top:12px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.14em;
+  text-transform:uppercase;color:var(--t3);}
+@media(prefers-reduced-motion:reduce){.dg-pulse{animation:none;}}
+@media(max-width:620px){.dg-detail{grid-template-columns:1fr;gap:10px;}}
 </style>
 </head>
 <body>
@@ -407,8 +469,6 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
     </a>
     <div class="nav-links">
       <a href="protocol.html">How it works</a>
-      <a href="protocol.html#quote">Exit quote</a>
-      <a href="protocol.html#stellar">Stellar</a>
       <a href="https://docs.dobprotocol.com/dex/overview" target="_blank" rel="noopener">Docs</a>
       <a class="nav-cta" href="app.html">Open the app</a>
     </div>
@@ -419,8 +479,6 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
 </nav>
 <div class="mobile" id="mobile">
   <a href="protocol.html">How it works</a>
-  <a href="protocol.html#quote">Exit quote</a>
-  <a href="protocol.html#stellar">Built on Stellar</a>
   <a href="protocol.html#roadmap">Roadmap</a>
   <a href="https://docs.dobprotocol.com/dex/overview" target="_blank" rel="noopener">Documentation</a>
   <a href="app.html">Open the app</a>
@@ -439,8 +497,7 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
     <div class="wrap">
       <div class="hero-cols">
         <div class="hero-copy">
-          <div class="hero-eyebrow eyebrow rv"><span class="dot"></span> Building on Stellar &middot; Soroban &middot; SCF #45</div>
-          <h1 class="d-xl rv" style="transition-delay:0.06s">
+          <h1 class="d-xl rv">
             Tokenizing an asset is easy.<br><span class="ac">Getting out is not.</span>
           </h1>
           <p class="lead hero-sub rv" style="transition-delay:0.12s">
@@ -457,7 +514,6 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
         <div class="quote rv" style="transition-delay:0.22s" id="quoteCard">
           <div class="q-head">
             <span class="t">Exit quote</span>
-            <span class="q-pill">Illustrative</span>
           </div>
           <div class="q-row"><span class="k">Position</span><span class="v">$25,000</span></div>
           <div class="q-row"><span class="k">TRUFA score</span><span class="v">82 &middot; <span style="color:var(--br400);">Tier B</span></span></div>
@@ -503,30 +559,63 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
 <section class="sec" id="thesis">
   <div class="wrap">
     <p class="eyebrow rv">The problem</p>
-    <h2 class="thesis-q rv" style="transition-delay:0.06s;margin-top:18px;">
-      A tokenized solar plant pays out for fifteen years. The holder who needs the money in
-      March has no counterparty, no book, and no price &mdash; only <em>an issuer's promise
-      that the asset is worth what the issuer says</em>.
+    <h2 class="d-md rv" style="transition-delay:0.06s;margin-top:14px;">
+      Fifteen years of yield.<br><span style="color:var(--t3);">No way out in March.</span>
     </h2>
 
-    <div class="tri">
-      <div class="rv">
-        <div class="k">01 / The oracle is not a bid</div>
-        <h4>A valuation is not liquidity</h4>
-        <p>An oracle can tell you what an asset is worth. It cannot hand you cash. Every RWA
-        platform ships the first half and calls it a market.</p>
+    <div class="dg-scroll tl rv" style="transition-delay:0.12s;margin-top:40px;" role="img"
+         aria-label="A fifteen-year payout stream. The holder needs cash in year two, and everything after that point is locked until maturity: no counterparty, no book, no price.">
+      <svg viewBox="0 0 1200 220" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="hatch" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="0" x2="0" y2="8" stroke="#6a7382" stroke-width="1" stroke-opacity="0.16"/>
+          </pattern>
+        </defs>
+
+        <!-- everything past the moment the holder needs out -->
+        <rect x="190" y="18" width="970" height="142" fill="url(#hatch)"/>
+        <text class="tl-lock-t" x="675" y="196" text-anchor="middle">Locked until maturity</text>
+
+        <rect class="tl-bar paid" x="76" y="120" width="11" height="40" rx="3"/>
+          <rect class="tl-bar paid" x="148" y="115" width="11" height="45" rx="3"/>
+          <rect class="tl-bar" x="220" y="117" width="11" height="43" rx="3"/>
+          <rect class="tl-bar" x="292" y="113" width="11" height="47" rx="3"/>
+          <rect class="tl-bar" x="364" y="116" width="11" height="44" rx="3"/>
+          <rect class="tl-bar" x="436" y="114" width="11" height="46" rx="3"/>
+          <rect class="tl-bar" x="508" y="118" width="11" height="42" rx="3"/>
+          <rect class="tl-bar" x="580" y="113" width="11" height="47" rx="3"/>
+          <rect class="tl-bar" x="652" y="115" width="11" height="45" rx="3"/>
+          <rect class="tl-bar" x="724" y="117" width="11" height="43" rx="3"/>
+          <rect class="tl-bar" x="796" y="114" width="11" height="46" rx="3"/>
+          <rect class="tl-bar" x="868" y="116" width="11" height="44" rx="3"/>
+          <rect class="tl-bar" x="940" y="113" width="11" height="47" rx="3"/>
+          <rect class="tl-bar" x="1012" y="117" width="11" height="43" rx="3"/>
+          <rect class="tl-bar" x="1084" y="115" width="11" height="45" rx="3"/>
+
+        <line class="tl-axis" x1="40" y1="160" x2="1160" y2="160"/>
+        <text class="tl-yr" x="40" y="186">Year 1</text>
+        <text class="tl-yr" x="1160" y="186" text-anchor="end">Year 15</text>
+
+        <line class="tl-mark" x1="190" y1="14" x2="190" y2="172"/>
+        <circle cx="190" cy="160" r="5" fill="#fbbf24"/>
+        <rect class="tl-chip" x="206" y="20" width="232" height="34" rx="10"/>
+        <text class="tl-chip-t" x="222" y="42">Holder needs the cash here</text>
+      </svg>
+    </div>
+    <p class="tl-cap rv" style="transition-delay:0.16s;">The asset keeps performing. That was never the holder's problem.</p>
+
+    <div class="facts">
+      <div class="fact rv">
+        <span class="ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M17 8l4 4m0-4l-4 4"/></svg></span>
+        <span><b>No counterparty</b><span>Nobody on the other side.</span></span>
       </div>
-      <div class="rv" style="transition-delay:0.08s">
-        <div class="k">02 / Exit is the real product</div>
-        <h4>Nobody buys what they can't leave</h4>
-        <p>Long-dated yield is only investable if there is a way out before maturity. Without an
-        exit, the addressable buyer is a fund with a fifteen-year horizon.</p>
+      <div class="fact rv" style="transition-delay:0.08s">
+        <span class="ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15V9m5 6v-3m5 3v-6"/><path d="M4 4l16 16"/></svg></span>
+        <span><b>No order book</b><span>No venue, no bids, no depth.</span></span>
       </div>
-      <div class="rv" style="transition-delay:0.16s">
-        <div class="k">03 / Price discovery</div>
-        <h4>Let capital set the discount</h4>
-        <p>DobDex does not invent an exit price. Liquidity Nodes bid for the position inside a
-        risk band, and the best bid clears. The discount is the market's opinion, not ours.</p>
+      <div class="fact rv" style="transition-delay:0.16s">
+        <span class="ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20"/><path d="M17 6.5A4 4 0 0 0 13.5 5h-3a3.5 3.5 0 0 0 0 7h3a3.5 3.5 0 0 1 0 7h-3.5A4 4 0 0 1 7 17.5"/></svg></span>
+        <span><b>No price</b><span>Only the issuer&rsquo;s own valuation.</span></span>
       </div>
     </div>
   </div>
@@ -539,45 +628,61 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
   <div class="wrap">
     <p class="eyebrow rv">The mechanism</p>
     <h2 class="d-md rv" style="transition-delay:0.06s;margin-top:14px;">Four moves, from position to cash</h2>
-    <p class="lead rv" style="transition-delay:0.1s;margin-top:16px;max-width:40rem;">
+    <p class="lead rv" style="transition-delay:0.1s;margin-top:16px;max-width:38rem;">
       The oracle prices the <b style="color:var(--t1);font-weight:500;">asset</b>. Liquidity Nodes
-      price the <b style="color:var(--t1);font-weight:500;">exit</b>. Those are two different
-      numbers, and keeping them apart is the whole design.
+      price the <b style="color:var(--t1);font-weight:500;">exit</b>. Keeping those two numbers
+      apart is the whole design.
     </p>
 
-    <div class="moves" id="moves">
-      <div class="moves-line"><i></i></div>
-      <div class="moves-grid">
-        <div class="move rv">
-          <div class="num">01</div>
-          <h4>Score</h4>
-          <p>A TRUFA score reads the asset's operating record, validator attestations and payment
-          history. It is a risk read, not a price.</p>
-          <code>score_reader</code>
-        </div>
-        <div class="move rv" style="transition-delay:0.08s">
-          <div class="num">02</div>
-          <h4>Tier</h4>
-          <p>The score maps to one of five tiers, A through E. Each tier carries a spread band
-          that bounds what an exit may cost.</p>
-          <code>risk_classifier</code>
-        </div>
-        <div class="move rv" style="transition-delay:0.16s">
-          <div class="num">03</div>
-          <h4>Auction</h4>
-          <p>The exit opens for a 30-minute window. Liquidity Nodes bid inside the band; the
-          tightest discount wins the fill.</p>
-          <code>exit_auction</code>
-        </div>
-        <div class="move rv" style="transition-delay:0.24s">
-          <div class="num">04</div>
-          <h4>Settle</h4>
-          <p>Tokens to the Node, USDC to the seller, fee to the treasury &mdash; one atomic
-          Soroban transaction, then an anchor off-ramp if wanted.</p>
-          <code>settlement_router</code>
-        </div>
+    <div class="dg-scroll dg-flow rv" style="transition-delay:0.12s;margin-top:44px;" role="img"
+         aria-label="Flow diagram: an asset's operating record, validator attestations and payment history feed the score reader; the score maps to a risk tier; Liquidity Nodes bid into a thirty-minute auction, or the exit falls through to the FIFO queue if nobody bids; the settlement router pays tokens to the winning Node, USDC to the seller and a fee to the treasury.">
+      <svg viewBox="0 0 1200 460" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0 0l10 5-10 5z" fill="#333942"/>
+          </marker>
+        </defs>
+
+        <text class="dg-cap" x="16" y="16">Inputs</text>
+        <text class="dg-cap" x="640" y="16">Competing bids</text>
+        <text class="dg-cap" x="640" y="326">If nobody bids</text>
+        <text class="dg-cap" x="952" y="326">Settlement</text>
+
+        <rect class="dg-chip " x="16" y="28" width="236" height="30" rx="9"/><text class="dg-chip-t" x="30" y="48">Operating record</text>
+        <rect class="dg-chip " x="16" y="66" width="236" height="30" rx="9"/><text class="dg-chip-t" x="30" y="86">Validator attestations</text>
+        <rect class="dg-chip " x="16" y="104" width="236" height="30" rx="9"/><text class="dg-chip-t" x="30" y="124">Payment history</text>
+        <rect class="dg-chip " x="640" y="28" width="236" height="30" rx="9"/><text class="dg-chip-t mono" x="654" y="48">Node 7a41&#8230; &#183; 241 bps</text>
+        <rect class="dg-chip " x="640" y="66" width="236" height="30" rx="9"/><text class="dg-chip-t mono" x="654" y="86">Node 3f9c&#8230; &#183; 198 bps</text>
+        <rect class="dg-chip win" x="640" y="104" width="236" height="30" rx="9"/><text class="dg-chip-t mono" x="654" y="124">Node c2e8&#8230; &#183; 178 bps</text>
+
+        <line class="dg-link" x1="134" y1="134" x2="134" y2="161" marker-end="url(#arw)"/>
+        <line class="dg-link" x1="758" y1="134" x2="758" y2="161" marker-end="url(#arw)"/>
+
+        <line class="dg-link" x1="252" y1="230" x2="319" y2="230" marker-end="url(#arw)"/><line class="dg-pulse" x1="252" y1="230" x2="316" y2="230"/>
+        <line class="dg-link" x1="564" y1="230" x2="631" y2="230" marker-end="url(#arw)"/><line class="dg-pulse" x1="564" y1="230" x2="628" y2="230"/>
+        <line class="dg-link" x1="876" y1="230" x2="943" y2="230" marker-end="url(#arw)"/><line class="dg-pulse" x1="876" y1="230" x2="940" y2="230"/>
+        <g class="st" data-i="0" tabindex="0" role="button" aria-label="Step 01, Score"><rect class="dg-card" x="16" y="170" width="236" height="120" rx="14"/><rect class="accent" x="16" y="170" width="3" height="120" rx="1.5"/><text class="dg-n" x="36" y="202">01</text><text class="dg-t" x="36" y="236">Score</text><text class="dg-c" x="36" y="268">score_reader</text></g>
+        <g class="st" data-i="1" tabindex="0" role="button" aria-label="Step 02, Tier"><rect class="dg-card" x="328" y="170" width="236" height="120" rx="14"/><rect class="accent" x="328" y="170" width="3" height="120" rx="1.5"/><text class="dg-n" x="348" y="202">02</text><text class="dg-t" x="348" y="236">Tier</text><text class="dg-c" x="348" y="268">risk_classifier</text></g>
+        <g class="st" data-i="2" tabindex="0" role="button" aria-label="Step 03, Auction"><rect class="dg-card" x="640" y="170" width="236" height="120" rx="14"/><rect class="accent" x="640" y="170" width="3" height="120" rx="1.5"/><text class="dg-n" x="660" y="202">03</text><text class="dg-t" x="660" y="236">Auction</text><text class="dg-c" x="660" y="268">exit_auction</text></g>
+        <g class="st" data-i="3" tabindex="0" role="button" aria-label="Step 04, Settle"><rect class="dg-card" x="952" y="170" width="236" height="120" rx="14"/><rect class="accent" x="952" y="170" width="3" height="120" rx="1.5"/><text class="dg-n" x="972" y="202">04</text><text class="dg-t" x="972" y="236">Settle</text><text class="dg-c" x="972" y="268">settlement_router</text></g>
+
+        <line class="dg-link dash" x1="758" y1="290" x2="758" y2="329" marker-end="url(#arw)"/>
+        <line class="dg-link" x1="1070" y1="290" x2="1070" y2="329" marker-end="url(#arw)"/>
+        <rect class="dg-chip " x="640" y="338" width="236" height="30" rx="9"/><text class="dg-chip-t mono" x="654" y="358">No bid &rarr; fifo_queue</text>
+        <rect class="dg-chip out" x="952" y="338" width="236" height="30" rx="9"/><text class="dg-chip-t" x="966" y="358">Tokens &rarr; Liquidity Node</text>
+        <rect class="dg-chip out" x="952" y="376" width="236" height="30" rx="9"/><text class="dg-chip-t" x="966" y="396">USDC &rarr; seller</text>
+        <rect class="dg-chip out" x="952" y="414" width="236" height="30" rx="9"/><text class="dg-chip-t" x="966" y="434">Fee &rarr; treasury</text>
+      </svg>
+    </div>
+
+    <div class="dg-detail rv" style="transition-delay:0.16s">
+      <div class="dgd-n" id="dgdN">01</div>
+      <div>
+        <div class="dgd-h"><span class="dgd-t" id="dgdT">Score</span><code class="dgd-c" id="dgdC">score_reader</code></div>
+        <p class="dgd-p" id="dgdP">A TRUFA score reads the asset&rsquo;s operating record, validator attestations and payment history. It is a risk read, not a price.</p>
       </div>
     </div>
+    <p class="dg-hint">Pick a step &middot; or let it run</p>
 
     <div class="rv" style="transition-delay:0.3s;margin-top:44px;">
       <a class="btn btn-s btn-sm" href="protocol.html">Read the full walkthrough
@@ -784,8 +889,8 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
   /* ── The exit auction, running ───────────────────────────────────
      A 30-minute window compressed into a loop: three Liquidity Nodes
      bid, each tighter than the last, the best one clears, and the
-     seller's proceeds land. Illustrative numbers, stated as such on
-     the card itself. */
+     seller's proceeds land. The numbers are a worked example; the
+     card's footnote says so. */
   (function () {
     var bids = document.querySelectorAll('#qBids .q-bid');
     var clock = document.getElementById('qClock');
@@ -840,6 +945,45 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
       });
     }, { threshold: 0.35 });
     vis.observe(document.getElementById('quoteCard'));
+  })();
+
+  /* ── Mechanism diagram: pick a step, or let it walk itself ─────── */
+  (function () {
+    var stages = document.querySelectorAll('.dg-flow .st');
+    var n = document.getElementById('dgdN'), t = document.getElementById('dgdT'),
+        c = document.getElementById('dgdC'), p = document.getElementById('dgdP');
+    if (!stages.length || !n) return;
+
+    var COPY = [
+      ['01','Score','score_reader',"A TRUFA score reads the asset’s operating record, validator attestations and payment history. It is a risk read, not a price."],
+      ['02','Tier','risk_classifier',"The score maps to one of five tiers, A through E. Each tier carries a spread band that bounds what an exit may cost."],
+      ['03','Auction','exit_auction',"The exit opens for a 30-minute window. Liquidity Nodes bid inside the band; the tightest discount wins the fill. If nobody bids, the position falls through to the queue."],
+      ['04','Settle','settlement_router',"Tokens to the Node, USDC to the seller, fee to the treasury — one atomic Soroban transaction, then an anchor off-ramp if the seller wants one."]
+    ];
+    var i = 0, timer = null, held = false;
+
+    function show(k) {
+      i = k;
+      stages.forEach(function (s, j) { s.classList.toggle('on', j === k); });
+      n.textContent = COPY[k][0]; t.textContent = COPY[k][1];
+      c.textContent = COPY[k][2]; p.textContent = COPY[k][3];
+    }
+    function stop() { if (timer) { clearInterval(timer); timer = null; } }
+    function start() { if (!timer && !held && !reduce) timer = setInterval(function () { show((i + 1) % 4); }, 4200); }
+
+    stages.forEach(function (s, j) {
+      function pick() { held = true; stop(); show(j); }
+      s.addEventListener('click', pick);
+      s.addEventListener('mouseenter', pick);
+      s.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); }
+      });
+    });
+
+    show(0);
+    new IntersectionObserver(function (es) {
+      es.forEach(function (e) { e.isIntersecting ? start() : stop(); });
+    }, { threshold: 0.25 }).observe(document.querySelector('.dg-flow'));
   })();
 
   /* ── Hero footage ────────────────────────────────────────────────
