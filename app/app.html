@@ -555,6 +555,28 @@
     .qrow .qn { font-family: var(--mono); font-size: 12px; text-align: right; }
     .qrow .qn small { display: block; font-size: 9.5px; color: var(--text-3); letter-spacing: 0.08em; text-transform: uppercase; }
 
+    /* password sheet — the one place this page ever asks for a password,
+       and it is spent in this tab and dropped */
+    .pw { position: fixed; inset: 0; z-index: 300; display: flex; align-items: center;
+      justify-content: center; padding: 20px; background: rgba(4,5,7,0.72);
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+    .pw[hidden] { display: none; }
+    .pw-card { width: 100%; max-width: 380px; background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: var(--r-lg); padding: 24px; box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+      animation: pwIn 0.22s var(--ease); }
+    @keyframes pwIn { from { opacity: 0; transform: translateY(10px) scale(0.985); } }
+    .pw-card h4 { font-size: 15px; font-weight: 600; color: var(--text-1); letter-spacing: -0.012em; }
+    .pw-card p { margin-top: 8px; font-size: 12.5px; line-height: 1.6; color: var(--text-2); }
+    .pw-card input { width: 100%; margin-top: 18px; padding: 11px 13px; font-family: var(--font);
+      font-size: 14px; color: var(--text-1); background: var(--bg-1); border: 1px solid var(--border);
+      border-radius: var(--r-sm); outline: none; transition: border-color 0.18s; }
+    .pw-card input:focus { border-color: var(--border-focus); }
+    .pw-err { margin-top: 10px; font-size: 12px; line-height: 1.5; color: var(--red); min-height: 0; }
+    .pw-err:empty { display: none; }
+    .pw-act { display: flex; gap: 8px; margin-top: 18px; }
+    .pw-act .btn { flex: 1; justify-content: center; }
+    .pw-fine { margin-top: 14px; font-size: 11px; line-height: 1.55; color: var(--text-3); }
+
     /* toast */
     #toast {
       position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px);
@@ -856,7 +878,7 @@
       </div>
     </div>
     <div class="wa-wrap" id="waWrap">
-      <button class="wa-btn" id="waBtn"><span id="waCount">0 assets</span> &middot; <b id="waUsdc">$0.00</b></button>
+      <button class="wa-btn" id="waBtn"><span id="waCount">0 assets</span><span id="waVal"> &middot; <b id="waUsdc">$0.00</b></span></button>
       <div class="wa-panel" id="waPanel">
         <div class="wa-hd"><h4>My assets</h4><span>Stellar Testnet</span></div>
         <div class="wa-total">
@@ -1153,6 +1175,25 @@
 
 </div>
 
+<!-- The managed-wallet password. It unlocks a mnemonic that the platform only
+     ever stores as ciphertext; this sheet decrypts it in the page and throws the
+     plaintext away, so the password is never posted anywhere. -->
+<div class="pw" id="pw" hidden>
+  <div class="pw-card" role="dialog" aria-modal="true" aria-labelledby="pwTitle">
+    <h4 id="pwTitle">Unlock your DobProtocol wallet</h4>
+    <p id="pwNote"></p>
+    <input type="password" id="pwIn" autocomplete="current-password" placeholder="Wallet password"
+           aria-label="Wallet password">
+    <div class="pw-err" id="pwErr" role="alert"></div>
+    <div class="pw-act">
+      <button class="btn ghost" id="pwNo" type="button">Cancel</button>
+      <button class="btn" id="pwGo" type="button">Unlock</button>
+    </div>
+    <p class="pw-fine">Decrypted in this tab only. Your password is never sent to DobDex or to
+      DobProtocol &mdash; the server holds nothing but ciphertext.</p>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@14.3.0/dist/stellar-sdk.min.js"></script>
@@ -1348,14 +1389,14 @@ async function write(contractId, fn, args, label) {
      point: a cookie cannot sign a Soroban transaction, but it also should not
      have to in order to read a balance. */
   if (!signer) {
-    await connect();
+    await ensureSigner();
     if (!signer) return null;
   }
   toast('<span class="spin"></span> ' + (label || 'Signing…'));
   try {
     var tx = await buildTx(signer, contractId, fn, args);
     var prepared = await server.prepareTransaction(tx);
-    var signed = await signWithFreighter(prepared.toXDR());
+    var signed = await signXdr(prepared.toXDR());
     var sent = await server.sendTransaction(
       SDK.TransactionBuilder.fromXDR(signed, PASSPHRASE));
     if (sent.status === 'ERROR') throw new Error(JSON.stringify(sent.errorResult || sent));
@@ -1400,6 +1441,262 @@ async function signWithFreighter(xdr) {
   return res.signedTxXdr;
 }
 
+/* ── DobProtocol managed wallet ───────────────────────────────────────
+   Plenty of DobProtocol accounts sign in with Google or an email link and
+   have no extension at all. What they do have is a managed wallet: a BIP-39
+   mnemonic the platform stores only as ciphertext, next to the public
+   addresses. Nothing new is needed on the server for this page to use it —
+   the session cookie already reaches /api/wallet, and the ciphertext is
+   useless without the password.
+
+   The password is spent here and dropped. That is also the honest cost of
+   the arrangement: the mnemonic is decrypted in *this* origin, so a
+   compromise of dex.dobprotocol.com would reach it, where before it could
+   only ever be decrypted on home.dobprotocol.com. Hence the short life on
+   the unlocked key below — it is not a session, it is a window. */
+
+var dobWallet = null;     // the ciphertext bundle, once we know the account has one
+var managedKp = null;     // the unlocked keypair — memory only, never persisted
+var managedUntil = 0;     // and it expires, so a tab left open cannot sign tomorrow
+var signerKind = null;    // 'freighter' | 'managed' — what `signer` actually is
+var MANAGED_TTL = 180000; // 3 minutes, matching the platform's own signer
+
+function managedLive() {
+  if (managedKp && Date.now() < managedUntil) return true;
+  managedKp = null;
+  return false;
+}
+
+function managedForget() {
+  managedKp = null;
+  managedUntil = 0;
+  if (signerKind === 'managed') { signer = null; signerKind = null; }
+}
+
+/* base64 in, bytes out. */
+function mwB64(b64) {
+  var bin = atob(String(b64).replace(/-/g, '+').replace(/_/g, '/'));
+  var out = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+/* Argon2 is 29KB of wasm glue that only wallets created after May 2026 need,
+   so it is fetched the first time one of them asks and not before. */
+var mwArgonLoad = null;
+function mwArgon2() {
+  if (window.hashwasm) return Promise.resolve(window.hashwasm);
+  if (!mwArgonLoad) mwArgonLoad = new Promise(function (res, rej) {
+    var el = document.createElement('script');
+    el.src = '/vendor/argon2-4.x.umd.min.js';
+    el.onload = function () {
+      window.hashwasm ? res(window.hashwasm)
+                      : rej(new Error('The Argon2 bundle loaded but exported nothing.'));
+    };
+    el.onerror = function () {
+      mwArgonLoad = null;
+      rej(new Error('Could not load /vendor/argon2-4.x.umd.min.js — a blocker may be stopping it.'));
+    };
+    document.head.appendChild(el);
+  });
+  return mwArgonLoad;
+}
+
+async function mwAesKey(password, salt, iterations, algo) {
+  if (algo === 'Argon2id') {
+    var raw = await (await mwArgon2()).argon2id({
+      password: password, salt: salt, iterations: iterations,
+      memorySize: 19456, parallelism: 1, hashLength: 32, outputType: 'binary'
+    });
+    return crypto.subtle.importKey('raw', raw, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+  }
+  var base = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(password), { name: 'PBKDF2' }, false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: salt, iterations: iterations, hash: 'SHA-256' },
+    base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+}
+
+/* AES-GCM authenticates as it decrypts, so a wrong password does not produce
+   a wrong mnemonic — it throws, and that is how the sheet knows to say so. */
+async function mwDecryptMnemonic(bundle, password) {
+  var key = await mwAesKey(password, mwB64(bundle.salt),
+                           bundle.kdfIterations || 600000, bundle.kdfAlgo);
+  var pt = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: mwB64(bundle.iv) }, key, mwB64(bundle.encryptedMnemonic));
+  return new TextDecoder().decode(pt);
+}
+
+/* BIP-39: the seed is PBKDF2-SHA512 over the NFKD mnemonic, salt "mnemonic",
+   2048 rounds, 64 bytes. */
+async function mwSeed(mnemonic) {
+  var enc = new TextEncoder();
+  var base = await crypto.subtle.importKey(
+    'raw', enc.encode(mnemonic.normalize('NFKD')), { name: 'PBKDF2' }, false, ['deriveBits']);
+  var bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt: enc.encode('mnemonic'), iterations: 2048, hash: 'SHA-512' }, base, 512);
+  return new Uint8Array(bits);
+}
+
+async function mwHmac512(keyBytes, data) {
+  var k = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-512' },
+                                        false, ['sign']);
+  return new Uint8Array(await crypto.subtle.sign('HMAC', k, data));
+}
+
+/* SLIP-0010 for ed25519. Every level of a Stellar path is hardened, so each
+   step is the same: HMAC-SHA512(chainCode, 0x00 || key || index + 2^31). */
+async function mwEd25519Seed(seed, path) {
+  var I = await mwHmac512(new TextEncoder().encode('ed25519 seed'), seed);
+  var key = I.slice(0, 32), chain = I.slice(32);
+  var parts = path.split('/').slice(1);
+  for (var i = 0; i < parts.length; i++) {
+    var idx = (parseInt(parts[i], 10) | 0) + 0x80000000;
+    var data = new Uint8Array(37);
+    data[0] = 0;
+    data.set(key, 1);
+    data[33] = (idx >>> 24) & 255; data[34] = (idx >>> 16) & 255;
+    data[35] = (idx >>> 8) & 255;  data[36] = idx & 255;
+    I = await mwHmac512(chain, data);
+    key = I.slice(0, 32); chain = I.slice(32);
+  }
+  return key;
+}
+
+/* Password -> the SEP-0005 keypair at m/44'/148'/0'. The address it produces
+   is checked against the one the platform published: if they disagree, the
+   password decrypted *something*, but not this wallet, and signing with it
+   would be worse than failing. */
+async function mwKeypair(bundle, password) {
+  var mnemonic = await mwDecryptMnemonic(bundle, password);
+  var raw = await mwEd25519Seed(await mwSeed(mnemonic), "m/44'/148'/0'");
+  mnemonic = null;
+  var kp = SDK.Keypair.fromRawEd25519Seed(raw);   // the SDK wraps it in its own Buffer
+  if (bundle.stellarAddress && kp.publicKey() !== bundle.stellarAddress) {
+    throw new Error('That unlocked a different key than the account expects.');
+  }
+  return kp;
+}
+
+/* Does this account have a managed wallet at all? 404 simply means no, which
+   is not an error worth showing anyone. */
+async function loadDobWallet() {
+  try {
+    var r = await dobGet('/wallet');
+    dobWallet = (r && r.success && r.wallet) ? r.wallet : null;
+  } catch (e) {
+    dobWallet = null;
+  }
+}
+
+/* ── the password sheet ──────────────────────────────────────────────── */
+
+var pwPending = null;
+
+function pwClose(result) {
+  var done = pwPending;
+  pwPending = null;
+  $('pwIn').value = '';
+  $('pwErr').textContent = '';
+  $('pw').hidden = true;
+  if (done) done(result);
+}
+
+/* `verify` gets the password and either resolves — in which case the sheet
+   closes with whatever it returned — or throws, and the sheet stays open
+   with the reason, because a mistyped password should cost a retry and not
+   the whole flow. */
+function pwAsk(note, verify) {
+  return new Promise(function (resolve) {
+    pwPending = resolve;
+    $('pwNote').innerHTML = note;
+    $('pwErr').textContent = '';
+    $('pwIn').value = '';
+    $('pw').hidden = false;
+    setTimeout(function () { $('pwIn').focus(); }, 30);
+
+    $('pw').__verify = async function () {
+      var pass = $('pwIn').value;
+      if (!pass) { $('pwErr').textContent = 'Enter your wallet password.'; return; }
+      var go = $('pwGo');
+      go.disabled = true;
+      go.innerHTML = '<span class="spin"></span> Unlocking…';
+      $('pwErr').textContent = '';
+      try {
+        var out = await verify(pass);
+        pass = null;
+        pwClose(out);
+      } catch (e) {
+        $('pwErr').textContent = /operation-specific reason|OperationError|decrypt/i.test(String(e && e.message))
+          ? 'That password did not unlock the wallet.'
+          : (e && e.message) || String(e);
+        $('pwIn').select();
+      } finally {
+        go.disabled = false;
+        go.textContent = 'Unlock';
+      }
+    };
+  });
+}
+
+$('pwGo').addEventListener('click', function () { var f = $('pw').__verify; if (f) f(); });
+$('pwNo').addEventListener('click', function () { pwClose(null); });
+$('pwIn').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter') { var f = $('pw').__verify; if (f) f(); }
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape' && !$('pw').hidden) pwClose(null);
+});
+$('pw').addEventListener('click', function (e) { if (e.target === $('pw')) pwClose(null); });
+
+/* Unlock the managed wallet and make it the signer. `quiet` is for the case
+   where the key simply timed out mid-flow: the caller already said what it
+   was doing, so the sheet does not repeat itself. */
+async function unlockManaged(quiet) {
+  if (!dobWallet || !dobWallet.stellarAddress) return false;
+  var note = quiet
+    ? 'Your key expired after three minutes of inactivity. Enter your password to sign.'
+    : 'This signs with the DobProtocol wallet on your account, <b>'
+      + shortId(dobWallet.stellarAddress) + '</b> &mdash; no extension needed.';
+  var kp = await pwAsk(note, function (pass) { return mwKeypair(dobWallet, pass); });
+  if (!kp) return false;
+
+  managedKp = kp;
+  managedUntil = Date.now() + MANAGED_TTL;
+  signer = kp.publicKey();
+  signerKind = 'managed';
+  /* Same rule as a connected extension: whatever can act here is what is
+     worth looking at. */
+  if (me !== signer) { me = signer; refresh(); }
+  $('sBtn').textContent = 'Open the exit';
+  return true;
+}
+
+/* One signature, whichever wallet is behind it. */
+async function signXdr(xdr) {
+  if (signerKind === 'managed') {
+    if (!managedLive() && !(await unlockManaged(true))) throw new Error('Signing cancelled.');
+    managedUntil = Date.now() + MANAGED_TTL;   // still working, so the window slides
+    var tx = SDK.TransactionBuilder.fromXDR(xdr, PASSPHRASE);
+    tx.sign(managedKp);
+    return tx.toXDR();
+  }
+  return signWithFreighter(xdr);
+}
+
+/* Find something that can sign, preferring what the person already has: an
+   extension if one is connected, the account's own managed wallet next, and
+   only then ask them to go install something. */
+async function ensureSigner() {
+  if (signer) return signer;
+  if (dobWallet && dobWallet.stellarAddress) {
+    if (await unlockManaged(false)) return signer;
+    return null;
+  }
+  await connect();
+  return signer;
+}
+
 /* The wallet is a signer, not a front door. It is asked for from the places
    that actually need a signature, never as a bar across the header. */
 async function connect() {
@@ -1424,6 +1721,8 @@ async function connect() {
     }
     if (!addr) throw new Error('Freighter returned no address — is the extension unlocked?');
     signer = addr;
+    signerKind = 'freighter';
+    managedForget();          // an explicit extension outranks a decrypted key
     /* The wallet outranks the DobProtocol address for the view as well: it is
        the one that can act here, so it is the one worth looking at. */
     me = addr;
@@ -2170,7 +2469,7 @@ async function loadSell() {
 }
 
 window.maxSell = function () {
-  if (!me) { connect(); return; }
+  if (!me) { ensureSigner(); return; }
   if (sellBalRaw === null) return;
   var a = assetById($('sAsset').value);
   $('sAmount').value = fromRaw(sellBalRaw, a.dec);
@@ -2346,7 +2645,7 @@ async function loadFaucet() {
     var wait = r.next > now ? Math.ceil((r.next - now) / 60) : 0;
     var btn;
     if (!me) {
-      btn = '<button class="btn sm ghost" onclick="connect()">Connect to claim</button>';
+      btn = '<button class="btn sm ghost" onclick="ensureSigner()">Connect to claim</button>';
     } else if (wait) {
       btn = '<button class="btn sm ghost" disabled>Again in ' + wait + ' min</button>';
     } else {
@@ -2564,12 +2863,20 @@ async function loadWallet() {
      them. Being able to see an address is not the same as being able to spend
      from it, and a panel that shows a balance without saying which of the two
      it means is lying by omission. */
+  /* Three states, and the difference matters: signing now, able to sign once
+     unlocked, or genuinely read-only with nothing on the account to sign with. */
   $('waSign').innerHTML = signer
-    ? 'Signing with <b>' + shortId(signer) + '</b>.'
-    : 'Viewing <b>' + shortId(me) + '</b> from your DobProtocol account &mdash; read-only. '
-      + 'Anything that touches the chain needs a wallet to sign it.'
-      + '<button class="btn sm" style="margin-top:10px;width:100%;" onclick="connect()">'
-      + 'Connect a wallet to sign</button>';
+    ? 'Signing with <b>' + shortId(signer) + '</b>'
+      + (signerKind === 'managed' ? ' &mdash; your DobProtocol wallet.' : '.')
+    : (dobWallet && dobWallet.stellarAddress)
+      ? 'Viewing <b>' + shortId(me) + '</b>. Your DobProtocol wallet can sign here &mdash; '
+        + 'no extension needed, just the password that unlocks it.'
+        + '<button class="btn sm" style="margin-top:10px;width:100%;" onclick="unlockManaged(false)">'
+        + 'Unlock to sign</button>'
+      : 'Viewing <b>' + shortId(me) + '</b> from your DobProtocol account &mdash; read-only. '
+        + 'Anything that touches the chain needs a wallet to sign it.'
+        + '<button class="btn sm" style="margin-top:10px;width:100%;" onclick="connect()">'
+        + 'Connect a wallet to sign</button>';
 
   var addr = SDK.nativeToScVal(me, { type: 'address' });
   var usdcBal = await read(USDC.id, 'balance', [addr]).then(String).catch(function () { return '0'; });
@@ -2591,7 +2898,21 @@ async function loadWallet() {
 
   $('waUsdc').textContent = usd(usdcBal);
   $('waUsdcBig').textContent = usd(usdcBal);
-  $('waCount').textContent = rows.length + (rows.length === 1 ? ' asset' : ' assets');
+
+  /* A DobProtocol address is a mainnet address; it will never hold anything on
+     this testnet, so "0 assets &middot; $0.00" is not a balance — it is a zero
+     printed next to someone who may hold a great deal elsewhere. When there is
+     genuinely nothing here and no wallet to put something here, the pill says
+     the one useful thing instead. */
+  var canSign = signer || (dobWallet && dobWallet.stellarAddress);
+  var empty = rows.length === 0 && BigInt(usdcBal || '0') === 0n;
+  if (empty && !canSign) {
+    $('waCount').textContent = 'Connect wallet';
+    $('waVal').style.display = 'none';
+  } else {
+    $('waCount').textContent = rows.length + (rows.length === 1 ? ' asset' : ' assets');
+    $('waVal').style.display = '';
+  }
 
   $('waList').innerHTML = rows.length ? rows.map(function (r) {
     return '<button class="wa-item" onclick="walletOpen(\'' + r.a.id + '\')">'
@@ -2642,6 +2963,8 @@ async function dobGet(path) {
 function dobSignedOut() {
   dobUser = null;
   dobRows = [];
+  dobWallet = null;
+  managedForget();
   /* Only give up the address if it was theirs to begin with: a connected
      wallet is not signed out by DobProtocol. */
   if (!signer && me && me === dobStellar) me = null;
@@ -2737,8 +3060,13 @@ async function loadDob() {
   /* The account already names a Stellar address, so there is nothing to
      connect — adopt it as the address on screen. A connected wallet still
      outranks it, because that one can also act. */
+  /* Whether this account can *sign* is a separate question from whether it
+     has an address, and it is the one that decides if the exit buttons do
+     anything. Asked once per sign-in, not per click. */
+  await loadDobWallet();
+
   var stellar = (who.addresses || []).filter(function (a) { return a.chain === 'stellar'; })[0];
-  dobStellar = stellar ? stellar.address : null;
+  dobStellar = (dobWallet && dobWallet.stellarAddress) || (stellar ? stellar.address : null);
   var adopt = !signer && dobStellar && me !== dobStellar;
   if (adopt) me = dobStellar;
 
