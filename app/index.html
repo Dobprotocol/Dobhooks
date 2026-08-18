@@ -464,56 +464,132 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
   color:var(--t3);padding:14px 0 4px;}
 @media(max-width:860px){.nav-prod{display:none;}}
 
-/* ════════ QUOTE SIMULATOR ════════ */
-.sim{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:44px;}
-.sim-inputs,.sim-output{background:var(--s1);border:1px solid var(--b2);border-radius:20px;padding:28px;}
-.sim-field{margin-bottom:26px;}
-.sim-field label{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
-  font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:12px;}
-.sim-field .cur{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--br300);
-  font-variant-numeric:tabular-nums;}
-.sim input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:4px;
-  background:var(--b2);outline:none;cursor:pointer;}
-.sim input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;
-  border-radius:50%;background:var(--br500);border:2px solid var(--s0);cursor:pointer;
-  box-shadow:0 0 0 0 rgba(89,124,233,0.35);transition:box-shadow 0.2s,transform 0.2s;}
-.sim input[type=range]::-webkit-slider-thumb:hover{box-shadow:0 0 0 7px rgba(89,124,233,0.16);transform:scale(1.08);}
-.sim input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--br500);
-  border:2px solid var(--s0);cursor:pointer;}
-.sim-scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;
+/* ════════ EXIT QUOTE ════════ */
+.ex{margin-top:44px;border:1px solid var(--b2);border-radius:22px;background:var(--s1);overflow:hidden;}
+
+/* the score is the instrument: a five-segment tier ladder the handle rides */
+.ex-head{padding:30px clamp(20px,3vw,34px);border-bottom:1px solid var(--b1);}
+.ex-idm{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:26px;}
+.ex-grade{display:flex;align-items:center;gap:16px;}
+.ex-grade .g{font-size:clamp(42px,3vw + 26px,58px);font-weight:700;line-height:0.86;letter-spacing:-0.045em;
+  color:var(--tc,var(--br500));transition:color 0.4s var(--ease);}
+.ex-grade .m b{display:block;font-size:15px;font-weight:600;color:var(--t1);letter-spacing:-0.012em;}
+.ex-grade .m span{display:block;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.15em;
+  text-transform:uppercase;color:var(--t3);margin-top:6px;}
+.ex-sc{text-align:right;line-height:1;}
+.ex-sc .v{font-family:var(--mono);font-size:28px;font-weight:600;color:var(--t1);font-variant-numeric:tabular-nums;}
+.ex-sc .v i{font-style:normal;font-size:15px;color:var(--t3);}
+.ex-sc .l{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;
   color:var(--t3);margin-top:9px;}
-.sim-chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px;}
-.sim-chip{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--t2);
-  background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:6px 12px;cursor:pointer;
-  transition:color 0.2s,border-color 0.2s,background 0.2s;}
-.sim-chip:hover{color:var(--t1);border-color:var(--b3);}
-.sim-chip.on{color:#fff;background:var(--br500);border-color:var(--br500);}
-.sim-note{background:var(--s2);border:1px solid var(--b1);border-radius:12px;padding:16px 18px;}
-.sim-note .t{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.14em;
-  text-transform:uppercase;color:var(--t3);margin-bottom:10px;}
-.sim-note ul{list-style:none;display:flex;flex-direction:column;gap:9px;margin:0;padding:0;}
-.sim-note li{font-size:12px;color:var(--t2);line-height:1.6;padding-left:15px;position:relative;}
-.sim-note li::before{content:'';position:absolute;left:0;top:7px;width:5px;height:5px;
-  border-radius:50%;background:var(--br500);}
-.sim-note b{color:var(--t1);font-weight:600;}
-.sim-quote{text-align:center;padding-bottom:22px;border-bottom:1px solid var(--b1);margin-bottom:18px;}
-.sim-quote .k{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.16em;
-  text-transform:uppercase;color:var(--t3);margin-bottom:10px;}
-.sim-quote .v{font-size:44px;font-weight:700;letter-spacing:-0.035em;line-height:1;color:var(--pos);
-  font-variant-numeric:tabular-nums;display:flex;align-items:baseline;justify-content:center;gap:9px;}
-.sim-quote .u{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--t3);letter-spacing:0;}
-.sim-quote .sub{font-size:12px;color:var(--t3);margin-top:9px;}
-.sim-rows{display:flex;flex-direction:column;gap:2px;margin-bottom:16px;}
-.sim-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;font-size:13px;}
-.sim-row .k{color:var(--t3);}
-.sim-row .v{font-family:var(--mono);font-weight:600;color:var(--t1);font-variant-numeric:tabular-nums;}
-.sim-path{background:rgba(89,124,233,0.06);border:1px solid rgba(89,124,233,0.16);border-radius:12px;
-  padding:15px 17px;font-size:12.5px;color:var(--t2);line-height:1.68;}
-.sim-path b{color:var(--br300);font-weight:600;}
-.sim-disclaimer{font-size:11px;color:var(--t3);line-height:1.6;margin-top:14px;}
-@media(max-width:960px){.sim{grid-template-columns:1fr;}}
-@media(max-width:640px){.sim-quote .v{font-size:36px;}
-  .sim-inputs,.sim-output{padding:22px 18px;}}
+.lad{position:relative;}
+.lad-t{display:flex;gap:2px;height:9px;}
+.lad-t i{flex:var(--w) 1 0;border-radius:2px;background:var(--c);opacity:0.16;transition:opacity 0.4s var(--ease);}
+.lad-t i.on{opacity:1;}
+.lad-l{display:flex;gap:2px;margin-top:11px;}
+.lad-l i{flex:var(--w) 1 0;font-family:var(--mono);font-size:10px;font-weight:600;font-style:normal;
+  letter-spacing:0.09em;color:var(--t3);transition:color 0.4s var(--ease);white-space:nowrap;overflow:hidden;}
+.lad-l i.on{color:var(--c);}
+.lad input{-webkit-appearance:none;appearance:none;position:absolute;left:0;top:-8px;width:100%;height:25px;
+  margin:0;background:transparent;cursor:ew-resize;}
+.lad input::-webkit-slider-runnable-track{height:25px;background:transparent;}
+.lad input::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:3px;height:25px;border-radius:2px;
+  background:var(--t1);box-shadow:0 0 0 3px var(--s1),0 3px 12px rgba(0,0,0,0.65);}
+.lad input::-moz-range-track{height:25px;background:transparent;border:0;}
+.lad input::-moz-range-thumb{width:3px;height:25px;border:0;border-radius:2px;background:var(--t1);
+  box-shadow:0 0 0 3px var(--s1),0 3px 12px rgba(0,0,0,0.65);}
+
+.ex-body{display:grid;grid-template-columns:minmax(0,0.86fr) minmax(0,1.14fr);}
+.ex-in{padding:30px clamp(20px,3vw,34px);border-right:1px solid var(--b1);
+  display:flex;flex-direction:column;}
+.ex-in .ex-sep.push{margin-top:auto;}
+.ex-out{padding:30px clamp(20px,3vw,34px);background:var(--s0);display:flex;flex-direction:column;}
+.ex-lab{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-family:var(--mono);
+  font-size:10px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--t3);}
+.ex-lab .cur{font-family:var(--sans);font-size:19px;font-weight:600;letter-spacing:-0.02em;text-transform:none;
+  color:var(--t1);font-variant-numeric:tabular-nums;}
+.ex-amt{margin-top:16px;}
+.ex-amt input{-webkit-appearance:none;appearance:none;width:100%;height:2px;border-radius:2px;
+  background:var(--b3);outline:none;cursor:ew-resize;}
+.ex-amt input::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;
+  border-radius:50%;background:var(--t1);box-shadow:0 0 0 4px var(--s1);transition:box-shadow 0.2s;}
+.ex-amt input::-webkit-slider-thumb:hover{box-shadow:0 0 0 4px var(--s1),0 0 0 9px rgba(245,246,248,0.09);}
+.ex-amt input::-moz-range-thumb{width:14px;height:14px;border:0;border-radius:50%;background:var(--t1);
+  box-shadow:0 0 0 4px var(--s1);}
+.ex-scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--t3);
+  margin-top:10px;}
+.ex-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:16px;}
+.ex-chip{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--t3);background:transparent;
+  border:1px solid var(--b2);border-radius:7px;padding:6px 11px;cursor:pointer;
+  transition:color 0.18s,border-color 0.18s,background 0.18s;}
+.ex-chip:hover{color:var(--t1);border-color:var(--b3);}
+.ex-chip.on{color:var(--s0);background:var(--t1);border-color:var(--t1);}
+.ex-sep{height:1px;background:var(--b1);margin:28px 0;}
+
+.ex-net .k{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;
+  color:var(--t3);}
+.ex-net .v{display:flex;align-items:baseline;gap:10px;margin-top:14px;font-size:clamp(38px,3.4vw + 22px,56px);
+  font-weight:700;letter-spacing:-0.042em;line-height:0.92;color:var(--t1);font-variant-numeric:tabular-nums;}
+.ex-net .u{font-family:var(--mono);font-size:14px;font-weight:500;letter-spacing:0;color:var(--t3);}
+.ex-net .s{margin-top:13px;font-size:13px;color:var(--t2);}
+.ex-net .s b{font-family:var(--mono);font-weight:600;color:var(--warn);}
+
+/* two scales: the deal at true proportion, then the discount magnified to fill the bar */
+.wf{margin-top:28px;}
+.wf-bar{display:flex;gap:2px;height:32px;}
+.wf-bar i{flex:0 1 0;min-width:2px;border-radius:3px;transition:flex-grow 0.45s var(--ease),background 0.4s var(--ease);}
+.wf-bar .keep{background:linear-gradient(180deg,var(--br500),var(--br600));}
+.wf-bar .cut{background:var(--s3);}
+.wf-bar.mag{height:8px;}
+.wf-bar.mag .a{background:var(--tc,var(--br500));}
+.wf-bar.mag .b{background:var(--cyan);}
+.wf-bar.mag .c{background:var(--violet);}
+.wf-leg{display:flex;justify-content:space-between;gap:12px;margin-top:10px;font-family:var(--mono);
+  font-size:10.5px;color:var(--t3);}
+.wf-leg b{color:var(--t2);font-weight:500;}
+.wf-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:26px 0 11px;
+  font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--t3);}
+.wf-h em{font-style:normal;font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:-0.01em;
+  text-transform:none;color:var(--t1);font-variant-numeric:tabular-nums;}
+.wf-key{display:flex;flex-direction:column;margin-top:13px;}
+.wf-key div{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:12.5px;}
+.wf-key i{width:7px;height:7px;border-radius:2px;flex:none;}
+.wf-key .k{color:var(--t2);}
+.wf-key .n{margin-left:auto;padding-right:14px;font-size:11.5px;color:var(--t3);}
+.wf-key .v{font-family:var(--mono);font-weight:600;color:var(--t1);font-variant-numeric:tabular-nums;}
+
+.ex-route{margin-top:auto;padding-top:28px;}
+.ex-steps{display:flex;gap:5px;}
+.ex-step{flex:1;padding:11px 12px;border:1px solid var(--b2);border-radius:10px;
+  transition:border-color 0.3s,background 0.3s;}
+.ex-step .t{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:0.11em;text-transform:uppercase;
+  color:var(--t3);transition:color 0.3s;}
+.ex-step .d{font-size:11.5px;color:var(--t3);margin-top:5px;transition:color 0.3s;}
+.ex-step.on{border-color:rgba(89,124,233,0.45);background:rgba(89,124,233,0.08);}
+.ex-step.on .t{color:var(--br300);}
+.ex-step.on .d{color:var(--t2);}
+.ex-exp{margin-top:16px;font-size:12.5px;line-height:1.68;color:var(--t2);}
+.ex-exp b{color:var(--t1);font-weight:600;}
+
+.ex-notes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px 30px;margin-top:34px;}
+.ex-note{padding-top:14px;border-top:1px solid var(--b2);font-size:12px;line-height:1.62;color:var(--t3);}
+.ex-note b{display:block;font-size:12px;font-weight:600;color:var(--t1);margin-bottom:5px;letter-spacing:-0.005em;}
+.ex-fine{margin-top:26px;font-size:11px;line-height:1.6;color:var(--t3);max-width:44rem;}
+
+@media(max-width:1040px){.ex-notes{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:900px){
+  .ex-notes{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .ex-body{grid-template-columns:1fr;}
+  .ex-in{border-right:0;border-bottom:1px solid var(--b1);}
+}
+@media(max-width:520px){
+  .ex-idm{flex-direction:column;align-items:flex-start;gap:18px;}
+  .ex-sc{text-align:left;}
+  .ex-steps{flex-direction:column;}
+  .lad-l i{font-size:9px;letter-spacing:0;}
+  .wf-key .n{display:none;}
+  .ex-notes{grid-template-columns:1fr;}
+}
 </style>
 </head>
 <body>
@@ -525,7 +601,7 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
   <div class="nav-in">
     <a class="brand" href="/">
       <svg viewBox="0 0 89 89" fill="none" aria-hidden="true"><circle cx="44.9" cy="44" r="44" fill="#597CE9"/><path d="M35.5 54.1C33.1 51.5 31.9 48.2 31.9 44C31.9 39.8 33.1 36.5 35.5 33.9C36.9 32.4 38.6 31.3 40.6 30.7V22C38 22.4 35.6 23.2 33.4 24.5C30.1 26.4 27.5 29 25.7 32.3C23.9 35.7 23 39.6 23 44.1C23 48.6 23.9 52.5 25.7 55.8C27.5 59.2 30.1 61.7 33.4 63.6C35.6 64.8 38 65.6 40.6 66V57.3C38.6 56.7 36.9 55.6 35.5 54.1Z" fill="#F9FAFE"/><path d="M64.1 32.3C62.2 29 59.7 26.4 56.4 24.5C54.2 23.2 51.8 22.4 49.2 22V30.7C51.2 31.4 52.9 32.4 54.3 34C56.7 36.6 57.9 39.9 57.9 44.1C57.9 48.3 56.7 51.5 54.3 54.1C52.9 55.6 51.2 56.7 49.2 57.3V66C51.8 65.6 54.2 64.8 56.4 63.6C59.7 61.7 62.2 59.1 64.1 55.8C65.9 52.5 66.9 48.6 66.9 44.1C66.9 39.6 65.9 35.7 64.1 32.3Z" fill="#F9FAFE"/><circle cx="44.9" cy="44" r="5.5" fill="#F9FAFE"/></svg>
-      <b>DobDex</b><em>Stellar</em>
+      <b>DobDex</b><!-- <em>Stellar</em> -->
     </a>
     <div class="nav-links">
       <div class="nav-prod" id="navProd">
@@ -828,63 +904,127 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
       position today. Illustrative &mdash; the real number is whatever a Node actually bids.
     </p>
 
-    <div class="sim rv" style="transition-delay:0.15s">
-      <div class="sim-inputs">
-        <div class="sim-field">
-          <label for="simScore">TRUFA score <span class="cur" id="simScoreVal">82</span></label>
-          <input type="range" id="simScore" min="10" max="100" value="82" step="1" aria-describedby="simScoreVal">
-          <div class="sim-scale"><span>10 &middot; distressed</span><span>100 &middot; institutional</span></div>
-        </div>
-        <div class="sim-field">
-          <label for="simAmount">Exit size <span class="cur" id="simAmountVal">$25,000</span></label>
-          <input type="range" id="simAmount" min="500" max="500000" value="25000" step="500" aria-describedby="simAmountVal">
-          <div class="sim-scale"><span>$500</span><span>$500,000</span></div>
-          <div class="sim-chips" id="simPresets">
-            <button class="sim-chip" data-amt="1000">$1K</button>
-            <button class="sim-chip on" data-amt="25000">$25K</button>
-            <button class="sim-chip" data-amt="100000">$100K</button>
-            <button class="sim-chip" data-amt="400000">$400K</button>
+    <div class="ex rv" id="exq" style="transition-delay:0.15s">
+
+      <div class="ex-head">
+        <div class="ex-idm">
+          <div class="ex-grade">
+            <div class="g" id="exGrade">B</div>
+            <div class="m"><b id="exTierName">Standard</b><span id="exTierBand">120 – 300 bps band</span></div>
+          </div>
+          <div class="ex-sc">
+            <div class="v"><span id="exScoreVal">82</span><i>/100</i></div>
+            <div class="l">TRUFA score</div>
           </div>
         </div>
-        <div class="sim-field">
-          <label>Competing capital <span class="cur" id="simDepthVal">Normal</span></label>
-          <div class="sim-chips" id="simDepth">
-            <button class="sim-chip" data-depth="0.8">Deep</button>
-            <button class="sim-chip on" data-depth="1">Normal</button>
-            <button class="sim-chip" data-depth="1.35">Thin</button>
+        <div class="lad">
+          <div class="lad-t">
+            <i data-t="E" style="--w:35;--c:#f87171"></i>
+            <i data-t="D" style="--w:15;--c:#f5824f"></i>
+            <i data-t="C" style="--w:15;--c:#fbbf24"></i>
+            <i data-t="B" style="--w:15;--c:#597ce9"></i>
+            <i data-t="A" style="--w:10;--c:#4ade80"></i>
           </div>
-        </div>
-        <div class="sim-note">
-          <div class="t">What this model assumes</div>
-          <ul>
-            <li>The <b>TRUFA score</b> comes from DobValidator and travels with the asset. Nodes read it and price off-chain &mdash; no contract re-derives it.</li>
-            <li>Tiers are a <b>vocabulary</b>, not a rule. Nodes bid absolute USDC; the chain only checks the money is really there.</li>
-            <li>The <b>best bid wins</b> when the window closes. Below the seller's floor the exit takes a public place in line instead of being force-filled.</li>
-            <li>Every position settles in <b>USDC on Stellar</b> and can leave through an Anchor Platform off-ramp.</li>
-          </ul>
+          <div class="lad-l">
+            <i data-t="E" style="--w:35;--c:#f87171">E &middot; distressed</i>
+            <i data-t="D" style="--w:15;--c:#f5824f">D &middot; 45</i>
+            <i data-t="C" style="--w:15;--c:#fbbf24">C &middot; 60</i>
+            <i data-t="B" style="--w:15;--c:#597ce9">B &middot; 75</i>
+            <i data-t="A" style="--w:10;--c:#4ade80">A &middot; 90</i>
+          </div>
+          <input type="range" id="simScore" min="10" max="100" value="82" step="1"
+                 aria-label="TRUFA score" aria-describedby="exScoreVal">
         </div>
       </div>
-      <div class="sim-output">
-        <div class="sim-quote">
-          <div class="k">Estimated net proceeds</div>
-          <div class="v"><span id="simNet">24,813</span><span class="u">USDC</span></div>
-          <div class="sub" id="simVs">on a $25,000 position</div>
+
+      <div class="ex-body">
+        <div class="ex-in">
+          <div class="ex-lab"><span>Exit size</span><span class="cur" id="simAmountVal">$25,000</span></div>
+          <div class="ex-amt">
+            <input type="range" id="simAmount" min="500" max="500000" value="25000" step="500"
+                   aria-label="Exit size" aria-describedby="simAmountVal">
+            <div class="ex-scale"><span>$500</span><span>$500K</span></div>
+            <div class="ex-chips" id="simPresets">
+              <button class="ex-chip" data-amt="1000">$1K</button>
+              <button class="ex-chip on" data-amt="25000">$25K</button>
+              <button class="ex-chip" data-amt="100000">$100K</button>
+              <button class="ex-chip" data-amt="400000">$400K</button>
+            </div>
+          </div>
+
+          <div class="ex-sep"></div>
+
+          <div class="ex-lab"><span>Competing capital</span><span class="cur" id="simDepthVal">Normal</span></div>
+          <div class="ex-chips" id="simDepth" style="margin-top:14px;">
+            <button class="ex-chip" data-depth="0.8">Deep</button>
+            <button class="ex-chip on" data-depth="1">Normal</button>
+            <button class="ex-chip" data-depth="1.35">Thin</button>
+          </div>
+
+          <div class="ex-sep push"></div>
+
+          <div class="ex-lab"><span>Settles in</span></div>
+          <div class="ex-exp" style="margin-top:12px;">
+            <b>USDC on Stellar</b>, one Soroban transaction, seller-side floor enforced by the
+            Settlement Router. Cash out through an Anchor Platform off-ramp.
+          </div>
         </div>
-        <div class="sim-rows">
-          <div class="sim-row"><span class="k">Risk tier</span><span class="v" id="simTier">B &middot; Standard</span></div>
-          <div class="sim-row"><span class="k">Typical spread</span><span class="v" id="simSpread">2.00%</span></div>
-          <div class="sim-row"><span class="k">Size impact</span><span class="v" id="simSize">0.33%</span></div>
-          <div class="sim-row"><span class="k">Protocol fee</span><span class="v" id="simFee">0.25%</span></div>
-          <div class="sim-row" style="padding-top:12px;border-top:1px solid var(--b1);"><span class="k" style="color:var(--t1);font-weight:600;">Total discount</span><span class="v" id="simTotal">2.58%</span></div>
-          <div class="sim-row"><span class="k">Likely path</span><span class="v" id="simRoute">Bid accepted</span></div>
-          <div class="sim-row"><span class="k">Expected time to cash</span><span class="v" id="simTime">Minutes</span></div>
+
+        <div class="ex-out">
+          <div class="ex-net">
+            <div class="k">Estimated net proceeds</div>
+            <div class="v"><span id="simNet">24,813</span><span class="u">USDC</span></div>
+            <div class="s">on a <span id="exPos">$25,000</span> position &mdash;
+              you keep <b id="exKeep">97.42%</b></div>
+          </div>
+
+          <div class="wf">
+            <div class="wf-bar">
+              <i class="keep" id="wfKeep"></i>
+              <i class="cut" id="wfCut"></i>
+            </div>
+            <div class="wf-leg"><span><b>Proceeds</b></span><span>Discount &middot; <b id="wfCutPct">2.58%</b></span></div>
+
+            <div class="wf-h"><span>Inside the discount</span><em id="wfTotal">$645</em></div>
+            <div class="wf-bar mag">
+              <i class="a" id="wfA"></i><i class="b" id="wfB"></i><i class="c" id="wfC"></i>
+            </div>
+            <div class="wf-key">
+              <div><i id="wfDotA"></i><span class="k">Tier spread</span>
+                <span class="n" id="wfNoteA">what this risk costs</span><span class="v" id="simSpread">2.00%</span></div>
+              <div><i style="background:var(--cyan)"></i><span class="k">Size impact</span>
+                <span class="n" id="wfNoteB">ticket vs. standing appetite</span><span class="v" id="simSize">0.33%</span></div>
+              <div><i style="background:var(--violet)"></i><span class="k">Protocol fee</span>
+                <span class="n">capped at 500 bps on-chain</span><span class="v" id="simFee">0.25%</span></div>
+            </div>
+          </div>
+
+          <div class="ex-route">
+            <div class="ex-steps" id="exSteps">
+              <div class="ex-step" data-r="accept"><div class="t">Bid accepted</div><div class="d">Minutes</div></div>
+              <div class="ex-step" data-r="window"><div class="t">Window closes</div><div class="d">~5 min</div></div>
+              <div class="ex-step" data-r="queue"><div class="t">Queued</div><div class="d">Hours – days</div></div>
+            </div>
+            <div class="ex-exp" id="simExplain"></div>
+          </div>
         </div>
-        <div class="sim-path" id="simExplain"></div>
-        <div class="sim-disclaimer">Illustrative model, not a quote. Real prices are posted by
-        Liquidity Nodes and can differ in either direction; DobDex does not guarantee a price or a
-        fill, and never buys the position itself.</div>
       </div>
     </div>
+
+    <div class="ex-notes rv" style="transition-delay:0.2s">
+      <div class="ex-note"><b>The score travels with the asset</b>
+        DobValidator issues it; Nodes read it and price off-chain. No contract re-derives it.</div>
+      <div class="ex-note"><b>Tiers are vocabulary, not rules</b>
+        Nodes bid absolute USDC. The chain only checks the money is really there.</div>
+      <div class="ex-note"><b>Best bid wins the window</b>
+        Below the seller's floor nothing is force-filled &mdash; the exit takes a public place in line.</div>
+      <div class="ex-note"><b>Size is priced, not curved</b>
+        The impact above reflects standing appetite for that asset, not an AMM depth function.</div>
+    </div>
+
+    <p class="ex-fine rv" style="transition-delay:0.24s">Illustrative model, not a quote. Real prices are
+      posted by Liquidity Nodes and can differ in either direction; DobDex does not guarantee a price
+      or a fill, and never buys the position itself.</p>
   </div>
 </section>
 
@@ -1165,11 +1305,14 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
   var elScore = document.getElementById('simScore');
   var elAmount = document.getElementById('simAmount');
   if (!elScore || !elAmount) return;
-  var elScoreVal = document.getElementById('simScoreVal');
+  var root = document.getElementById('exq');
   var elAmountVal = document.getElementById('simAmountVal');
   var elDepthVal = document.getElementById('simDepthVal');
+  var ladder = document.querySelectorAll('.lad-t i, .lad-l i');
+  var steps = document.querySelectorAll('#exSteps .ex-step');
   var depthFactor = 1;
 
+  function $(id) { return document.getElementById(id); }
   function tierForScore(s) {
     for (var i = 0; i < TIERS.length; i++) { if (s >= TIERS[i].min) return TIERS[i]; }
     return TIERS[TIERS.length - 1];
@@ -1190,59 +1333,78 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
     var sizeBps = Math.min(650, Math.pow(amount / 1000, 0.72) * 3.2) * depthFactor;
 
     var feeBps = 25;                          // illustrative protocol fee, capped at 500 on-chain
-    var bps = tierBps + sizeBps;
-    var net = amount * (1 - (bps + feeBps) / 10000);
+    var cutBps = tierBps + sizeBps + feeBps;
+    var net = amount * (1 - cutBps / 10000);
 
-    var route, time, explain;
+    var route, explain;
     var quick = (t.id === 'A' || t.id === 'B') && amount <= 50000 && depthFactor <= 1;
     if (quick) {
-      route = 'Bid accepted';
-      time = 'Minutes';
+      route = 'accept';
       explain = 'At this score and size a Node is likely to bid early. The seller can <b>accept the standing bid</b> without waiting for the window to close &mdash; the Settlement Router then moves tokens and USDC in the same Soroban transaction.';
     } else if (t.id === 'D' || t.id === 'E') {
-      route = 'Queued';
-      time = 'Hours – days';
+      route = 'queue';
       explain = 'Few Nodes hold appetite at this risk, so bids may not clear the seller’s floor. The exit then takes a <b>public place in line</b> for that asset and keeps taking bids &mdash; nobody can buy their way past it, and the seller can walk away at any point.';
     } else {
-      route = 'Window closes';
-      time = '~5 min';
+      route = 'window';
       explain = 'This exit runs its <b>bidding window</b> &mdash; five minutes by default, set by the seller. Nodes backing this asset bid against each other in absolute USDC and the best price wins. Competition sets the spread, not a curve.';
     }
 
-    elScoreVal.textContent = score;
+    // header: grade, tier, ladder
+    root.style.setProperty('--tc', t.color);
+    $('exGrade').textContent = t.id;
+    $('exTierName').textContent = t.name;
+    $('exTierBand').textContent = t.bandBps[0] + ' – ' + t.bandBps[1] + ' bps band';
+    $('exScoreVal').textContent = score;
+    ladder.forEach(function (seg) { seg.classList.toggle('on', seg.dataset.t === t.id); });
+
+    // headline
     elAmountVal.textContent = '$' + money(amount);
-    document.getElementById('simNet').textContent = money(Math.round(net));
-    document.getElementById('simVs').textContent = 'on a $' + money(amount) + ' position';
-    document.getElementById('simTier').textContent = t.id + ' · ' + t.name;
-    document.getElementById('simTier').style.color = t.color;
-    document.getElementById('simSpread').textContent = (tierBps / 100).toFixed(2) + '%';
-    document.getElementById('simSize').textContent = (sizeBps / 100).toFixed(2) + '%';
-    document.getElementById('simFee').textContent = (feeBps / 100).toFixed(2) + '%';
-    document.getElementById('simTotal').textContent = ((bps + feeBps) / 100).toFixed(2) + '%';
-    document.getElementById('simRoute').textContent = route;
-    document.getElementById('simTime').textContent = time;
-    document.getElementById('simExplain').innerHTML = explain;
+    $('simNet').textContent = money(Math.round(net));
+    $('exPos').textContent = '$' + money(amount);
+    $('exKeep').textContent = (100 - cutBps / 100).toFixed(2) + '%';
+
+    // bar one — the deal at true proportion
+    $('wfKeep').style.flexGrow = (10000 - cutBps);
+    $('wfCut').style.flexGrow = cutBps;
+    $('wfCutPct').textContent = (cutBps / 100).toFixed(2) + '%';
+
+    // bar two — the same discount magnified to fill the width
+    $('wfTotal').textContent = '$' + money(Math.round(amount * cutBps / 10000));
+    $('wfA').style.flexGrow = tierBps;
+    $('wfB').style.flexGrow = sizeBps;
+    $('wfC').style.flexGrow = feeBps;
+    $('wfDotA').style.background = t.color;
+    $('wfNoteA').textContent = 'score ' + score + ' · tier ' + t.id;
+    $('wfNoteB').textContent = depthFactor === 1 ? 'ticket vs. standing appetite'
+      : (depthFactor < 1 ? 'deep book, softened' : 'thin book, amplified');
+    $('simSpread').textContent = (tierBps / 100).toFixed(2) + '%';
+    $('simSize').textContent = (sizeBps / 100).toFixed(2) + '%';
+    $('simFee').textContent = (feeBps / 100).toFixed(2) + '%';
+
+    // route
+    steps.forEach(function (s) { s.classList.toggle('on', s.dataset.r === route); });
+    $('simExplain').innerHTML = explain;
   }
 
   elScore.addEventListener('input', quote);
   elAmount.addEventListener('input', function () {
-    document.querySelectorAll('#simPresets .sim-chip').forEach(function (c) {
+    document.querySelectorAll('#simPresets .ex-chip').forEach(function (c) {
       c.classList.toggle('on', parseInt(c.dataset.amt, 10) === parseInt(elAmount.value, 10));
     });
     quote();
   });
-  document.querySelectorAll('#simPresets .sim-chip').forEach(function (c) {
+  document.querySelectorAll('#simPresets .ex-chip').forEach(function (c) {
     c.addEventListener('click', function () {
       elAmount.value = c.dataset.amt;
-      document.querySelectorAll('#simPresets .sim-chip').forEach(function (x) { x.classList.remove('on'); });
+      document.querySelectorAll('#simPresets .ex-chip').forEach(function (x) { x.classList.remove('on'); });
       c.classList.add('on');
       quote();
     });
   });
-  document.querySelectorAll('#simDepth .sim-chip').forEach(function (c) {
+  document.querySelectorAll('#simDepth .ex-chip').forEach(function (c) {
     c.addEventListener('click', function () {
       depthFactor = parseFloat(c.dataset.depth);
-      document.querySelectorAll('#simDepth .sim-chip').forEach(function (x) { x.classList.remove('on'); });
+      document.querySelectorAll('#simDepth .ex-chip').forEach(function (x) { x.classList.remove('on'); });
       c.classList.add('on');
       elDepthVal.textContent = c.textContent;
       quote();

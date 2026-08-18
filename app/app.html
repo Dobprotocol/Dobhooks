@@ -190,7 +190,7 @@
       display: block; font-size: 12px; color: var(--text-2);
       margin-bottom: 6px; font-weight: 500;
     }
-    .field .hint { font-size: 11.5px; color: var(--text-3); margin-top: 5px; line-height: 1.5; }
+    .hint { font-size: 11.5px; color: var(--text-3); margin-top: 5px; line-height: 1.5; }
     input[type=text], input[type=number], select {
       width: 100%; padding: 10px 12px; border-radius: var(--r-md);
       background: var(--bg-2); border: 1px solid var(--border);
@@ -256,7 +256,7 @@
     .note.warn { background: var(--amber-dim); border-color: rgba(251,191,36,0.22); }
     .note.warn b { color: var(--amber); }
     .note b { color: var(--text-1); font-weight: 600; }
-    .note code, .exit-note code, .field .hint code {
+    .note code, .exit-note code, .hint code {
       font-family: var(--mono); font-size: 0.92em;
       background: var(--bg-3); padding: 1px 5px; border-radius: 4px; color: var(--accent-light);
     }
@@ -294,6 +294,135 @@
     }
     @keyframes sp { to { transform: rotate(360deg); } }
 
+    /* ═══ TRADE SURFACE ═══
+       The exit is a trade, so it is shaped like one: one card, what you give
+       above what you get, and the terms underneath. Everything the contract
+       needs is still in it — reference, floor, window — but as the fine print
+       of a ticket rather than a form to fill in. */
+    .sw-wrap { display: flex; flex-direction: column; align-items: center; position: relative; }
+    .sw-wrap::before {
+      content: ''; position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
+      width: 640px; height: 320px; border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(89,124,233,0.13) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+    .sw-col { width: 100%; max-width: 470px; position: relative; z-index: 1; }
+
+    .hero {
+      background: linear-gradient(135deg, #4a67d8 0%, #2b3894 55%, #1d2465 100%);
+      border-radius: var(--r-xl); padding: 26px 26px 22px; margin-bottom: 16px;
+      text-align: center; position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: -45%; right: -8%; width: 210px; height: 210px;
+      border-radius: 50%; background: rgba(255,255,255,0.07);
+    }
+    .hero::after {
+      content: ''; position: absolute; bottom: -55%; left: 4%; width: 180px; height: 180px;
+      border-radius: 50%; background: rgba(255,255,255,0.05);
+    }
+    .hero h1 { position: relative; z-index: 1; font-size: 22px; font-weight: 600; letter-spacing: -0.5px; color: #fff; }
+    .hero p {
+      position: relative; z-index: 1; font-size: 12.5px; line-height: 1.5;
+      color: rgba(255,255,255,0.74); margin: 7px auto 15px; max-width: 34rem;
+    }
+    .hero .live {
+      position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 7px;
+      padding: 5px 12px; border-radius: 999px; background: rgba(255,255,255,0.13);
+      font-size: 10.5px; font-weight: 600; color: rgba(255,255,255,0.9);
+    }
+    .hero .live i { width: 5px; height: 5px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+    .seg {
+      display: flex; gap: 2px; padding: 3px; width: fit-content;
+      background: var(--bg-1); border: 1px solid var(--border); border-radius: 999px;
+      margin: 0 auto 16px;
+    }
+    .seg button {
+      padding: 7px 16px; border: 0; border-radius: 999px; background: none; cursor: pointer;
+      color: var(--text-3); font-size: 12.5px; font-weight: 550;
+      transition: 0.16s var(--ease); white-space: nowrap;
+    }
+    .seg button:hover { color: var(--text-1); }
+    .seg button.on { background: var(--bg-3); color: var(--text-0); }
+
+    .sw-card {
+      background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-xl);
+      padding: 16px; box-shadow: 0 10px 44px rgba(0,0,0,0.45);
+    }
+    .sw-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .sw-top h3 { font-size: 14.5px; font-weight: 600; letter-spacing: -0.2px; }
+    .sw-tag {
+      font-family: var(--mono); font-size: 10px; font-weight: 500; padding: 4px 9px;
+      border-radius: 999px; background: var(--accent-dim); color: var(--accent-light);
+    }
+    .tbox {
+      background: var(--bg-2); border-radius: var(--r-lg); padding: 13px 15px;
+      border: 2px solid transparent; transition: border-color 0.2s var(--ease);
+    }
+    .tbox:focus-within { border-color: var(--border-focus); }
+    .tbox-hd { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; color: var(--text-3); margin-bottom: 6px; }
+    .tbox-hd .mx { color: var(--accent); cursor: pointer; font-weight: 600; }
+    .tbox-hd .mx:hover { text-decoration: underline; }
+    .tbox-body { display: flex; align-items: center; gap: 10px; }
+    .tbox-sub { font-size: 11px; color: var(--text-3); margin-top: 5px; font-variant-numeric: tabular-nums; }
+    input.tbox-in {
+      flex: 1; width: 0; min-width: 0; background: none; border: 0; padding: 0; border-radius: 0;
+      font-family: var(--font); font-size: 27px; font-weight: 600; color: var(--text-0);
+      font-variant-numeric: tabular-nums; outline: 0;
+    }
+    input.tbox-in:focus { background: none; border: 0; }
+    .tbox-out { flex: 1; font-size: 27px; font-weight: 600; color: var(--text-0); font-variant-numeric: tabular-nums; }
+    .tkn {
+      display: flex; align-items: center; gap: 7px; padding: 5px 13px 5px 5px;
+      border-radius: 999px; background: var(--bg-3); border: 1px solid var(--border);
+      font-size: 13.5px; font-weight: 600; white-space: nowrap;
+    }
+    .tkn .dot {
+      width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+      font-size: 11px; font-weight: 600; background: var(--green-dim); color: var(--green);
+    }
+    select.tsel {
+      width: auto; max-width: 190px; padding: 7px 30px 7px 13px; border-radius: 999px;
+      background: var(--bg-3) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 10 7'><path d='M1 1l4 4 4-4' stroke='%236a7382' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>") no-repeat right 12px center;
+      border: 1px solid var(--border); -webkit-appearance: none; appearance: none;
+      font-family: var(--font); font-size: 13.5px; font-weight: 600; cursor: pointer;
+    }
+    select.tsel:hover { border-color: var(--border-hover); }
+    .sw-arrow { display: flex; justify-content: center; margin: -10px 0; position: relative; z-index: 2; }
+    .sw-arrow div {
+      width: 34px; height: 34px; border-radius: var(--r-sm);
+      border: 3px solid var(--bg-1); background: var(--bg-3);
+      color: var(--text-3); font-size: 14px; display: grid; place-items: center;
+    }
+    .sw-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .sw-f {
+      background: var(--bg-2); border-radius: var(--r-lg); padding: 9px 14px;
+      border: 2px solid transparent; transition: border-color 0.2s var(--ease);
+    }
+    .sw-f:focus-within { border-color: var(--border-focus); }
+    .sw-f label { display: block; font-size: 10.5px; color: var(--text-3); margin-bottom: 1px; }
+    .sw-f input, .sw-f select {
+      width: 100%; background: none; border: 0; padding: 0; border-radius: 0;
+      font-family: var(--font); font-size: 14px; font-weight: 550; color: var(--text-1);
+      font-variant-numeric: tabular-nums; -webkit-appearance: none; appearance: none; cursor: pointer;
+    }
+    .sw-f input { cursor: text; }
+    .sw-f input:focus, .sw-f select:focus { background: none; border: 0; }
+    .sw-info { display: grid; gap: 6px; padding: 13px 4px 2px; }
+    .sw-row { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; font-size: 11.5px; color: var(--text-3); }
+    .sw-row .v { color: var(--text-2); font-weight: 500; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+    .sw-btn {
+      width: 100%; margin-top: 12px; padding: 14px; border: 0; border-radius: 14px; cursor: pointer;
+      background: var(--grad-primary); color: #fff; font-size: 14.5px; font-weight: 600;
+      letter-spacing: -0.01em; transition: 0.18s var(--ease);
+    }
+    .sw-btn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 8px 26px rgba(89,124,233,0.32); }
+    .sw-btn:disabled { background: var(--bg-3); color: var(--text-3); cursor: not-allowed; }
+    .sw-foot { margin-top: 15px; text-align: center; font-size: 11.5px; line-height: 1.65; color: var(--text-3); }
+    .sw-foot a { color: var(--accent-light); text-decoration: none; }
+    .sw-foot a:hover { text-decoration: underline; }
+
     @media (max-width: 780px) {
       /* The marketing links go — the logo still links home and the tab bar is
          the real navigation here. The network badge stays: nobody should be
@@ -303,6 +432,10 @@
       .stats { grid-template-columns: 1fr 1fr; }
       .exit-grid { grid-template-columns: 1fr 1fr; }
       .row2 { grid-template-columns: 1fr; }
+      .sw-fields { grid-template-columns: 1fr; }
+      input.tbox-in, .tbox-out { font-size: 23px; }
+      .hero { padding: 22px 20px 20px; }
+      .hero h1 { font-size: 19px; }
       .wrap { padding: 22px 16px 70px; }
       nav { padding: 10px 16px; }
       .subnav { padding: 0 16px; }
@@ -341,19 +474,108 @@
 
 <div class="subnav">
   <div class="tabs">
-    <button class="tab on" data-p="market">Exits</button>
-    <button class="tab" data-p="sell">Sell a position</button>
+    <button class="tab on" data-p="trade">Trade</button>
+    <button class="tab" data-p="market">Open exits</button>
     <button class="tab" data-p="node">Liquidity Node</button>
     <button class="tab" data-p="queue">The line</button>
     <button class="tab" data-p="faucet">Get tokens</button>
-    <button class="tab" data-p="contracts">Contracts</button>
   </div>
 </div>
 
 <div class="wrap">
 
+  <!-- ═══════════ TRADE ═══════════ -->
+  <div id="pg-trade" class="pg active">
+    <div class="sw-wrap">
+      <div class="sw-col">
+
+        <div class="hero">
+          <h1>Sell a position</h1>
+          <p>Put an RWA position up and let Liquidity Nodes bid absolute USDC for it. Your floor is
+          the only thing the chain enforces on your behalf — nothing fills under it.</p>
+          <span class="live"><i></i> Exit auction live &middot; Stellar testnet</span>
+        </div>
+
+        <div class="seg">
+          <button class="on" data-p="trade">Sell</button>
+          <button data-p="market">Open exits <span id="segOpen"></span></button>
+        </div>
+
+        <div class="sw-card">
+          <div class="sw-top">
+            <h3>Open an exit</h3>
+            <span class="sw-tag" id="swPair">RWA &rarr; USDC</span>
+          </div>
+
+          <div class="tbox">
+            <div class="tbox-hd"><span>You sell</span>
+              <span>Balance: <span class="mx" id="sBal" onclick="maxSell()">—</span></span></div>
+            <div class="tbox-body">
+              <input type="number" class="tbox-in" id="sAmount" min="1" step="1" value="1000" placeholder="0" />
+              <select class="tsel" id="sAsset"></select>
+            </div>
+            <div class="tbox-sub" id="sSizeSub">The whole lot moves into the router's escrow when you sign.</div>
+          </div>
+
+          <div class="sw-arrow"><div>&#8595;</div></div>
+
+          <div class="tbox">
+            <div class="tbox-hd"><span>You receive, at your floor</span><span>worst case</span></div>
+            <div class="tbox-body">
+              <div class="tbox-out" id="sNet">—</div>
+              <div class="tkn"><div class="dot">$</div><span>USDC</span></div>
+            </div>
+            <div class="tbox-sub" id="sNetSub">Net of the protocol fee. A bid above your floor pays you more.</div>
+          </div>
+
+          <div class="sw-fields">
+            <div class="sw-f">
+              <label for="sRef">Reference (USDC)</label>
+              <input type="number" id="sRef" min="0" step="0.01" value="100000" />
+            </div>
+            <div class="sw-f">
+              <label for="sFloor">Your floor (USDC)</label>
+              <input type="number" id="sFloor" min="0" step="0.01" value="94000" />
+            </div>
+          </div>
+          <div class="sw-fields" style="grid-template-columns:1fr;">
+            <div class="sw-f">
+              <label for="sDur">Bidding window</label>
+              <select id="sDur">
+                <option value="300" selected>5 minutes (default)</option>
+                <option value="900">15 minutes</option>
+                <option value="3600">1 hour</option>
+                <option value="21600">6 hours</option>
+                <option value="86400">24 hours (max)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="sw-info">
+            <div class="sw-row"><span>Discount at your floor</span><span class="v" id="sMaxDisc">—</span></div>
+            <div class="sw-row"><span>Protocol fee</span><span class="v" id="sFeeTxt">—</span></div>
+            <div class="sw-row"><span>Route</span><span class="v">Escrow &rarr; best bid &rarr; router</span></div>
+            <div class="sw-row"><span>Settlement</span><span class="v">One transaction, atomic</span></div>
+          </div>
+
+          <button class="sw-btn" id="sBtn">Connect a wallet to open an exit</button>
+        </div>
+
+        <p class="sw-foot">The reference is what you say the lot is worth — nothing is paid from it, it
+        only lets a bid be read as a discount. Escrow has two doors: a Node that paid, or back to you.
+        <a href="#" data-p="market" class="segLink">See what is on offer &rarr;</a></p>
+
+      </div>
+    </div>
+  </div>
+
   <!-- ═══════════ EXITS ═══════════ -->
-  <div id="pg-market" class="pg active">
+  <div id="pg-market" class="pg">
+    <div class="seg" style="margin-left:0;">
+      <button data-p="trade">Sell</button>
+      <button class="on" data-p="market">Open exits</button>
+    </div>
+
     <div class="phd">
       <h1>Open exits</h1>
       <p>Every position on offer, and what the best bid on it is right now. A bid is an offer in
@@ -369,73 +591,6 @@
 
     <div class="exits" id="exitList">
       <div class="empty"><span class="spin"></span> Reading testnet…</div>
-    </div>
-  </div>
-
-  <!-- ═══════════ SELL ═══════════ -->
-  <div id="pg-sell" class="pg">
-    <div class="phd">
-      <h1>Sell a position</h1>
-      <p>You declare what the position is worth and the least you will take for it. Nodes answer with
-      absolute USDC. Nothing fills below your floor — it takes a place in the line instead.</p>
-    </div>
-
-    <div class="card">
-      <h3>Open an exit</h3>
-      <p class="sub">Your tokens move into the router's escrow when you sign this. Cancelling returns them.</p>
-
-      <div class="field">
-        <label for="sAsset">Asset</label>
-        <select id="sAsset"></select>
-        <div class="hint">The participation token you are selling. Balance: <span class="mono" id="sBal">—</span></div>
-      </div>
-
-      <div class="row2">
-        <div class="field">
-          <label for="sAmount">Amount (shares)</label>
-          <input type="number" id="sAmount" min="1" step="1" value="1000" />
-        </div>
-        <div class="field">
-          <label for="sRef">Your reference (USDC)</label>
-          <input type="number" id="sRef" min="0" step="0.01" value="100000" />
-          <div class="hint">What you say the whole lot is worth. Nothing is paid from it — it only
-          lets a bid be read as a discount.</div>
-        </div>
-      </div>
-
-      <div class="row2">
-        <div class="field">
-          <label for="sFloor">Your floor, gross USDC</label>
-          <input type="number" id="sFloor" min="0" step="0.01" value="94000" />
-          <div class="hint"><code>min_accept_usdc</code> — the only thing the chain enforces on your behalf.</div>
-        </div>
-        <div class="field">
-          <label for="sDur">Window</label>
-          <select id="sDur">
-            <option value="300" selected>5 minutes (default)</option>
-            <option value="900">15 minutes</option>
-            <option value="3600">1 hour</option>
-            <option value="21600">6 hours</option>
-            <option value="86400">24 hours (max)</option>
-          </select>
-          <div class="hint">Floored at one minute, capped at a day.</div>
-        </div>
-      </div>
-
-      <div class="note" style="margin:6px 0 15px;">
-        <div>At your floor that is a <b id="sMaxDisc">—</b> discount, and you would net
-        <b id="sNet">—</b> after the <span id="sFeeTxt">—</span> protocol fee.
-        A bid above the floor nets you more.</div>
-      </div>
-
-      <button class="btn" id="sBtn" style="width:100%;">Connect a wallet to open an exit</button>
-    </div>
-
-    <div class="card">
-      <h3>What happens to the tokens</h3>
-      <p class="sub" style="margin:0;">Escrow has exactly two doors. Tokens locked by the router can only leave
-      towards a Node that paid for them, or back to you. There is no admin path to them at any fee, and
-      settlement is one atomic transaction — there is no state where one leg happened and the other did not.</p>
     </div>
   </div>
 
@@ -557,33 +712,6 @@
     <div class="note" style="margin-top:10px;">
       <div>You also need a little XLM to pay the fee on any transaction. Freighter funds a new testnet
       account for you, or use <a href="https://friendbot.stellar.org" target="_blank" rel="noopener">friendbot ↗</a>.</div>
-    </div>
-  </div>
-
-  <!-- ═══════════ CONTRACTS ═══════════ -->
-  <div id="pg-contracts" class="pg">
-    <div class="phd">
-      <h1>What you are talking to</h1>
-      <p>Four contracts on Stellar testnet. The auction is the only caller the other three accept; it
-      holds no funds itself.</p>
-    </div>
-
-    <div class="card">
-      <h3>Exit layer</h3>
-      <p class="sub">Error codes are disjoint on purpose — a refusal always says which contract said no.</p>
-      <div class="kv" id="kvContracts"></div>
-    </div>
-
-    <div class="card">
-      <h3>Test tokens</h3>
-      <p class="sub">Soroban-native tokens, so no trustline is needed to hold them.</p>
-      <div class="kv" id="kvTokens"></div>
-    </div>
-
-    <div class="note warn" style="margin-top:14px;">
-      <div><b>Testnet only.</b> These tokens carry no value whatsoever, and their mint is held by the
-      faucet so anyone can help themselves. This is not the real USDC contract, and nothing here is
-      deployed to mainnet.</div>
     </div>
   </div>
 
@@ -933,12 +1061,18 @@ async function loadExits() {
   });
 
   $('stOpen').textContent = live.length;
+  $('segOpen').textContent = live.length ? '· ' + live.length : '';
   var box = $('exitList');
   if (!lastExits.length) {
-    box.innerHTML = '<div class="empty">No exits have been opened yet. Open the first one from <b>Sell a position</b>.</div>';
+    box.innerHTML = '<div class="empty">No exits have been opened yet. Open the first one from <b>Trade</b>.</div>';
     return;
   }
-  var html = live.map(exitCard).join('');
+  /* An asset layer is quiet most of the time. Saying so, with the way in, beats
+     a page that just shows yesterday's settled trade and nothing else. */
+  var html = live.length
+    ? live.map(exitCard).join('')
+    : '<div class="empty">Nothing is taking bids right now.<br>'
+      + '<button class="btn sm" style="margin-top:14px;" onclick="go(\'trade\')">Open an exit</button></div>';
   if (done.length) {
     html += '<div style="margin:22px 0 4px;font-family:var(--mono);font-size:10px;letter-spacing:0.12em;'
           + 'text-transform:uppercase;color:var(--text-3);">Finished</div>';
@@ -953,6 +1087,7 @@ async function loadStats() {
     feeBps = Number(cfg.protocol_fee_bps);
     $('stFee').innerHTML = (feeBps / 100) + '<small>%</small>';
     $('sFeeTxt').textContent = (feeBps / 100) + '%';
+    sellPreview();                        // the fee moves the number in the card
   } catch (e) { /* leave the placeholder */ }
 
   /* Node capital: the vault's own USDC balance is the honest number — it is
@@ -1058,22 +1193,49 @@ async function loadNode() {
   } catch (e) { $('wState').innerHTML = ''; }
 }
 
+var sellBalRaw = null;      // kept raw so "max" is exact, not the rounded display
+
 async function loadSell() {
-  if (!me) { $('sBal').textContent = 'connect a wallet'; return; }
   var a = assetById($('sAsset').value);
+  if (!me) { sellBalRaw = null; $('sBal').textContent = 'connect a wallet'; return; }
   try {
     var b = await read(a.id, 'balance', [SDK.nativeToScVal(me, { type: 'address' })]);
+    sellBalRaw = String(b);
     $('sBal').textContent = fmt(b, a.dec, 0) + ' ' + a.sym;
-  } catch (e) { $('sBal').textContent = '0 ' + a.sym; }
+  } catch (e) { sellBalRaw = null; $('sBal').textContent = '0 ' + a.sym; }
 }
 
+window.maxSell = function () {
+  if (!me) { connect(); return; }
+  if (sellBalRaw === null) return;
+  var a = assetById($('sAsset').value);
+  $('sAmount').value = fromRaw(sellBalRaw, a.dec);
+  sellPreview();
+};
+
 function sellPreview() {
+  var a = assetById($('sAsset').value);
+  $('swPair').innerHTML = a.sym + ' &rarr; USDC';
+
+  var amount = Number($('sAmount').value);
+  $('sSizeSub').textContent = amount > 0
+    ? amount.toLocaleString('en-US', { maximumFractionDigits: a.dec }) + ' ' + a.sym
+      + ' moves into the router’s escrow when you sign. Cancelling returns it.'
+    : 'The whole lot moves into the router’s escrow when you sign.';
+
   var ref = Number($('sRef').value), floor = Number($('sFloor').value);
-  if (!ref || !floor || ref <= 0) { $('sMaxDisc').textContent = '—'; $('sNet').textContent = '—'; return; }
+  if (!ref || !floor || ref <= 0) {
+    $('sMaxDisc').textContent = '—';
+    $('sNet').textContent = '—';
+    $('sNetSub').textContent = 'Set a reference and a floor to see what the worst acceptable fill pays.';
+    return;
+  }
   var d = (ref - floor) / ref * 100;
   $('sMaxDisc').textContent = d >= 0 ? d.toFixed(2) + '%' : 'a premium';
   var net = floor * (1 - feeBps / 10000);
-  $('sNet').textContent = '$' + net.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  $('sNet').textContent = net.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  $('sNetSub').textContent = 'At your floor of $' + floor.toLocaleString('en-US', { maximumFractionDigits: 2 })
+    + ', net of the ' + (feeBps / 100) + '% protocol fee. A higher bid pays you more.';
 }
 
 /* ── actions ─────────────────────────────────────────────────────────── */
@@ -1152,14 +1314,18 @@ async function setAppetite() {
 /* ── boot ────────────────────────────────────────────────────────────── */
 
 function fillAssetSelects() {
-  var opts = ASSETS.map(function (a) {
-    return '<option value="' + a.id + '">' + a.name + ' (' + a.sym + ')</option>';
-  }).join('');
+  /* The trade card shows the ticker — it sits in a token pill, where a full
+     name would not fit — and the Node page shows the whole name. */
+  var opts = {
+    sAsset: ASSETS.map(function (a) { return '<option value="' + a.id + '">' + a.sym + '</option>'; }).join(''),
+    aAsset: ASSETS.map(function (a) { return '<option value="' + a.id + '">' + a.name + ' (' + a.sym + ')</option>'; }).join('')
+  };
   ['sAsset', 'aAsset'].forEach(function (id) {
     var el = $(id), keep = el.value;      // a redraw must not move the user's choice
-    el.innerHTML = opts;
+    el.innerHTML = opts[id];
     if (keep) el.value = keep;
   });
+  sellPreview();
 }
 
 /* ── faucet ──────────────────────────────────────────────────────────── */
@@ -1231,32 +1397,6 @@ async function loadFaucet() {
   }).join('');
 }
 
-function fillContractTables() {
-  var rows = [
-    ['exit_auction',      C.auction, 'the exit lifecycle · codes 300–399'],
-    ['lp_vault',          C.vault,   'node capital and standing terms · codes 1–99'],
-    ['settlement_router', C.router,  'escrow and the only contract that moves value · codes 100–199'],
-    ['fifo_queue',        C.queue,   'the public waiting line · codes 200–299']
-  ];
-  $('kvContracts').innerHTML = rows.map(function (r) {
-    return '<div><span class="k"><b style="color:var(--text-1)">' + r[0] + '</b><br>'
-         + '<span style="font-size:11.5px;color:var(--text-3)">' + r[2] + '</span></span>'
-         + '<span class="v"><a href="' + EXPERT + '/contract/' + r[1] + '" target="_blank" rel="noopener">'
-         + shortId(r[1]) + ' ↗</a></span></div>';
-  }).join('');
-
-  var toks = [[USDC.sym + ' (test)', USDC.id, USDC.dec + ' decimals']].concat(
-    ASSETS.map(function (a) { return [a.name + ' (' + a.sym + ')', a.id, a.dec + ' decimals']; }));
-  /* Listed here so nobody has to wonder who can mint these: the faucet holds
-     the admin of both, which is what lets it hand them out. */
-  toks.push(['testnet faucet', FAUCET, 'holds the mint · codes 900–999']);
-  $('kvTokens').innerHTML = toks.map(function (t) {
-    return '<div><span class="k">' + t[0] + ' <span style="color:var(--text-3)">· '
-         + t[2] + '</span></span><span class="v"><a href="' + EXPERT + '/contract/' + t[1]
-         + '" target="_blank" rel="noopener">' + shortId(t[1]) + ' ↗</a></span></div>';
-  }).join('');
-}
-
 function refresh() {
   loadStats();
   loadExits().catch(function (e) {
@@ -1268,13 +1408,20 @@ function refresh() {
   loadFaucet().catch(function () {});
 }
 
-document.querySelectorAll('.tab').forEach(function (t) {
-  t.addEventListener('click', function () {
-    document.querySelectorAll('.tab').forEach(function (x) { x.classList.remove('on'); });
-    document.querySelectorAll('.pg').forEach(function (x) { x.classList.remove('active'); });
-    t.classList.add('on');
-    $('pg-' + t.dataset.p).classList.add('active');
-  });
+/* One page switcher for all three ways in: the tab bar, the segmented control
+   on the trade card, and the link under it. They all have to agree, so none of
+   them owns the state. */
+function go(p) {
+  var pg = $('pg-' + p);
+  if (!pg) return;
+  document.querySelectorAll('.pg').forEach(function (x) { x.classList.remove('active'); });
+  pg.classList.add('active');
+  document.querySelectorAll('.tab').forEach(function (x) { x.classList.toggle('on', x.dataset.p === p); });
+  document.querySelectorAll('.seg button').forEach(function (x) { x.classList.toggle('on', x.dataset.p === p); });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+document.querySelectorAll('.tab, .seg button, .segLink').forEach(function (t) {
+  t.addEventListener('click', function (e) { e.preventDefault(); go(t.dataset.p); });
 });
 
 $('rBtn').addEventListener('click', function () {
@@ -1298,8 +1445,8 @@ $('sBtn').addEventListener('click', openExit);
 $('dBtn').addEventListener('click', deposit);
 $('aBtn').addEventListener('click', setAppetite);
 $('aAsset').addEventListener('change', loadNode);
-$('sAsset').addEventListener('change', loadSell);
-['sRef','sFloor'].forEach(function (id) { $(id).addEventListener('input', sellPreview); });
+$('sAsset').addEventListener('change', function () { sellPreview(); loadSell(); });
+['sRef','sFloor','sAmount'].forEach(function (id) { $(id).addEventListener('input', sellPreview); });
 
 $('wReq').addEventListener('click', function () {
   var raw = toRaw($('wAmount').value, USDC.dec);
@@ -1317,7 +1464,6 @@ $('wCancel').addEventListener('click', function () {
 });
 
 fillAssetSelects();
-fillContractTables();
 sellPreview();
 refresh();
 setInterval(function () { loadExits().catch(function () {}); loadStats(); }, 20000);
