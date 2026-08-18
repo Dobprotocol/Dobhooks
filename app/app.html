@@ -313,6 +313,32 @@
     .kv .v a { color: var(--accent-light); text-decoration: none; }
     .kv .v a:hover { text-decoration: underline; }
 
+    /* ═══ PORTFOLIO ═══
+       One wallet is usually both sides at once — it holds a position and it
+       may be backing bids. Splitting that across two pages made a person
+       reconcile it in their head, so it is one page here. */
+    .fsec { margin-top: 26px; }
+    .fsec-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .fsec-h h2 { font-size: 15px; font-weight: 600; letter-spacing: -0.25px; }
+    .fsec-h span { font-size: 12px; color: var(--text-3); }
+    .pos { display: grid; gap: 10px; }
+    .pos-row {
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      background: linear-gradient(180deg, #12151b 0%, var(--bg-1) 58%);
+      border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px 16px;
+      box-shadow: 0 10px 30px -18px rgba(0,0,0,0.9);
+    }
+    .pos-id { flex: 1; min-width: 170px; }
+    .pos-id b { display: block; font-size: 14px; font-weight: 600; }
+    .pos-id span { font-family: var(--mono); font-size: 11px; color: var(--text-3); }
+    .pos-n { text-align: right; min-width: 96px; }
+    .pos-n .k {
+      font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-3);
+    }
+    .pos-n .v { font-family: var(--mono); font-size: 14.5px; font-weight: 550; margin-top: 3px; }
+    .pos-n .v.dim { color: var(--text-3); font-weight: 400; }
+
     /* toast */
     #toast {
       position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px);
@@ -541,6 +567,7 @@
   <div class="tabs">
     <button class="tab on" data-p="trade">Trade</button>
     <button class="tab" data-p="market">Open exits</button>
+    <button class="tab" data-p="folio">Portfolio</button>
     <button class="tab" data-p="node">Liquidity Node</button>
     <button class="tab" data-p="queue">The line</button>
     <button class="tab" data-p="faucet">Get tokens</button>
@@ -657,6 +684,24 @@
     <div class="exits" id="exitList">
       <div class="empty"><span class="spin"></span> Reading testnet…</div>
     </div>
+  </div>
+
+  <!-- ═══════════ PORTFOLIO ═══════════ -->
+  <div id="pg-folio" class="pg">
+    <div class="phd">
+      <h1>Portfolio</h1>
+      <p>Everything this wallet is in the layer: what it holds, what it has on offer, and
+      — if it also puts up capital — what that capital is standing behind.</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="k">On offer</div><div class="v" id="fEscrow">—</div></div>
+      <div class="stat"><div class="k">Best bid on your exits</div><div class="v" id="fBids">—</div></div>
+      <div class="stat"><div class="k">Free to bid</div><div class="v" id="fFree">—</div></div>
+      <div class="stat"><div class="k">Committed to bids</div><div class="v" id="fCommit">—</div></div>
+    </div>
+
+    <div id="fBody"><div class="empty"><span class="spin"></span> Reading testnet&hellip;</div></div>
   </div>
 
   <!-- ═══════════ NODE ═══════════ -->
@@ -1462,15 +1507,175 @@ async function loadFaucet() {
   }).join('');
 }
 
+/* ── Portfolio ─────────────────────────────────────────────────────────
+   Nothing here is a new read. It is the same auction, vault and token
+   calls the other pages already make, filtered to one address and put on
+   one page, because a wallet is usually both sides of this market at
+   once and reconciling that in your head is not a feature. */
+function folioStat(k, v) { $(k).textContent = v; }
+
+async function loadFolio() {
+  var body = $('fBody');
+  if (!me) {
+    ['fEscrow','fBids','fFree','fCommit'].forEach(function (k) { $(k).textContent = '—'; });
+    body.innerHTML = '<div class="empty">Connect a wallet to see what it holds.<br>'
+      + '<button class="btn sm" style="margin-top:14px;" onclick="connect()">Connect Freighter</button></div>';
+    return;
+  }
+  var addr = SDK.nativeToScVal(me, { type: 'address' });
+
+  /* Balances for every asset this page knows about, plus USDC. A failed
+     read means no trustline or no balance, which is a zero, not an error. */
+  var bals = await Promise.all(ASSETS.map(function (a) {
+    return read(a.id, 'balance', [addr]).then(function (b) { return String(b); })
+      .catch(function () { return '0'; });
+  }));
+  var usdcBal = await read(USDC.id, 'balance', [addr]).then(String).catch(function () { return '0'; });
+
+  var mine   = lastExits.filter(function (x) { return x.seller === me; });
+  var live   = mine.filter(function (x) { var st = statusOf(x); return st === 'open' || st === 'queued'; });
+  var backing = lastExits.filter(function (x) {
+    var st = statusOf(x);
+    return x.best_node === me && (st === 'open' || st === 'queued');
+  });
+
+  /* Escrowed size is per asset, so there is no single number to add up.
+     What can be added is the USDC on the table: the reference the seller
+     declared, and the best bid actually standing against it. */
+  var onOffer = 0n, bestSum = 0n;
+  live.forEach(function (x) {
+    onOffer += BigInt(x.reference_usdc);
+    if (x.best_usdc) bestSum += BigInt(x.best_usdc);
+  });
+  folioStat('fEscrow', live.length ? usd(onOffer.toString()) : '—');
+  folioStat('fBids', live.length ? usd(bestSum.toString()) : '—');
+
+  var node = null, free = '0';
+  try { node = await read(C.vault, 'get_node', [addr]); } catch (e) { node = null; }
+  if (node) {
+    try { free = String(await read(C.vault, 'free_balance', [addr])); } catch (e) { free = '0'; }
+    folioStat('fFree', usd(free));
+    folioStat('fCommit', usd(node.committed));
+  } else {
+    folioStat('fFree', '—');
+    folioStat('fCommit', '—');
+  }
+
+  var h = '';
+
+  /* 1. What the wallet holds. */
+  var held = ASSETS.map(function (a, i) { return { a: a, bal: bals[i] }; })
+                   .filter(function (r) { return BigInt(r.bal) > 0n; });
+  h += '<div class="fsec"><div class="fsec-h"><h2>Positions</h2>'
+     + '<span>' + fmt(usdcBal, USDC.dec, 2) + ' USDC in the wallet</span></div>';
+  if (!held.length) {
+    h += '<div class="empty">This wallet holds none of the assets traded here.<br>'
+       + '<button class="btn sm" style="margin-top:14px;" onclick="go(\'faucet\')">Get test tokens</button></div>';
+  } else {
+    h += '<div class="pos">' + held.map(function (r) {
+      /* Tokens sitting in the router's escrow are not in the balance any
+         more, so show them beside it or the number reads as a loss. */
+      var esc = 0n;
+      live.forEach(function (x) { if (x.asset === r.a.id) esc += BigInt(x.amount); });
+      return '<div class="pos-row">'
+        + '<div class="pos-id"><b>' + r.a.name + '</b><span>' + r.a.sym + ' · ' + shortId(r.a.id) + '</span></div>'
+        + '<div class="pos-n"><div class="k">Held</div><div class="v">' + fmt(r.bal, r.a.dec, 2) + '</div></div>'
+        + '<div class="pos-n"><div class="k">In escrow</div><div class="v' + (esc > 0n ? '' : ' dim') + '">'
+        + (esc > 0n ? fmt(esc.toString(), r.a.dec, 2) : '—') + '</div></div>'
+        + '<button class="btn sm" onclick="sellAsset(\'' + r.a.id + '\')">Sell</button>'
+        + '</div>';
+    }).join('') + '</div>';
+  }
+  h += '</div>';
+
+  /* 2. What it has on offer, and what came of the ones that are over. */
+  var done = mine.filter(function (x) { var st = statusOf(x); return st !== 'open' && st !== 'queued'; });
+  h += '<div class="fsec"><div class="fsec-h"><h2>Your exits</h2>'
+     + '<span>' + (live.length ? live.length + ' live' : 'none live') + '</span></div>';
+  if (!mine.length) {
+    h += '<div class="empty">You have not opened an exit yet.<br>'
+       + '<button class="btn sm" style="margin-top:14px;" onclick="go(\'trade\')">Open an exit</button></div>';
+  } else {
+    h += '<div class="exits">' + live.concat(done).map(exitCard).join('') + '</div>';
+  }
+  h += '</div>';
+
+  /* 3. The other side, and only if this wallet is on it. */
+  if (node) {
+    h += '<div class="fsec"><div class="fsec-h"><h2>As a Liquidity Node</h2>'
+       + '<span><a href="#" onclick="go(\'node\');return false;" style="color:var(--accent-light);text-decoration:none;">Manage terms &rarr;</a></span></div>';
+    h += '<div class="kv" style="margin-bottom:12px;">'
+       + '<div><span class="k">Deposited</span><span class="v">' + usd(node.deposited) + '</span></div>'
+       + '<div><span class="k">Committed to live bids</span><span class="v">' + usd(node.committed) + '</span></div>'
+       + '<div><span class="k">Free to bid</span><span class="v">' + usd(free) + '</span></div>'
+       + '<div><span class="k">Filled to date</span><span class="v">' + usd(node.filled) + '</span></div>'
+       + '</div>';
+
+    /* Standing terms, per asset — the thing that decides whether a bid is
+       even allowed through. */
+    var aps = await Promise.all(ASSETS.map(function (a) {
+      return read(C.vault, 'get_appetite', [addr, SDK.nativeToScVal(a.id, { type: 'address' })])
+        .then(function (ap) { return { a: a, ap: ap }; })
+        .catch(function () { return null; });
+    }));
+    aps = aps.filter(Boolean);
+    if (aps.length) {
+      h += '<div class="pos">' + aps.map(function (r) {
+        var on = r.ap.active;
+        return '<div class="pos-row">'
+          + '<div class="pos-id"><b>' + r.a.name + '</b><span>'
+          + (on ? 'taking exits' : 'stood down') + '</span></div>'
+          + '<div class="pos-n"><div class="k">Ceiling</div><div class="v">' + usd(r.ap.max_exposure) + '</div></div>'
+          + '<div class="pos-n"><div class="k">Outstanding</div><div class="v' + (BigInt(r.ap.exposure) > 0n ? '' : ' dim') + '">'
+          + usd(r.ap.exposure) + '</div></div>'
+          + '<div class="pos-n"><div class="k">Floor disc.</div><div class="v">' + (r.ap.min_discount_bps / 100) + '%</div></div>'
+          + '</div>';
+      }).join('') + '</div>';
+    }
+
+    /* Capital is committed exit by exit, so name them. */
+    if (backing.length) {
+      h += '<div class="fsec-h" style="margin-top:16px;"><h2 style="font-size:13.5px;">Your capital is behind</h2>'
+         + '<span>' + backing.length + ' exit' + (backing.length > 1 ? 's' : '') + '</span></div>'
+         + '<div class="exits">' + backing.map(exitCard).join('') + '</div>';
+    }
+    h += '</div>';
+  } else {
+    h += '<div class="fsec"><div class="fsec-h"><h2>As a Liquidity Node</h2></div>'
+       + '<div class="note"><div>This wallet has never deposited, so it holds no capital in the '
+       + 'vault and cannot bid. <a href="#" onclick="go(\'node\');return false;" '
+       + 'style="color:var(--accent-light);text-decoration:none;">Become a Node &rarr;</a></div></div></div>';
+  }
+
+  body.innerHTML = h;
+}
+
+/* From a position straight into the sell card with that asset chosen. */
+window.sellAsset = function (id) {
+  $('sAsset').value = id;
+  sellPreview();
+  loadSell().catch(function () {});
+  go('trade');
+};
+
 function refresh() {
   loadStats();
-  loadExits().catch(function (e) {
+  loadExits().then(refreshFolio).catch(function (e) {
     $('exitList').innerHTML = '<div class="empty">Could not read the auction. ' + explain(e) + '</div>';
+    refreshFolio();
   });
   loadQueue().catch(function () {});
   loadNode().catch(function () {});
   loadSell().catch(function () {});
   loadFaucet().catch(function () {});
+}
+
+/* The portfolio reads out of lastExits, so it has to run after loadExits
+   has actually filled it — not beside it. */
+function refreshFolio() {
+  loadFolio().catch(function (e) {
+    $('fBody').innerHTML = '<div class="empty">Could not read your positions. ' + explain(e) + '</div>';
+  });
 }
 
 /* One page switcher for all three ways in: the tab bar, the segmented control
