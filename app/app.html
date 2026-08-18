@@ -339,6 +339,89 @@
     .pos-n .v { font-family: var(--mono); font-size: 14.5px; font-weight: 550; margin-top: 3px; }
     .pos-n .v.dim { color: var(--text-3); font-weight: 400; }
 
+
+    /* ═══ ASSETS ═══
+       A catalogue row and an exit-layer row are not the same kind of thing,
+       so they share a shape but never a claim: one says what it pays, the
+       other says whether the door is busy. */
+    .abar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+    .abar input[type=text] {
+      flex: 1; min-width: 220px; width: auto;
+      background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-md);
+      padding: 10px 14px; color: var(--text-1); font-family: var(--font); font-size: 13px;
+    }
+    .abar input[type=text]:focus { outline: none; border-color: var(--border-focus); }
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip {
+      font-family: var(--mono); font-size: 11px; color: var(--text-3);
+      background: transparent; border: 1px solid var(--border); border-radius: var(--r-sm);
+      padding: 8px 12px; cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .chip:hover { color: var(--text-1); border-color: var(--border-hover); }
+    .chip.on { color: var(--bg-0); background: var(--text-1); border-color: var(--text-1); }
+
+    .alist { display: grid; gap: 8px; }
+    .arow {
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      background: linear-gradient(180deg, #12151b 0%, var(--bg-1) 58%);
+      border: 1px solid var(--border); border-radius: var(--r-lg); padding: 12px 16px;
+      cursor: pointer; transition: border-color 0.2s var(--ease), transform 0.2s var(--ease);
+    }
+    .arow:hover { border-color: var(--border-hover); transform: translateY(-1px); }
+    .aico { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex: none; background: var(--bg-2); }
+    .aico.ph {
+      display: grid; place-items: center; font-family: var(--mono); font-size: 11px; font-weight: 600;
+      color: var(--accent-light); background: var(--accent-dim); border: 1px solid var(--border);
+    }
+    .ameta { flex: 1; min-width: 150px; }
+    .ameta b { display: block; font-size: 13.5px; font-weight: 600; }
+    .ameta span { font-size: 11px; color: var(--text-3); }
+    .anum { text-align: right; min-width: 74px; }
+    .anum .k { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); }
+    .anum .v { font-family: var(--mono); font-size: 13px; font-weight: 550; margin-top: 3px; }
+    .anum .v.dim { color: var(--text-3); font-weight: 400; }
+    .aback {
+      display: inline-block; margin-bottom: 18px; font-size: 12.5px; color: var(--text-3);
+      text-decoration: none; transition: color 0.15s;
+    }
+    .aback:hover { color: var(--text-1); }
+
+    .ahead { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+    .ahead .aico { width: 52px; height: 52px; font-size: 15px; }
+    .ahead h1 { font-size: 26px; letter-spacing: -0.6px; }
+    .ahead .aid { font-family: var(--mono); font-size: 11px; color: var(--text-3); margin-top: 5px; }
+    .ahead .aid a { color: var(--accent-light); text-decoration: none; }
+    .abanner {
+      height: 132px; border-radius: var(--r-xl); border: 1px solid var(--border);
+      background-size: cover; background-position: center; margin-bottom: 18px;
+      position: relative; overflow: hidden;
+    }
+    .abanner::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(8,9,11,0.15) 0%, rgba(8,9,11,0.85) 100%);
+    }
+
+    /* the line, per asset — position is the point, so it is a ladder */
+    .qline { display: grid; gap: 6px; }
+    .qrow {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding: 11px 14px; border: 1px solid var(--border); border-radius: var(--r-md);
+      background: var(--bg-1);
+    }
+    .qrow.head { border-color: rgba(74,222,128,0.32); background: var(--green-dim); }
+    .qrow.mine { border-color: rgba(89,124,233,0.42); }
+    .qpos {
+      width: 30px; height: 30px; flex: none; border-radius: 50%; display: grid; place-items: center;
+      font-family: var(--mono); font-size: 12px; font-weight: 600;
+      color: var(--text-2); background: var(--bg-3);
+    }
+    .qrow.head .qpos { color: var(--green); background: rgba(74,222,128,0.14); }
+    .qrow .qm { flex: 1; min-width: 130px; font-size: 12.5px; }
+    .qrow .qm b { display: block; font-weight: 600; }
+    .qrow .qm span { font-size: 11px; color: var(--text-3); }
+    .qrow .qn { font-family: var(--mono); font-size: 12px; text-align: right; }
+    .qrow .qn small { display: block; font-size: 9.5px; color: var(--text-3); letter-spacing: 0.08em; text-transform: uppercase; }
+
     /* toast */
     #toast {
       position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px);
@@ -569,7 +652,7 @@
     <button class="tab" data-p="market">Open exits</button>
     <button class="tab" data-p="folio">Portfolio</button>
     <button class="tab" data-p="node">Liquidity Node</button>
-    <button class="tab" data-p="queue">The line</button>
+    <button class="tab" data-p="assets">Assets</button>
     <button class="tab" data-p="faucet">Get tokens</button>
   </div>
 </div>
@@ -788,20 +871,30 @@
     </div>
   </div>
 
-  <!-- ═══════════ QUEUE ═══════════ -->
-  <div id="pg-queue" class="pg">
+  <!-- ═══════════ ASSETS ═══════════ -->
+  <div id="pg-assets" class="pg">
     <div class="phd">
-      <h1>The line</h1>
-      <p>An exit that closed with nothing above its floor keeps its tokens and takes a public place in
-      line. It goes on taking bids there — but while an asset has a queue, only the exit at its head
-      can settle.</p>
+      <h1>Assets</h1>
+      <p>Everything DobProtocol has published, plus the tokens this testnet exit layer can actually
+      settle. Open one to see what it pays, what is on offer, and who is waiting for the door.</p>
     </div>
-    <div class="note" style="margin-bottom:16px;">
-      <div>Nobody buys their way past a seller who has been waiting. There is no function anywhere
-      that reorders the line, <b>not for the admin either</b> — positions only ever change because
-      the exit in front left.</div>
+
+    <div class="abar">
+      <input type="text" id="aqSearch" placeholder="Search by name, ticker or address" autocomplete="off">
+      <div class="chips" id="aqFilter">
+        <button class="chip on" data-f="all">All</button>
+        <button class="chip" data-f="layer">Tradeable here</button>
+        <button class="chip" data-f="dob">DobProtocol</button>
+      </div>
     </div>
-    <div id="queueBox"><div class="empty"><span class="spin"></span> Reading testnet…</div></div>
+
+    <div class="alist" id="assetList"><div class="empty"><span class="spin"></span> Loading assets…</div></div>
+  </div>
+
+  <!-- ═══════════ ASSET ═══════════ -->
+  <div id="pg-asset" class="pg">
+    <a href="#" class="aback" onclick="go('assets');return false;">&larr; All assets</a>
+    <div id="assetBody"></div>
   </div>
 
   <!-- ═══════════ FAUCET ═══════════ -->
@@ -1216,26 +1309,266 @@ async function loadStats() {
   } catch (e) { $('stQueue').textContent = '—'; }
 }
 
-async function loadQueue() {
-  var box = $('queueBox'), html = '';
-  for (var i = 0; i < ASSETS.length; i++) {
-    var a = ASSETS[i];
-    var list = await read(C.queue, 'list', [SDK.nativeToScVal(a.id, { type: 'address' })]);
-    html += '<div class="card"><h3>' + a.name + '</h3>';
-    if (!list || !list.length) {
-      html += '<p class="sub" style="margin:0;">Nothing waiting. Every exit on this asset either '
-            + 'filled or is still inside its window.</p></div>';
-      continue;
-    }
-    html += '<p class="sub">' + list.length + ' waiting · only the exit at the head can settle</p>';
-    html += '<div class="kv">';
-    for (var j = 0; j < list.length; j++) {
-      html += '<div><span class="k">' + (j === 0 ? 'Head — next to settle' : 'Position ' + j)
-            + '</span><span class="v">exit #' + list[j] + '</span></div>';
-    }
-    html += '</div></div>';
+/* ── Assets ──────────────────────────────────────────────────────────
+   Two sources that are emphatically not the same thing. ASSETS are the
+   tokens this exit layer can settle, on testnet, today. The DobProtocol
+   catalogue is what the platform has published on mainnet — real assets
+   with real holders and no exit market on this deployment. Merging them
+   into one indistinguishable list would be a lie, so a row always says
+   which one it is and the detail page never invents a market. */
+var CATALOGUE = 'https://home.dobprotocol.com/api/pool/public/by-category';
+var DOB = [];          // catalogue rows
+var Q = {};            // asset id -> ordered exit ids waiting on it
+var aFilter = 'all', aSearch = '', curAsset = null;
+
+async function loadCatalogue() {
+  try {
+    var r = await fetch(CATALOGUE, { credentials: 'omit' });
+    var j = await r.json();
+    var by = (j && j.payload) || {};
+    var out = [];
+    Object.keys(by).forEach(function (cat) {
+      (by[cat] || []).forEach(function (x) {
+        var pd = x.pool_data || {};
+        var tok = x.token && (x.token.dataValues || x.token);
+        out.push({
+          src: 'dob', id: x.address,
+          name: String(x.name || '').trim() || 'Untitled pool',
+          ticker: pd.ticker || pd.tk || '',
+          icon: x.icon_image || null, banner: x.banner_image || null,
+          cat: cat,
+          net: (x.network && x.network.name) || ('network ' + x.network_id),
+          netId: Number(x.network_id),
+          explorer: (x.network && x.network.hash_scan_url) || null,
+          apr: Number(x.real_apr || x.calculated_apy || x.estimated_apr || 0),
+          paid: Number(x.total_distributed_usd || 0),
+          holders: Number(x.quantity_participants || x.participants || 0),
+          maxHolders: Number(x.max_participants || 0),
+          verified: !!x.is_verified,
+          score: x.validator_overall_score != null ? Number(x.validator_overall_score) : null,
+          pays: tok ? tok.symbol : null,
+          access: x.way_to_access || pd.wacc || null
+        });
+      });
+    });
+    DOB = out;
+  } catch (e) {
+    DOB = [];       // offline, or an origin the platform does not allow — not fatal
   }
-  box.innerHTML = html;
+  renderAssets();
+}
+
+/* Queue state per asset. It is read here rather than on a page of its own
+   because a position in line only means something next to the asset whose
+   door it is. */
+async function loadQueueFor(id) {
+  try {
+    var l = await read(C.queue, 'list', [SDK.nativeToScVal(id, { type: 'address' })]);
+    Q[id] = (l || []).map(Number);
+  } catch (e) { Q[id] = []; }
+}
+async function loadQueues() {
+  for (var i = 0; i < ASSETS.length; i++) await loadQueueFor(ASSETS[i].id);
+  renderAssets();
+  if (curAsset) renderAsset(curAsset.id);
+}
+
+function exitsOn(id) { return lastExits.filter(function (x) { return x.asset === id; }); }
+
+function layerRows() {
+  return ASSETS.map(function (a) {
+    var ex = exitsOn(a.id);
+    return {
+      src: 'layer', id: a.id, name: a.name, ticker: a.sym, dec: a.dec,
+      net: 'Stellar Testnet', netId: 9,
+      open: ex.filter(function (x) { return statusOf(x) === 'open'; }).length,
+      queued: (Q[a.id] || []).length
+    };
+  });
+}
+function allRows() {
+  return layerRows().concat(DOB.filter(function (d) { return !knownAsset(d.id); }));
+}
+function rowById(id) {
+  var r = allRows().filter(function (x) { return x.id === id; });
+  return r[0] || null;
+}
+
+function initials(r) {
+  return (r.ticker || r.name || '?').replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase() || '?';
+}
+window.icoErr = function (img) {
+  var d = document.createElement('div');
+  d.className = img.className + ' ph';
+  d.textContent = img.getAttribute('data-i');
+  img.replaceWith(d);
+};
+function icoHtml(r, cls) {
+  cls = cls || 'aico';
+  if (r.icon) return '<img class="' + cls + '" src="' + r.icon + '" alt="" data-i="'
+    + initials(r) + '" onerror="icoErr(this)">';
+  return '<div class="' + cls + ' ph">' + initials(r) + '</div>';
+}
+function money0(n) {
+  if (!n) return '$0';
+  if (n >= 1e6) return '$' + (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return '$' + Math.round(n / 1e3) + 'K';
+  return '$' + Math.round(n);
+}
+
+function renderAssets() {
+  var box = $('assetList');
+  if (!box) return;
+  var q = aSearch.trim().toLowerCase();
+  var rows = allRows().filter(function (r) {
+    if (aFilter === 'layer' && r.src !== 'layer') return false;
+    if (aFilter === 'dob' && r.src !== 'dob') return false;
+    if (!q) return true;
+    return (r.name + ' ' + (r.ticker || '') + ' ' + r.id).toLowerCase().indexOf(q) >= 0;
+  });
+  if (!rows.length) {
+    box.innerHTML = '<div class="empty">' + (q ? 'Nothing matches “' + aSearch + '”.'
+      : 'No assets to show.') + '</div>';
+    return;
+  }
+  box.innerHTML = rows.map(function (r) {
+    var h = '<div class="arow" onclick="openAsset(\'' + r.id + '\')">' + icoHtml(r)
+      + '<div class="ameta"><b>' + r.name + '</b><span>'
+      + (r.ticker ? r.ticker + ' · ' : '') + r.net + '</span></div>';
+    if (r.src === 'layer') {
+      h += '<div class="anum"><div class="k">Open exits</div><div class="v' + (r.open ? '' : ' dim') + '">'
+         + (r.open || '—') + '</div></div>'
+         + '<div class="anum"><div class="k">In line</div><div class="v' + (r.queued ? '' : ' dim') + '">'
+         + (r.queued || '—') + '</div></div>'
+         + '<span class="pill open">tradeable</span>';
+    } else {
+      h += '<div class="anum"><div class="k">APR</div><div class="v' + (r.apr ? '' : ' dim') + '">'
+         + (r.apr ? r.apr.toFixed(1) + '%' : '—') + '</div></div>'
+         + '<div class="anum"><div class="k">Paid out</div><div class="v' + (r.paid ? '' : ' dim') + '">'
+         + (r.paid ? money0(r.paid) : '—') + '</div></div>'
+         + '<div class="anum"><div class="k">Holders</div><div class="v' + (r.holders ? '' : ' dim') + '">'
+         + (r.holders || '—') + '</div></div>';
+    }
+    return h + '</div>';
+  }).join('');
+}
+
+window.openAsset = function (id) {
+  var r = rowById(id);
+  if (!r) return;
+  curAsset = r;
+  go('asset');
+  renderAsset(id);
+  if (r.src === 'layer') loadQueueFor(id).then(function () { renderAsset(id); });
+};
+
+function renderAsset(id) {
+  var r = rowById(id);
+  if (!r) return;
+  curAsset = r;
+  var h = '';
+
+  /* Quoted: these filenames come from user uploads and routinely carry
+     parentheses and spaces, which end a bare url() token early. */
+  if (r.banner) h += '<div class="abanner" style="background-image:url(&quot;'
+    + r.banner.replace(/"/g, '%22') + '&quot;)"></div>';
+
+  h += '<div class="ahead">' + icoHtml(r, 'aico')
+     + '<div style="flex:1;min-width:200px;"><h1>' + r.name + '</h1>'
+     + '<div class="aid">' + (r.ticker ? r.ticker + ' · ' : '') + r.net + ' · ';
+  h += r.explorer
+    ? '<a href="' + r.explorer + 'contract/' + r.id + '" target="_blank" rel="noopener">' + shortId(r.id) + ' ↗</a>'
+    : '<a href="https://stellar.expert/explorer/testnet/contract/' + r.id + '" target="_blank" rel="noopener">' + shortId(r.id) + ' ↗</a>';
+  h += '</div></div>';
+  if (r.src === 'layer') h += '<span class="pill open">tradeable here</span>';
+  else if (r.verified) h += '<span class="pill settled">validated</span>';
+  h += '</div>';
+
+  if (r.src === 'dob') {
+    h += '<div class="stats" style="margin-top:20px;">'
+       + '<div class="stat"><div class="k">APR</div><div class="v">' + (r.apr ? r.apr.toFixed(1) + '<small>%</small>' : '—') + '</div></div>'
+       + '<div class="stat"><div class="k">Paid out</div><div class="v">' + (r.paid ? money0(r.paid) : '—') + '</div></div>'
+       + '<div class="stat"><div class="k">Holders</div><div class="v">' + (r.holders || '—')
+       + (r.maxHolders ? '<small> / ' + r.maxHolders.toLocaleString('en-US') + '</small>' : '') + '</div></div>'
+       + '<div class="stat"><div class="k">TRUFA score</div><div class="v">' + (r.score != null ? r.score : '—') + '</div></div>'
+       + '</div>';
+
+    /* The honest part: this asset is real, and this deployment cannot
+       trade it. Saying so beats a page of empty exit widgets. */
+    h += '<div class="note" style="margin-top:18px;"><div><b>Listed on DobProtocol, no exit market here.</b> '
+       + 'This asset lives on ' + r.net + '. The exit layer you are looking at is deployed on '
+       + '<b>Stellar Testnet</b>, so nothing on this page can buy or sell it — an exit market opens '
+       + 'for an asset once Liquidity Nodes stand behind it on the same network. '
+       + '<a href="https://home.dobprotocol.com/pool/' + r.id + '" target="_blank" rel="noopener">'
+       + 'Open it on DobProtocol ↗</a></div></div>';
+    if (r.pays) {
+      h += '<div class="kv" style="margin-top:14px;">'
+         + '<div><span class="k">Category</span><span class="v">' + r.cat + '</span></div>'
+         + '<div><span class="k">Distributes</span><span class="v">' + r.pays + '</span></div>'
+         + '<div><span class="k">Network</span><span class="v">' + r.net + '</span></div>'
+         + '</div>';
+    }
+    $('assetBody').innerHTML = h;
+    return;
+  }
+
+  /* ── an asset the layer can actually settle ── */
+  var ex = exitsOn(r.id);
+  var open = ex.filter(function (x) { return statusOf(x) === 'open'; });
+  var line = Q[r.id] || [];
+  var best = null;
+  open.forEach(function (x) {
+    var d = x.best_usdc && BigInt(x.best_usdc) > 0n ? discountBps(x, x.best_usdc) : null;
+    if (d != null && (best == null || d < best)) best = d;
+  });
+
+  h += '<div class="stats" style="margin-top:20px;">'
+     + '<div class="stat"><div class="k">Open exits</div><div class="v">' + (open.length || '—') + '</div></div>'
+     + '<div class="stat"><div class="k">Best discount bid</div><div class="v">'
+     + (best != null ? (best / 100).toFixed(2) + '<small>%</small>' : '—') + '</div></div>'
+     + '<div class="stat"><div class="k">In the line</div><div class="v">' + (line.length || '—') + '</div></div>'
+     + '<div class="stat"><div class="k">Decimals</div><div class="v">' + r.dec + '</div></div>'
+     + '</div>';
+
+  h += '<div style="margin:18px 0;"><button class="btn" onclick="sellAsset(\'' + r.id + '\')">Sell this position</button></div>';
+
+  h += '<div class="fsec"><div class="fsec-h"><h2>Open exits</h2><span>'
+     + (open.length ? open.length + ' on offer' : 'none right now') + '</span></div>';
+  h += open.length ? '<div class="exits">' + open.map(exitCard).join('') + '</div>'
+     : '<div class="empty">Nobody is selling this asset right now.</div>';
+  h += '</div>';
+
+  /* The line, where it means something: next to the asset whose door it is. */
+  h += '<div class="fsec"><div class="fsec-h"><h2>The line</h2><span>'
+     + (line.length ? line.length + ' waiting' : 'clear') + '</span></div>';
+  if (!line.length) {
+    h += '<div class="empty">Nothing waiting. Every exit on this asset either filled or is still '
+       + 'inside its window.</div>';
+  } else {
+    h += '<div class="qline">' + line.map(function (eid, i) {
+      var x = lastExits.filter(function (e) { return Number(e.id) === eid; })[0];
+      var mine = x && me && x.seller === me;
+      var cls = 'qrow' + (i === 0 ? ' head' : '') + (mine ? ' mine' : '');
+      var size = x ? fmt(x.amount, r.dec, 2) + ' ' + r.ticker : '—';
+      var bid = x && x.best_usdc && BigInt(x.best_usdc) > 0n ? usd(x.best_usdc) : 'no bid yet';
+      return '<div class="' + cls + '"><div class="qpos">' + (i + 1) + '</div>'
+        + '<div class="qm"><b>exit #' + eid + (mine ? ' · yours' : '') + '</b>'
+        + '<span>' + (i === 0 ? 'head — the only one that can settle' : 'waits for ' + (i) + ' ahead')
+        + '</span></div>'
+        + '<div class="qn">' + size + '<small>size</small></div>'
+        + '<div class="qn">' + bid + '<small>best bid</small></div>'
+        + (x ? '<button class="btn sm ghost" onclick="go(\'market\')">See it</button>' : '')
+        + '</div>';
+    }).join('') + '</div>';
+    h += '<div class="note" style="margin-top:12px;"><div>A queued exit keeps its tokens in escrow and '
+       + 'goes on taking bids — being in line is not a rejection. But while this asset has a queue, '
+       + '<b>only the exit at the head can settle</b>, and there is no function anywhere that reorders '
+       + 'it, not for the admin either. Positions change only because the exit in front left. Leaving '
+       + 'is always allowed.</div></div>';
+  }
+  h += '</div>';
+
+  $('assetBody').innerHTML = h;
 }
 
 async function loadNode() {
@@ -1664,7 +1997,8 @@ function refresh() {
     $('exitList').innerHTML = '<div class="empty">Could not read the auction. ' + explain(e) + '</div>';
     refreshFolio();
   });
-  loadQueue().catch(function () {});
+  loadQueues().catch(function () {});
+  loadCatalogue();
   loadNode().catch(function () {});
   loadSell().catch(function () {});
   loadFaucet().catch(function () {});
@@ -1709,6 +2043,16 @@ $('netBadge').addEventListener('click', function (e) {
   $('netMenu').classList.toggle('open');
 });
 document.addEventListener('click', function () { $('netMenu').classList.remove('open'); });
+
+$('aqSearch').addEventListener('input', function () { aSearch = this.value; renderAssets(); });
+document.querySelectorAll('#aqFilter .chip').forEach(function (c) {
+  c.addEventListener('click', function () {
+    aFilter = c.dataset.f;
+    document.querySelectorAll('#aqFilter .chip').forEach(function (x) { x.classList.remove('on'); });
+    c.classList.add('on');
+    renderAssets();
+  });
+});
 
 $('walletBtn').addEventListener('click', connect);
 $('sBtn').addEventListener('click', openExit);
