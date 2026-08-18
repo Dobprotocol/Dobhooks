@@ -162,6 +162,80 @@
       color: var(--text-1); font-family: var(--mono); font-size: 11.5px;
     }
 
+    /* ═══ WALLET ASSETS PANEL ═══ */
+    /* The one thing a holder wants without leaving the page they are on:
+       what am I holding, and how much of it is locked in an exit right now. */
+    .wa-wrap { position: relative; display: none; }
+    .wa-wrap.on { display: block; }
+    .wa-btn {
+      display: flex; align-items: center; gap: 6px; cursor: pointer;
+      padding: 6px 11px; border-radius: 999px;
+      background: var(--bg-2); border: 1px solid var(--border);
+      font-size: 11.5px; color: var(--text-3); font-weight: 500;
+      transition: 0.16s var(--ease);
+    }
+    .wa-btn:hover { border-color: var(--border-hover); }
+    .wa-btn b { color: var(--text-1); font-weight: 550; font-variant-numeric: tabular-nums; }
+    .wa-panel {
+      display: none; position: absolute; top: calc(100% + 6px); right: 0; z-index: 200;
+      width: 312px; background: var(--bg-1); border: 1px solid var(--border);
+      border-radius: var(--r-lg); overflow: hidden;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    }
+    .wa-panel.open { display: block; }
+    .wa-hd {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 15px; border-bottom: 1px solid var(--border-subtle);
+    }
+    .wa-hd h4 { font-size: 12.5px; font-weight: 600; color: var(--text-1); }
+    .wa-hd span { font-family: var(--mono); font-size: 10px; color: var(--text-3); }
+    .wa-total { padding: 12px 15px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-2); }
+    .wa-total .k {
+      font-size: 9.5px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--text-3);
+    }
+    .wa-total .v {
+      font-size: 19px; font-weight: 600; letter-spacing: -0.4px;
+      color: var(--text-1); font-variant-numeric: tabular-nums; margin-top: 3px;
+    }
+    .wa-list { max-height: 316px; overflow-y: auto; }
+    .wa-item {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+      padding: 10px 15px; border: 0; border-bottom: 1px solid var(--border-subtle);
+      background: transparent; text-align: left; cursor: pointer;
+      transition: background 0.12s;
+    }
+    .wa-item:last-child { border-bottom: 0; }
+    .wa-item:hover { background: var(--bg-2); }
+    .wa-dot {
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      display: grid; place-items: center;
+      font-family: var(--mono); font-size: 9.5px; font-weight: 600;
+      background: var(--accent-dim); color: var(--accent-light);
+    }
+    .wa-info { flex: 1; min-width: 0; }
+    .wa-info b {
+      display: block; font-size: 12px; font-weight: 600; color: var(--text-1);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .wa-info span { font-family: var(--mono); font-size: 10px; color: var(--text-3); }
+    .wa-vals { text-align: right; flex-shrink: 0; }
+    .wa-vals b {
+      display: block; font-size: 12px; font-weight: 600; color: var(--text-1);
+      font-variant-numeric: tabular-nums;
+    }
+    .wa-vals span { font-size: 10px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+    .wa-vals span.esc { color: var(--amber); }
+    .wa-empty { padding: 26px 15px; text-align: center; font-size: 11.5px; color: var(--text-3); line-height: 1.7; }
+    .wa-foot {
+      display: block; width: 100%; padding: 11px 15px; border: 0;
+      border-top: 1px solid var(--border-subtle); background: var(--bg-2);
+      font-family: var(--font); font-size: 11.5px; color: var(--accent-light);
+      text-align: center; cursor: pointer; transition: 0.16s var(--ease);
+    }
+    .wa-foot:hover { color: var(--text-0); }
+    @media (max-width: 560px) { .wa-panel { width: 82vw; } }
+
     /* ═══ TABS ═══ */
     .subnav {
       position: sticky; top: 49px; z-index: 45;
@@ -640,6 +714,18 @@
           <span>Stellar Testnet<em>Exit auction &middot; direct settlement</em></span></button>
         <a class="net-opt" href="app-evm.html"><span class="d" style="background:#FF007A;"></span>
           <span>Unichain Sepolia<em>Uniswap V4 hook &middot; dUSDC vault</em></span></a>
+      </div>
+    </div>
+    <div class="wa-wrap" id="waWrap">
+      <button class="wa-btn" id="waBtn"><span id="waCount">0 assets</span> &middot; <b id="waUsdc">$0.00</b></button>
+      <div class="wa-panel" id="waPanel">
+        <div class="wa-hd"><h4>My assets</h4><span>Stellar Testnet</span></div>
+        <div class="wa-total">
+          <div class="k">USDC balance</div>
+          <div class="v" id="waUsdcBig">$0.00</div>
+        </div>
+        <div class="wa-list" id="waList"></div>
+        <button class="wa-foot" id="waMore">Full portfolio &rarr;</button>
       </div>
     </div>
     <button class="wbtn" id="walletBtn">Connect Freighter</button>
@@ -1993,9 +2079,10 @@ window.sellAsset = function (id) {
 
 function refresh() {
   loadStats();
-  loadExits().then(refreshFolio).catch(function (e) {
+  loadExits().then(function () { refreshFolio(); refreshWallet(); }).catch(function (e) {
     $('exitList').innerHTML = '<div class="empty">Could not read the auction. ' + explain(e) + '</div>';
     refreshFolio();
+    refreshWallet();
   });
   loadQueues().catch(function () {});
   loadCatalogue();
@@ -2003,6 +2090,60 @@ function refresh() {
   loadSell().catch(function () {});
   loadFaucet().catch(function () {});
 }
+
+/* Held vs. escrowed is the distinction this panel exists for: opening an exit
+   moves the tokens into the auction, so a balance that "dropped" is not gone.
+   There is no price feed on this testnet, so only USDC carries a dollar
+   figure — marking the rest to an invented price would be worse than none. */
+async function loadWallet() {
+  if (!me) {
+    $('waWrap').classList.remove('on');
+    $('waPanel').classList.remove('open');
+    return;
+  }
+  $('waWrap').classList.add('on');
+
+  var addr = SDK.nativeToScVal(me, { type: 'address' });
+  var usdcBal = await read(USDC.id, 'balance', [addr]).then(String).catch(function () { return '0'; });
+  var bals = await Promise.all(ASSETS.map(function (a) {
+    return read(a.id, 'balance', [addr]).then(String).catch(function () { return '0'; });
+  }));
+
+  var escrow = {};
+  lastExits.forEach(function (x) {
+    if (x.seller !== me) return;
+    var st = statusOf(x);
+    if (st !== 'open' && st !== 'queued') return;
+    escrow[x.asset] = (escrow[x.asset] || 0n) + BigInt(x.amount);
+  });
+
+  var rows = ASSETS.map(function (a, i) {
+    return { a: a, held: BigInt(bals[i]), esc: escrow[a.id] || 0n };
+  }).filter(function (r) { return r.held > 0n || r.esc > 0n; });
+
+  $('waUsdc').textContent = usd(usdcBal);
+  $('waUsdcBig').textContent = usd(usdcBal);
+  $('waCount').textContent = rows.length + (rows.length === 1 ? ' asset' : ' assets');
+
+  $('waList').innerHTML = rows.length ? rows.map(function (r) {
+    return '<button class="wa-item" onclick="walletOpen(\'' + r.a.id + '\')">'
+      + '<div class="wa-dot">' + r.a.sym.slice(0, 3) + '</div>'
+      + '<div class="wa-info"><b>' + r.a.name + '</b><span>' + r.a.sym + '</span></div>'
+      + '<div class="wa-vals"><b>' + fmt(String(r.held), r.a.dec, 2) + '</b>'
+      + (r.esc > 0n
+          ? '<span class="esc">' + fmt(String(r.esc), r.a.dec, 2) + ' in escrow</span>'
+          : '<span>held</span>')
+      + '</div></button>';
+  }).join('')
+    : '<div class="wa-empty">No tokenised positions yet.<br>Claim test tokens under <b>Get tokens</b>.</div>';
+}
+
+function refreshWallet() { loadWallet().catch(function () {}); }
+
+window.walletOpen = function (id) {
+  $('waPanel').classList.remove('open');
+  openAsset(id);
+};
 
 /* The portfolio reads out of lastExits, so it has to run after loadExits
    has actually filled it — not beside it. */
@@ -2043,6 +2184,19 @@ $('netBadge').addEventListener('click', function (e) {
   $('netMenu').classList.toggle('open');
 });
 document.addEventListener('click', function () { $('netMenu').classList.remove('open'); });
+
+$('waBtn').addEventListener('click', function (e) {
+  e.stopPropagation();
+  $('waPanel').classList.toggle('open');
+});
+/* Clicks inside the panel must not close it — only the rows and the footer
+   navigate, and both close it themselves. */
+$('waPanel').addEventListener('click', function (e) { e.stopPropagation(); });
+document.addEventListener('click', function () { $('waPanel').classList.remove('open'); });
+$('waMore').addEventListener('click', function () {
+  $('waPanel').classList.remove('open');
+  go('folio');
+});
 
 $('aqSearch').addEventListener('input', function () { aSearch = this.value; renderAssets(); });
 document.querySelectorAll('#aqFilter .chip').forEach(function (c) {
