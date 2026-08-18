@@ -318,6 +318,7 @@
     .btn.ghost { background: var(--bg-2); border: 1px solid var(--border); color: var(--text-1); }
     .btn.ghost:hover:not(:disabled) { border-color: var(--border-hover); filter: none; }
     .btn.sm { padding: 6px 12px; font-size: 12px; }
+    a.btn { display: inline-flex; align-items: center; text-decoration: none; }
     .btn.danger { background: var(--bg-2); border: 1px solid rgba(248,113,113,0.3); color: var(--red); }
 
     /* exit cards */
@@ -345,6 +346,24 @@
     /* A TRUFA report is a fact about the asset, never a permission: nothing
        in the exit layer reads it, and anyone may back any token. */
     .pill.trufa   { color: var(--green); border-color: rgba(74,222,128,0.35); background: var(--green-dim); }
+    /* An ask is not a bid: the price is set, the buyer is hypothetical.
+       Rendered flatter than an exit card so the two never read alike. */
+    .asks { display: flex; flex-direction: column; gap: 8px; }
+    .ask {
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+      padding: 12px 15px; border: 1px solid var(--border);
+      border-radius: var(--r-lg); background: var(--bg-1);
+    }
+    .ask > b {
+      flex: 1; min-width: 130px; font-size: 16px; font-weight: 600;
+      letter-spacing: -0.3px; color: var(--text-1); font-variant-numeric: tabular-nums;
+    }
+    .ask .an { text-align: right; min-width: 82px; font-size: 13px; color: var(--text-2);
+      font-variant-numeric: tabular-nums; }
+    .ask small {
+      display: block; margin-top: 3px; font-family: var(--mono); font-size: 9.5px;
+      font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-3);
+    }
     .tru {
       display: inline-flex; align-items: center; gap: 4px; vertical-align: middle;
       margin-left: 7px; padding: 1px 6px; border-radius: 999px;
@@ -1459,6 +1478,82 @@ async function loadCatalogue() {
   renderAssets();
 }
 
+/* ── the other way out: DobProtocol's own secondary market ─────────────
+   A listing is an ask — a price the holder chose, waiting on a buyer who
+   may never turn up. An exit is the opposite side of that wait: a Node has
+   already put money behind a number. Neither figure means much alone, so
+   the asks are read here and shown beside the exits — read-only, because
+   buying one is a DobProtocol transaction on that pool's own network. */
+var MARKET = 'https://home.dobprotocol.com/api/stellar-pool/marketplace/all-listings';
+var ASKS = {};    // pool address -> its active asks, cheapest first
+var MKT = [];     // assets that only the marketplace knows about
+
+/* pool_data is a JSON *string* in a varchar column, so it gets parsed, not
+   walked. Compressed keys: na=name, tk=ticker, cat=category, eapr=APR. */
+function marketRow(x) {
+  var p = x.pool || {}, pd = {};
+  try { pd = typeof p.pool_data === 'string' ? JSON.parse(p.pool_data) : (p.pool_data || {}); }
+  catch (e) { pd = {}; }
+  var net = Number(x.chain_id || p.network_id || 0);
+  return {
+    src: 'dob', id: x.token_address,
+    name: String(pd.na || p.secondary_name || '').trim() || 'Untitled pool',
+    ticker: pd.tk || '',
+    icon: p.icon_image || null, banner: p.banner_image || null,
+    cat: pd.cat || 'Uncategorised',
+    net: net === 10 ? 'Stellar Mainnet' : net === 9 ? 'Stellar Testnet' : 'network ' + net,
+    netId: net, explorer: null,
+    apr: Number(pd.eapr || 0), paid: 0,
+    holders: 0, maxHolders: Number(pd.mp || 0),
+    verified: false, score: null, trufa: false, cert: null,
+    pays: null, access: pd.wacc || null
+  };
+}
+
+async function loadMarket() {
+  var live = [];
+  await Promise.all([9, 10].map(async function (net) {
+    try {
+      var r = await fetch(MARKET + '?network_id=' + net, { credentials: 'omit' });
+      var j = await r.json();
+      (j && j.listings || []).forEach(function (x) { if (x.is_active) live.push(x); });
+    } catch (e) { /* one network unreachable is not both */ }
+  }));
+
+  var asks = {}, extra = [], seen = {};
+  live.forEach(function (x) {
+    var dec = Number(x.payment_token_decimals || 0);
+    (asks[x.token_address] = asks[x.token_address] || []).push({
+      price: Number(x.price || 0) / Math.pow(10, dec),
+      sym: x.payment_token_symbol || 'token',
+      left: Number(x.current_allowance || 0),
+      sold: Number(x.total_sold_units || 0),
+      seller: x.owner_address,
+      netId: Number(x.chain_id || (x.pool && x.pool.network_id) || 0)
+    });
+    /* Built for every listed pool, not only the unmatched ones: the
+       catalogue loads on its own clock, so deciding here which are missing
+       would depend on which request happened to land first. allRows drops
+       the duplicates instead. */
+    if (!seen[x.token_address]) { seen[x.token_address] = 1; extra.push(marketRow(x)); }
+  });
+  Object.keys(asks).forEach(function (k) {
+    asks[k].sort(function (a, b) { return a.price - b.price; });
+  });
+  ASKS = asks; MKT = extra;
+
+  renderAssets();
+  if (curAsset) renderAsset(curAsset.id);
+}
+
+/* USDC gets a dollar sign; anything else keeps its own name, because
+   pricing a pool share in some other pool's token is not dollars. */
+function askPrice(a) {
+  var n = a.price >= 1 ? a.price.toLocaleString('en-US', { maximumFractionDigits: 2 })
+        : a.price.toFixed(a.price < 0.01 ? 4 : 2);
+  return /usdc/i.test(a.sym) ? '$' + n : n + ' ' + a.sym;
+}
+
 /* Queue state per asset. It is read here rather than on a page of its own
    because a position in line only means something next to the asset whose
    door it is. */
@@ -1488,7 +1583,14 @@ function layerRows() {
   });
 }
 function allRows() {
-  return layerRows().concat(DOB.filter(function (d) { return !knownAsset(d.id); }));
+  var out = layerRows(), have = {};
+  out.forEach(function (r) { have[r.id] = 1; });
+  DOB.concat(MKT).forEach(function (d) {
+    if (have[d.id]) return;       // the layer's own token, or already listed
+    have[d.id] = 1;
+    out.push(d);
+  });
+  return out;
 }
 function rowById(id) {
   var r = allRows().filter(function (x) { return x.id === id; });
@@ -1544,12 +1646,15 @@ function renderAssets() {
          + (r.queued || '—') + '</div></div>'
          + '<span class="pill open">tradeable</span>';
     } else {
+      var ask = (ASKS[r.id] || [])[0];
       h += '<div class="anum"><div class="k">APR</div><div class="v' + (r.apr ? '' : ' dim') + '">'
          + (r.apr ? r.apr.toFixed(1) + '%' : '—') + '</div></div>'
          + '<div class="anum"><div class="k">Paid out</div><div class="v' + (r.paid ? '' : ' dim') + '">'
          + (r.paid ? money0(r.paid) : '—') + '</div></div>'
          + '<div class="anum"><div class="k">Holders</div><div class="v' + (r.holders ? '' : ' dim') + '">'
-         + (r.holders || '—') + '</div></div>';
+         + (r.holders || '—') + '</div></div>'
+         + '<div class="anum"><div class="k">Ask from</div><div class="v' + (ask ? '' : ' dim') + '">'
+         + (ask ? askPrice(ask) : '—') + '</div></div>';
     }
     return h + '</div>';
   }).join('');
@@ -1578,9 +1683,10 @@ function renderAsset(id) {
   h += '<div class="ahead">' + icoHtml(r, 'aico')
      + '<div style="flex:1;min-width:200px;"><h1>' + r.name + '</h1>'
      + '<div class="aid">' + (r.ticker ? r.ticker + ' · ' : '') + r.net + ' · ';
-  h += r.explorer
-    ? '<a href="' + r.explorer + 'contract/' + r.id + '" target="_blank" rel="noopener">' + shortId(r.id) + ' ↗</a>'
-    : '<a href="https://stellar.expert/explorer/testnet/contract/' + r.id + '" target="_blank" rel="noopener">' + shortId(r.id) + ' ↗</a>';
+  var expl = r.explorer || ('https://stellar.expert/explorer/'
+    + (r.netId === 10 ? 'public' : 'testnet') + '/');
+  h += '<a href="' + expl + 'contract/' + r.id + '" target="_blank" rel="noopener">'
+     + shortId(r.id) + ' ↗</a>';
   h += '</div></div>';
   if (r.src === 'layer') h += '<span class="pill open">tradeable here</span>';
   else if (r.trufa) h += '<span class="pill trufa">TRUFA ' + r.score + '</span>';
@@ -1607,12 +1713,35 @@ function renderAsset(id) {
 
     /* The honest part: this asset is real, and this deployment cannot
        trade it. Saying so beats a page of empty exit widgets. */
+    var asks = ASKS[r.id] || [];
+    if (asks.length) {
+      h += '<div class="fsec" style="margin-top:22px;"><div class="fsec-h"><h2>Asks on DobProtocol</h2>'
+         + '<span>' + asks.length + (asks.length === 1 ? ' seller' : ' sellers') + '</span></div>';
+      h += '<div class="asks">' + asks.map(function (a) {
+        return '<div class="ask"><b>' + askPrice(a) + '<small>per share</small></b>'
+          + '<div class="an">' + a.left.toLocaleString('en-US') + '<small>available</small></div>'
+          + '<div class="an">' + (a.sold ? a.sold.toLocaleString('en-US') : '—') + '<small>sold</small></div>'
+          + '<div class="an">' + shortId(a.seller) + '<small>seller</small></div>'
+          + '<a class="btn sm ghost" target="_blank" rel="noopener" href="https://home.dobprotocol.com'
+          + '/marketplace/pool/' + r.id + '?network_id=' + (a.netId || r.netId) + '">Buy on DobProtocol ↗</a>'
+          + '</div>';
+      }).join('') + '</div>';
+      h += '<div class="note" style="margin-top:12px;"><div><b>An ask is a price waiting on a buyer.</b> '
+         + 'The holder set it and it fills if someone turns up — that could be tomorrow or never. An exit '
+         + 'auction is the other side of that wait: a Liquidity Node names what it will pay today, and the '
+         + 'discount is what you pay for not waiting. Both are real ways out of the same position, and '
+         + 'this page only reads the asks — the purchase itself happens on DobProtocol.</div></div>';
+      h += '</div>';
+    }
+
     /* Two different reasons this page cannot trade the asset, and they are
        not interchangeable: a mainnet pool is on the wrong network, while a
        testnet pool is on the right one and simply has no exit open on its
        participation token yet. Saying "wrong network" about a testnet pool
-       would be a plain lie. */
-    h += '<div class="note" style="margin-top:18px;"><div><b>Listed on DobProtocol, no exit market here.</b> '
+       would be a plain lie. The headline drops the "listed on DobProtocol"
+       half when the asks above have already said it. */
+    h += '<div class="note" style="margin-top:18px;"><div><b>'
+       + (asks.length ? 'No exit market here.' : 'Listed on DobProtocol, no exit market here.') + '</b> '
        + (r.netId === 9
            ? 'This pool is on the same network as the exit layer, but no exit has been opened on its '
              + 'participation token yet — a market appears here the moment someone sells into it and a '
@@ -2123,6 +2252,7 @@ function refresh() {
   });
   loadQueues().catch(function () {});
   loadCatalogue();
+  loadMarket();
   loadNode().catch(function () {});
   loadSell().catch(function () {});
   loadFaucet().catch(function () {});
