@@ -567,6 +567,70 @@
     }
     .sw-col { width: 100%; max-width: 470px; position: relative; z-index: 1; }
 
+    /* ═══ THE MARKET BESIDE THE TICKET ═══
+       A sell form on its own asks the seller to invent a price. This column is
+       the answer to "against what?": every exit already open on the same asset,
+       what the best bid on each one is, and what the last one actually cleared
+       at. It is all read off the chain — nothing here is modelled. */
+    .sw-grid {
+      display: flex; align-items: flex-start; justify-content: center;
+      gap: 20px; width: 100%; position: relative; z-index: 1;
+    }
+    .sw-side { width: 360px; flex: none; display: none; }
+    @media (min-width: 1080px) {
+      .sw-side { display: block; position: sticky; top: 104px; }
+      .sw-wrap::before { left: calc(50% - 190px); }
+      .sw-wrap::after  { left: calc(50% - 190px); }
+    }
+    .mk {
+      background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-xl);
+      overflow: hidden;
+    }
+    .mk-hd { display: flex; align-items: center; gap: 11px; padding: 15px 16px; border-bottom: 1px solid var(--border-subtle); }
+    .mk-hd .aico { width: 30px; height: 30px; border-radius: 50%; flex: none; object-fit: cover; }
+    .mk-hd .aico.ph {
+      display: flex; align-items: center; justify-content: center; background: var(--bg-3);
+      font-family: var(--mono); font-size: 9.5px; font-weight: 600; color: var(--text-2);
+    }
+    .mk-hd .n { min-width: 0; flex: 1; }
+    .mk-hd .n b { display: block; font-size: 13.5px; font-weight: 600; color: var(--text-1);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mk-hd .n span { display: block; font-family: var(--mono); font-size: 10px; color: var(--text-3); margin-top: 3px; }
+    .mk-stats { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--border-subtle); }
+    .mk-stats div { padding: 13px 14px; border-right: 1px solid var(--border-subtle); }
+    .mk-stats div:last-child { border-right: 0; }
+    .mk-stats .k { font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-3); white-space: nowrap; }
+    .mk-stats .v { font-size: 15px; font-weight: 600; color: var(--text-1); margin-top: 6px;
+      font-variant-numeric: tabular-nums; }
+    .mk-stats .v small { font-size: 10.5px; font-weight: 500; color: var(--text-3); }
+    .mk-sec { padding: 14px 16px; border-bottom: 1px solid var(--border-subtle); }
+    .mk-sec:last-child { border-bottom: 0; }
+    .mk-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+      font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--text-3); margin-bottom: 11px; }
+    .mk-h a { color: var(--accent-light); text-decoration: none; letter-spacing: 0.04em; }
+    .mk-h a:hover { color: var(--accent-hover); }
+    .mk-row {
+      display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; padding: 9px 10px;
+      border: 1px solid var(--border-subtle); border-radius: var(--r-sm); margin-bottom: 6px;
+      cursor: pointer; transition: border-color 0.18s var(--ease), background 0.18s var(--ease);
+    }
+    .mk-row:hover { border-color: var(--border-hover); background: var(--bg-2); }
+    .mk-row:last-child { margin-bottom: 0; }
+    .mk-row .s { font-size: 12.5px; font-weight: 600; color: var(--text-1); font-variant-numeric: tabular-nums; }
+    .mk-row .b { font-size: 12.5px; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+    .mk-row .m, .mk-row .d { font-family: var(--mono); font-size: 10px; color: var(--text-3); }
+    .mk-row .d { text-align: right; }
+    .mk-emp { font-size: 11.5px; line-height: 1.55; color: var(--text-3); }
+    .mk-emp b { color: var(--text-2); font-weight: 600; }
+    .mk-terms { display: flex; flex-direction: column; gap: 8px; }
+    .mk-terms div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 12px; }
+    .mk-terms .k { color: var(--text-3); }
+    .mk-terms .v { font-family: var(--mono); font-size: 11.5px; font-weight: 600; color: var(--text-1); }
+    .mk-note { padding: 13px 16px; font-size: 11px; line-height: 1.6; color: var(--text-3); background: var(--bg-0); }
+    .mk-note b { color: var(--text-2); font-weight: 600; }
+
     .hero {
       background:
         radial-gradient(120% 140% at 78% -20%, rgba(255,255,255,0.16), transparent 55%),
@@ -777,6 +841,7 @@
   <!-- ═══════════ TRADE ═══════════ -->
   <div id="pg-trade" class="pg active">
     <div class="sw-wrap">
+      <div class="sw-grid">
       <div class="sw-col">
 
         <div class="hero">
@@ -855,6 +920,11 @@
         only lets a bid be read as a discount. Escrow has two doors: a Node that paid, or back to you.
         <a href="#" data-p="market" class="segLink">See what is on offer &rarr;</a></p>
 
+      </div>
+
+      <aside class="sw-side" id="swSide" aria-label="The market on this asset">
+        <div class="mk" id="mkBody"></div>
+      </aside>
       </div>
     </div>
   </div>
@@ -1038,6 +1108,10 @@
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@14.3.0/dist/stellar-sdk.min.js"></script>
+<!-- Freighter stopped injecting window.freighterApi into the page: since v5 the extension
+     only answers the content-script bridge, and this bundle is that bridge. Vendored rather
+     than pulled from a CDN so connecting never depends on a third party being up. -->
+<script src="/vendor/freighter-api-6.0.1.min.js"></script>
 <script>
 /* ════════════════════════════════════════════════════════════════════════
    DobDex app — Stellar testnet.
@@ -1245,6 +1319,17 @@ async function write(contractId, fn, args, label) {
 
 function freighter() { return window.freighterApi; }
 
+/* Is the extension there at all? The bridge object always exists once the bundle
+   loads, so its presence proves nothing — only isConnected() reaches the wallet. */
+async function freighterInstalled() {
+  var f = freighter();
+  if (!f || !f.isConnected) return false;
+  try {
+    var c = await f.isConnected();
+    return typeof c === 'object' ? !!c.isConnected : !!c;
+  } catch (e) { return false; }
+}
+
 async function signWithFreighter(xdr) {
   var f = freighter();
   var res = await f.signTransaction(xdr, { networkPassphrase: PASSPHRASE, address: me });
@@ -1256,30 +1341,41 @@ async function signWithFreighter(xdr) {
 async function connect() {
   var f = freighter();
   if (!f) {
-    toast('Freighter not found. Install it at <a href="https://freighter.app" target="_blank" rel="noopener">freighter.app ↗</a>', 'err', 10000);
+    toast('The wallet bridge did not load. Reload the page, or check that a blocker is not stopping /vendor/freighter-api-6.0.1.min.js.', 'err', 10000);
     return;
   }
+  var btn = $('walletBtn'), was = btn.textContent;
+  btn.textContent = 'Connecting…';
+  btn.disabled = true;
   try {
+    if (!(await freighterInstalled())) {
+      toast('Freighter not found. Install it at <a href="https://freighter.app" target="_blank" rel="noopener">freighter.app &#8599;</a>, then reload this page.', 'err', 10000);
+      return;
+    }
     var res = f.requestAccess ? await f.requestAccess() : null;
+    if (res && res.error) throw new Error(res.error.message || String(res.error));
     var addr = res && res.address ? res.address
-             : (res && res.error ? null : (f.getPublicKey ? await f.getPublicKey() : null));
-    if (!addr && f.getAddress) { var g = await f.getAddress(); addr = g.address || g; }
-    if (!addr) throw new Error('Freighter did not return an address.');
+             : (f.getPublicKey ? await f.getPublicKey() : null);
+    if (!addr && f.getAddress) {
+      var g = await f.getAddress();
+      if (g && g.error) throw new Error(g.error.message || String(g.error));
+      addr = (g && g.address) || g;
+    }
+    if (!addr) throw new Error('Freighter returned no address — is the extension unlocked?');
     me = addr;
-    $('walletBtn').textContent = shortId(me);
-    $('walletBtn').classList.add('on');
+    btn.textContent = shortId(me);
+    was = null;                                  // the address is the label now
+    btn.classList.add('on');
     $('sBtn').textContent = 'Open the exit';
     refresh();
   } catch (e) {
     toast(explain(e), 'err');
+  } finally {
+    btn.disabled = false;
+    if (was) btn.textContent = was;
   }
 }
 
-/* ── rendering ───────────────────────────────────────────────────────── */
-
-/* `Status` is a unit-variant enum, so the host hands it back as its
-   discriminant — 0, not "Open". Named variants would arrive as {tag}, and
-   older SDKs as a plain string, so all three are accepted. */
 var STATUS = ['open', 'settled', 'queued', 'cancelled'];
 function statusOf(exit) {
   var s = exit.status;
@@ -1380,6 +1476,7 @@ async function loadExits() {
 
   $('stOpen').textContent = live.length;
   $('segOpen').textContent = live.length ? '· ' + live.length : '';
+  renderSide();
   var box = $('exitList');
   if (!lastExits.length) {
     box.innerHTML = '<div class="empty">No exits have been opened yet. Open the first one from <b>Trade</b>.</div>';
@@ -1543,6 +1640,7 @@ async function loadMarket() {
   ASKS = asks; MKT = extra;
 
   renderAssets();
+  renderSide();
   if (curAsset) renderAsset(curAsset.id);
 }
 
@@ -1566,10 +1664,122 @@ async function loadQueueFor(id) {
 async function loadQueues() {
   for (var i = 0; i < ASSETS.length; i++) await loadQueueFor(ASSETS[i].id);
   renderAssets();
+  renderSide();
   if (curAsset) renderAsset(curAsset.id);
 }
 
 function exitsOn(id) { return lastExits.filter(function (x) { return x.asset === id; }); }
+
+/* ── the market beside the ticket ─────────────────────────────────────
+   The panel answers the question the sell form cannot: against what? It is
+   every exit already open on the same asset, the best bid standing on each,
+   and what the last one actually cleared at. When DobProtocol also holds
+   asks for the token they go underneath, because an ask is a price waiting
+   on a buyer and an exit is a Node naming what it pays today — the reader
+   needs both to know what the discount is buying. */
+function bestBidOf(list) {
+  var best = null;
+  list.forEach(function (x) {
+    if (!x.best_usdc || BigInt(x.best_usdc) <= 0n) return;
+    if (best === null || BigInt(x.best_usdc) > BigInt(best)) best = x.best_usdc;
+  });
+  return best;
+}
+
+function mkExitRow(x, a) {
+  var st = statusOf(x);
+  var now = Math.floor(Date.now() / 1000);
+  var left = Number(x.closes_at) - now;
+  var best = x.best_usdc && BigInt(x.best_usdc) > 0n ? x.best_usdc : null;
+  var d = best ? discountBps(x, best) : null;
+  var clears = best && BigInt(best) >= BigInt(x.min_accept_usdc);
+  var when = st === 'queued' ? 'in the line'
+           : left > 0 ? 'closes in ' + since(left) : 'window over';
+  return '<div class="mk-row" onclick="go(\'market\')" title="Open exit #' + x.id + '">'
+    + '<div class="s">' + fmt(x.amount, a.dec, 0) + ' <small style="font-weight:500;color:var(--text-3)">' + a.sym + '</small></div>'
+    + '<div class="b" style="color:' + (best ? (clears ? 'var(--green)' : 'var(--amber)') : 'var(--text-3)') + '">'
+    + (best ? usd(best) : 'no bid') + '</div>'
+    + '<div class="m">#' + x.id + ' &middot; ' + when + '</div>'
+    + '<div class="d">' + (best ? (d / 100).toFixed(2) + '% off' : 'floor ' + usd(x.min_accept_usdc)) + '</div>'
+    + '</div>';
+}
+
+function renderSide() {
+  var box = document.getElementById('mkBody');
+  var sel = document.getElementById('sAsset');
+  if (!box || !sel || !sel.value) return;
+
+  var id = sel.value, a = assetById(id), row = rowById(id);
+  var ex = exitsOn(id);
+  var open = ex.filter(function (x) { return statusOf(x) === 'open'; });
+  var queued = ex.filter(function (x) { return statusOf(x) === 'queued'; });
+  var settled = ex.filter(function (x) { return statusOf(x) === 'settled'; })
+                  .sort(function (p, q) { return Number(q.id) - Number(p.id); });
+  var live = open.concat(queued);
+  var best = bestBidOf(live);
+  var inLine = (Q[id] || []).length || queued.length;
+
+  var h = '';
+
+  h += '<div class="mk-hd">' + icoHtml(row || { ticker: a.sym, name: a.name })
+     + '<div class="n"><b>' + (row ? row.name : a.name) + '</b>'
+     + '<span>' + a.sym + ' &middot; Stellar testnet</span></div></div>';
+
+  h += '<div class="mk-stats">'
+     + '<div><div class="k">Open</div><div class="v">' + open.length + '</div></div>'
+     + '<div><div class="k">Best bid</div><div class="v" style="color:' + (best ? 'var(--green)' : 'var(--text-3)') + '">'
+       + (best ? usd(best) : '&mdash;') + '</div></div>'
+     + '<div><div class="k">In line</div><div class="v">' + inLine + '</div></div>'
+     + '</div>';
+
+  h += '<div class="mk-sec"><div class="mk-h"><span>Taking bids now</span>'
+     + (live.length > 4 ? '<a href="#" onclick="go(\'market\');return false;">all ' + live.length + ' &rarr;</a>' : '')
+     + '</div>';
+  h += live.length
+    ? live.slice(0, 4).map(function (x) { return mkExitRow(x, a); }).join('')
+    : '<div class="mk-emp"><b>Nothing is taking bids on ' + a.sym + ' right now.</b> '
+      + 'The first exit sets the reference every later bid is read against.</div>';
+  h += '</div>';
+
+  if (settled.length) {
+    var last = settled[0];
+    var lb = last.best_usdc && BigInt(last.best_usdc) > 0n ? last.best_usdc : null;
+    var ld = lb ? discountBps(last, lb) : null;
+    h += '<div class="mk-sec"><div class="mk-h"><span>Last one that cleared</span></div>'
+       + '<div class="mk-terms">'
+       + '<div><span class="k">Paid</span><span class="v">' + (lb ? usd(lb) : '&mdash;') + '</span></div>'
+       + '<div><span class="k">Against a reference of</span><span class="v">' + usd(last.reference_usdc) + '</span></div>'
+       + '<div><span class="k">Discount it settled at</span><span class="v" style="color:var(--amber)">'
+         + (ld === null ? '&mdash;' : (ld / 100).toFixed(2) + '%') + '</span></div>'
+       + '</div></div>';
+  }
+
+  var asks = ASKS[id] || [];
+  if (asks.length) {
+    h += '<div class="mk-sec"><div class="mk-h"><span>Asks on DobProtocol</span></div>';
+    h += asks.slice(0, 3).map(function (k) {
+      return '<div class="mk-row" onclick="window.open(\'https://home.dobprotocol.com/marketplace\',\'_blank\')">'
+        + '<div class="s">' + askPrice(k) + '</div>'
+        + '<div class="b" style="color:var(--text-2)">' + k.left.toLocaleString('en-US') + '</div>'
+        + '<div class="m">per share</div><div class="d">available</div></div>';
+    }).join('');
+    h += '</div>';
+  } else {
+    h += '<div class="mk-sec"><div class="mk-h"><span>Terms the chain enforces</span></div>'
+       + '<div class="mk-terms">'
+       + '<div><span class="k">Protocol fee</span><span class="v">' + (feeBps / 100) + '%</span></div>'
+       + '<div><span class="k">Node capital standing</span><span class="v">'
+         + ($('stCapital') ? $('stCapital').textContent : '—') + '</span></div>'
+       + '<div><span class="k">Settlement</span><span class="v">one transaction</span></div>'
+       + '</div></div>';
+  }
+
+  h += '<div class="mk-note"><b>Nothing fills under your floor.</b> A bid is an offer in absolute '
+     + 'USDC, and it is read as a discount only against the reference you set. If no bid clears the '
+     + 'floor the exit takes a public place in line and keeps taking bids.</div>';
+
+  box.innerHTML = h;
+}
 
 function layerRows() {
   return ASSETS.map(function (a) {
@@ -1923,6 +2133,7 @@ function sellPreview() {
     $('sMaxDisc').textContent = '—';
     $('sNet').textContent = '—';
     $('sNetSub').textContent = 'Set a reference and a floor to see what the worst acceptable fill pays.';
+    renderSide();
     return;
   }
   var d = (ref - floor) / ref * 100;
@@ -1931,6 +2142,7 @@ function sellPreview() {
   $('sNet').textContent = net.toLocaleString('en-US', { maximumFractionDigits: 2 });
   $('sNetSub').textContent = 'At your floor of $' + floor.toLocaleString('en-US', { maximumFractionDigits: 2 })
     + ', net of the ' + (feeBps / 100) + '% protocol fee. A higher bid pays you more.';
+  renderSide();
 }
 
 /* ── actions ─────────────────────────────────────────────────────────── */
