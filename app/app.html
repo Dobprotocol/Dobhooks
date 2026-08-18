@@ -342,6 +342,16 @@
     .pill.queued  { color: var(--amber); border-color: rgba(251,191,36,0.3);  background: var(--amber-dim); }
     .pill.settled { color: var(--accent-light); border-color: rgba(89,124,233,0.3); background: var(--accent-dim); }
     .pill.cancel  { color: var(--text-3); border-color: var(--border); }
+    /* A TRUFA report is a fact about the asset, never a permission: nothing
+       in the exit layer reads it, and anyone may back any token. */
+    .pill.trufa   { color: var(--green); border-color: rgba(74,222,128,0.35); background: var(--green-dim); }
+    .tru {
+      display: inline-flex; align-items: center; gap: 4px; vertical-align: middle;
+      margin-left: 7px; padding: 1px 6px; border-radius: 999px;
+      border: 1px solid rgba(74,222,128,0.28); background: var(--green-dim);
+      font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.06em;
+      color: var(--green); text-transform: none;
+    }
     .exit-grid {
       display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
       padding: 14px 0; border-top: 1px solid var(--border-subtle);
@@ -1432,6 +1442,11 @@ async function loadCatalogue() {
           maxHolders: Number(x.max_participants || 0),
           verified: !!x.is_verified,
           score: x.validator_overall_score != null ? Number(x.validator_overall_score) : null,
+          /* `is_verified` is a platform flag; a TRUFA report is a live
+             DobValidator validation with a certificate behind it. Keep them
+             apart — conflating the two would overstate 23 of these pools. */
+          trufa: x.validation_status === 'active' && x.validator_overall_score != null,
+          cert: x.validator_certificate_hash || null,
           pays: tok ? tok.symbol : null,
           access: x.way_to_access || pd.wacc || null
         });
@@ -1519,7 +1534,8 @@ function renderAssets() {
   }
   box.innerHTML = rows.map(function (r) {
     var h = '<div class="arow" onclick="openAsset(\'' + r.id + '\')">' + icoHtml(r)
-      + '<div class="ameta"><b>' + r.name + '</b><span>'
+      + '<div class="ameta"><b>' + r.name
+      + (r.trufa ? '<i class="tru">TRUFA ' + r.score + '</i>' : '') + '</b><span>'
       + (r.ticker ? r.ticker + ' · ' : '') + r.net + '</span></div>';
     if (r.src === 'layer') {
       h += '<div class="anum"><div class="k">Open exits</div><div class="v' + (r.open ? '' : ' dim') + '">'
@@ -1567,7 +1583,8 @@ function renderAsset(id) {
     : '<a href="https://stellar.expert/explorer/testnet/contract/' + r.id + '" target="_blank" rel="noopener">' + shortId(r.id) + ' ↗</a>';
   h += '</div></div>';
   if (r.src === 'layer') h += '<span class="pill open">tradeable here</span>';
-  else if (r.verified) h += '<span class="pill settled">validated</span>';
+  else if (r.trufa) h += '<span class="pill trufa">TRUFA ' + r.score + '</span>';
+  else if (r.verified) h += '<span class="pill settled">verified</span>';
   h += '</div>';
 
   if (r.src === 'dob') {
@@ -1579,13 +1596,30 @@ function renderAsset(id) {
        + '<div class="stat"><div class="k">TRUFA score</div><div class="v">' + (r.score != null ? r.score : '—') + '</div></div>'
        + '</div>';
 
+    if (r.trufa) {
+      h += '<div class="note" style="margin-top:18px;"><div><b>TRUFA report · score ' + r.score + '.</b> '
+         + 'Issued by DobValidator, and it travels with the asset: whoever prices this position can read '
+         + 'it before deciding what to pay. It grants nothing — no contract in the exit layer reads a '
+         + 'score, and exit liquidity can stand behind any token, scored or not.'
+         + (r.cert ? ' Certificate <code>' + r.cert.slice(0, 10) + '…' + r.cert.slice(-6) + '</code>.' : '')
+         + '</div></div>';
+    }
+
     /* The honest part: this asset is real, and this deployment cannot
        trade it. Saying so beats a page of empty exit widgets. */
+    /* Two different reasons this page cannot trade the asset, and they are
+       not interchangeable: a mainnet pool is on the wrong network, while a
+       testnet pool is on the right one and simply has no exit open on its
+       participation token yet. Saying "wrong network" about a testnet pool
+       would be a plain lie. */
     h += '<div class="note" style="margin-top:18px;"><div><b>Listed on DobProtocol, no exit market here.</b> '
-       + 'This asset lives on ' + r.net + '. The exit layer you are looking at is deployed on '
-       + '<b>Stellar Testnet</b>, so nothing on this page can buy or sell it — an exit market opens '
-       + 'for an asset once Liquidity Nodes stand behind it on the same network. '
-       + '<a href="https://home.dobprotocol.com/pool/' + r.id + '" target="_blank" rel="noopener">'
+       + (r.netId === 9
+           ? 'This pool is on the same network as the exit layer, but no exit has been opened on its '
+             + 'participation token yet — a market appears here the moment someone sells into it and a '
+             + 'Liquidity Node stands behind it.'
+           : 'This asset lives on ' + r.net + ', while the exit layer you are looking at is deployed on '
+             + '<b>Stellar Testnet</b>, so nothing on this page can buy or sell it.')
+       + ' <a href="https://home.dobprotocol.com/pool/' + r.id + '" target="_blank" rel="noopener">'
        + 'Open it on DobProtocol ↗</a></div></div>';
     if (r.pays) {
       h += '<div class="kv" style="margin-top:14px;">'
@@ -1617,6 +1651,9 @@ function renderAsset(id) {
      + '</div>';
 
   h += '<div style="margin:18px 0;"><button class="btn" onclick="sellAsset(\'' + r.id + '\')">Sell this position</button></div>';
+  h += '<div class="hint" style="margin:-6px 0 18px;">No TRUFA report on this token — it is testnet '
+     + 'scaffolding. A report is priced in, not required: any address can put exit liquidity behind any '
+     + 'asset here.</div>';
 
   h += '<div class="fsec"><div class="fsec-h"><h2>Open exits</h2><span>'
      + (open.length ? open.length + ' on offer' : 'none right now') + '</span></div>';
