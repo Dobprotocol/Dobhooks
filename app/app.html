@@ -151,17 +151,6 @@
     .net-opt.active { background: var(--accent-dim); color: var(--accent-light); }
     .net-opt span.d { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
     .net-opt em { font-style: normal; display: block; font-size: 11px; color: var(--text-3); font-weight: 400; }
-    .wbtn {
-      padding: 8px 15px; border-radius: var(--r-md); border: 0; cursor: pointer;
-      background: var(--grad-primary); color: #fff; font-weight: 550; font-size: 13px;
-      transition: 0.16s var(--ease); white-space: nowrap;
-    }
-    .wbtn:hover { filter: brightness(1.1); }
-    .wbtn.on {
-      background: var(--bg-2); border: 1px solid var(--border);
-      color: var(--text-1); font-family: var(--mono); font-size: 11.5px;
-    }
-
     /* ═══ WALLET ASSETS PANEL ═══ */
     /* The one thing a holder wants without leaving the page they are on:
        what am I holding, and how much of it is locked in an exit right now. */
@@ -875,10 +864,10 @@
           <div class="v" id="waUsdcBig">$0.00</div>
         </div>
         <div class="wa-list" id="waList"></div>
+        <div class="dob-note" id="waSign"></div>
         <button class="wa-foot" id="waMore">Full portfolio &rarr;</button>
       </div>
     </div>
-    <button class="wbtn" id="walletBtn">Connect Freighter</button>
   </div>
 </nav>
 
@@ -1210,7 +1199,14 @@ var READER = 'GACZ5Q42IZTOIOWSJR4B5SIQ45C4C5VVXEKXRFQ4N2GUWTAN2DOLYLWZ';
 
 var SDK    = window.StellarSdk;
 var server = new SDK.rpc.Server(RPC);
-var me     = null;    // connected address
+/* Two questions, and conflating them is what made this page demand a browser
+   extension before it would show anything at all. `me` is the address on
+   screen — a DobProtocol session names one, no extension involved. `signer` is
+   the only thing that can put a signature on a Soroban transaction, and
+   nothing but a wallet can be that. Reading needs the first; writing needs the
+   second, and only at the moment of writing. */
+var me     = null;    // the address being looked at
+var signer = null;    // Freighter, once connected — the only thing that can sign
 var feeBps = 100;     // read from the router at boot
 var lastExits = [];
 
@@ -1346,10 +1342,16 @@ async function read(contractId, fn, args) {
 
 /* Write: simulate, sign in Freighter, submit, then wait for the result. */
 async function write(contractId, fn, args, label) {
-  if (!me) { toast('Connect Freighter first.', 'err'); return null; }
+  /* Asking for the wallet here, rather than at the front door, is the whole
+     point: a cookie cannot sign a Soroban transaction, but it also should not
+     have to in order to read a balance. */
+  if (!signer) {
+    await connect();
+    if (!signer) return null;
+  }
   toast('<span class="spin"></span> ' + (label || 'Signing…'));
   try {
-    var tx = await buildTx(me, contractId, fn, args);
+    var tx = await buildTx(signer, contractId, fn, args);
     var prepared = await server.prepareTransaction(tx);
     var signed = await signWithFreighter(prepared.toXDR());
     var sent = await server.sendTransaction(
@@ -1390,21 +1392,20 @@ async function freighterInstalled() {
 
 async function signWithFreighter(xdr) {
   var f = freighter();
-  var res = await f.signTransaction(xdr, { networkPassphrase: PASSPHRASE, address: me });
+  var res = await f.signTransaction(xdr, { networkPassphrase: PASSPHRASE, address: signer });
   if (typeof res === 'string') return res;                 // older API
   if (res && res.error) throw new Error(res.error.message || String(res.error));
   return res.signedTxXdr;
 }
 
+/* The wallet is a signer, not a front door. It is asked for from the places
+   that actually need a signature, never as a bar across the header. */
 async function connect() {
   var f = freighter();
   if (!f) {
     toast('The wallet bridge did not load. Reload the page, or check that a blocker is not stopping /vendor/freighter-api-6.0.1.min.js.', 'err', 10000);
     return;
   }
-  var btn = $('walletBtn'), was = btn.textContent;
-  btn.textContent = 'Connecting…';
-  btn.disabled = true;
   try {
     if (!(await freighterInstalled())) {
       toast('Freighter not found. Install it at <a href="https://freighter.app" target="_blank" rel="noopener">freighter.app &#8599;</a>, then reload this page.', 'err', 10000);
@@ -1420,17 +1421,15 @@ async function connect() {
       addr = (g && g.address) || g;
     }
     if (!addr) throw new Error('Freighter returned no address — is the extension unlocked?');
+    signer = addr;
+    /* The wallet outranks the DobProtocol address for the view as well: it is
+       the one that can act here, so it is the one worth looking at. */
     me = addr;
-    btn.textContent = shortId(me);
-    was = null;                                  // the address is the label now
-    btn.classList.add('on');
     $('sBtn').textContent = 'Open the exit';
+    toast('Wallet connected &middot; ' + shortId(addr), 'ok');
     refresh();
   } catch (e) {
     toast(explain(e), 'err');
-  } finally {
-    btn.disabled = false;
-    if (was) btn.textContent = was;
   }
 }
 
@@ -2373,8 +2372,10 @@ async function loadFolio() {
   var body = $('fBody');
   if (!me) {
     ['fEscrow','fBids','fFree','fCommit'].forEach(function (k) { $(k).textContent = '—'; });
-    body.innerHTML = '<div class="empty">Connect a wallet to see what it holds.<br>'
-      + '<button class="btn sm" style="margin-top:14px;" onclick="connect()">Connect Freighter</button></div>';
+    body.innerHTML = '<div class="empty">Sign in with DobProtocol to see the pools you already hold, '
+      + 'or connect a wallet to see what it holds on this testnet.<br>'
+      + '<button class="btn sm" style="margin-top:14px;" onclick="dobSignIn()">Sign in with DobProtocol</button>'
+      + '<button class="btn sm ghost" style="margin:14px 0 0 8px;" onclick="connect()">Connect a wallet</button></div>';
     return;
   }
   var addr = SDK.nativeToScVal(me, { type: 'address' });
@@ -2417,6 +2418,23 @@ async function loadFolio() {
   }
 
   var h = '';
+
+  /* 0. The other half of the question, and emphatically not the same half:
+     these are pools on home.dobprotocol.com, not positions in this exit
+     layer, and none of them can be sold here. It leads the page because a
+     person who just signed in with DobProtocol is asking what they own, and
+     for most of them the honest answer starts here rather than with an empty
+     testnet balance. */
+  if (dobRows.length) {
+    h += '<div class="fsec"><div class="fsec-h"><h2>Held on DobProtocol</h2>'
+       + '<span>' + dobRows.length + ' position' + (dobRows.length === 1 ? '' : 's') + '</span></div>';
+    h += '<div class="pos">' + dobRows.map(folioDobRow).join('') + '</div>';
+    h += '<div class="note" style="margin-top:12px;">Held on your DobProtocol account, not in this '
+       + 'exit layer &mdash; the layer settles its own assets on Stellar Testnet, so these cannot be '
+       + 'sold here yet. <a href="' + DOB_WEB + '/home" target="_blank" rel="noopener" '
+       + 'style="color:var(--accent-light);text-decoration:none;">Open DobProtocol &rarr;</a></div>';
+    h += '</div>';
+  }
 
   /* 1. What the wallet holds. */
   var held = ASSETS.map(function (a, i) { return { a: a, bal: bals[i] }; })
@@ -2540,6 +2558,17 @@ async function loadWallet() {
   }
   $('waWrap').classList.add('on');
 
+  /* Whose balances these are, and whether this page can do anything about
+     them. Being able to see an address is not the same as being able to spend
+     from it, and a panel that shows a balance without saying which of the two
+     it means is lying by omission. */
+  $('waSign').innerHTML = signer
+    ? 'Signing with <b>' + shortId(signer) + '</b>.'
+    : 'Viewing <b>' + shortId(me) + '</b> from your DobProtocol account &mdash; read-only. '
+      + 'Anything that touches the chain needs a wallet to sign it.'
+      + '<button class="btn sm" style="margin-top:10px;width:100%;" onclick="connect()">'
+      + 'Connect a wallet to sign</button>';
+
   var addr = SDK.nativeToScVal(me, { type: 'address' });
   var usdcBal = await read(USDC.id, 'balance', [addr]).then(String).catch(function () { return '0'; });
   var bals = await Promise.all(ASSETS.map(function (a) {
@@ -2590,6 +2619,8 @@ function refreshWallet() { loadWallet().catch(function () {}); }
 var DOB_API = 'https://home.dobprotocol.com/api';
 var DOB_WEB = 'https://home.dobprotocol.com';
 var dobUser = null;
+var dobRows = [];       // the account's pool positions, shared with the portfolio
+var dobStellar = null;  // its Stellar address — the one this page can read on-chain
 
 var DOB_NETS = {
   1: 'Ethereum', 5: 'Goerli', 8: 'Base', 9: 'Stellar Testnet', 10: 'Stellar',
@@ -2608,6 +2639,11 @@ async function dobGet(path) {
 
 function dobSignedOut() {
   dobUser = null;
+  dobRows = [];
+  /* Only give up the address if it was theirs to begin with: a connected
+     wallet is not signed out by DobProtocol. */
+  if (!signer && me && me === dobStellar) me = null;
+  dobStellar = null;
   $('dobMk').textContent = 'D';
   $('dobLabel').textContent = 'Sign in with DobProtocol';
   $('dobPanel').classList.remove('open');
@@ -2626,6 +2662,7 @@ async function dobSignOut() {
   } catch (e) { /* the cookie may already be gone; the UI still resets */ }
   dobSignedOut();
   $('dobList').innerHTML = '';
+  refresh();
   toast('Signed out of DobProtocol.', 'ok');
 }
 
@@ -2658,6 +2695,26 @@ function dobRow(r) {
     + '</div></a>';
 }
 
+/* The same row at portfolio width. Same data as dobRow, laid out as a
+   .pos-row so it sits beside the layer's own positions without pretending to
+   be one — hence the network badge and no Sell button. */
+function folioDobRow(r) {
+  var img = r.pool && (r.pool.icon_image || r.pool.banner_image);
+  var tick = (r.pool && (r.pool.ticker || (r.pool.pool_data && r.pool.pool_data.tk))) || '—';
+  var name = (r.pool && (r.pool.name || r.pool.secondary_name)) || dobShort(r.id);
+  var net = r.pool ? dobNet(r.pool.network_id) : '';
+  var pct = r.pct == null ? null : (Math.round(r.pct * 100) / 100);
+  return '<div class="pos-row">'
+    + (img ? '<img class="dob-img" src="' + img + '" alt="">'
+           : '<div class="wa-dot">' + dobEsc(String(tick).slice(0, 3)) + '</div>')
+    + '<div class="pos-id"><b>' + dobEsc(name) + '</b>'
+    + '<span>' + dobEsc(String(tick)) + (net ? '<i class="dob-net">' + net + '</i>' : '') + '</span></div>'
+    + '<div class="pos-n"><div class="k">Your share</div><div class="v' + (pct == null ? ' dim' : '') + '">'
+    + (pct == null ? '—' : pct + '%') + '</div></div>'
+    + '<a class="btn sm ghost" href="' + DOB_WEB + '/pool/' + r.id + '" target="_blank" rel="noopener">Open</a>'
+    + '</div>';
+}
+
 /* Signed in or not is one question; what they hold is another, and the second
    one can fail on its own without logging anybody out. */
 async function loadDob() {
@@ -2674,6 +2731,14 @@ async function loadDob() {
   $('dobMk').textContent = (label[0] || 'D');
   $('dobLabel').textContent = label;
   $('dobWho').textContent = who.email || (who.wallet ? dobShort(who.wallet) : '');
+
+  /* The account already names a Stellar address, so there is nothing to
+     connect — adopt it as the address on screen. A connected wallet still
+     outranks it, because that one can also act. */
+  var stellar = (who.addresses || []).filter(function (a) { return a.chain === 'stellar'; })[0];
+  dobStellar = stellar ? stellar.address : null;
+  var adopt = !signer && dobStellar && me !== dobStellar;
+  if (adopt) me = dobStellar;
 
   var addrs = (who.addresses || []).map(function (a) { return a.address; });
   if (!addrs.length) {
@@ -2716,6 +2781,11 @@ async function loadDob() {
     });
   });
   rows.sort(function (a, b) { return (b.pct || 0) - (a.pct || 0); });
+  dobRows = rows;
+
+  /* Adopting the address changes what every page on this site is about, so it
+     is a full re-read; otherwise only the portfolio has anything new to say. */
+  if (adopt) refresh(); else refreshFolio();
 
   $('dobLabel').textContent = label;
   $('dobList').innerHTML = rows.length
@@ -2811,7 +2881,6 @@ document.querySelectorAll('#aqFilter .chip').forEach(function (c) {
   });
 });
 
-$('walletBtn').addEventListener('click', connect);
 $('sBtn').addEventListener('click', openExit);
 $('dBtn').addEventListener('click', deposit);
 $('aBtn').addEventListener('click', setAppetite);
