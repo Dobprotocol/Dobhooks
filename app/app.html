@@ -236,6 +236,44 @@
     .wa-foot:hover { color: var(--text-0); }
     @media (max-width: 560px) { .wa-panel { width: 82vw; } }
 
+
+    /* ═══ DOBPROTOCOL ACCOUNT ═══ */
+    /* The exit layer on this page is its own testnet deployment; a DobProtocol
+       account is a different thing entirely, on a different chain, and the two
+       must never read as one balance. Hence a separate button, a separate
+       panel and an explicit "held on DobProtocol" label on every row. */
+    .dob-btn {
+      display: flex; align-items: center; gap: 7px; cursor: pointer;
+      padding: 6px 12px 6px 6px; border-radius: 999px;
+      background: transparent; border: 1px solid var(--border);
+      font-family: var(--font); font-size: 11.5px; color: var(--text-2); font-weight: 500;
+      transition: 0.16s var(--ease); white-space: nowrap;
+    }
+    .dob-btn:hover { border-color: var(--border-hover); color: var(--text-0); }
+    .dob-mk {
+      width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+      display: grid; place-items: center;
+      font-family: var(--mono); font-size: 10px; font-weight: 700; color: #fff;
+      background: var(--grad-primary); text-transform: uppercase;
+    }
+    .dob-panel { width: 336px; }
+    .dob-panel .wa-hd span { max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dob-net {
+      display: inline-block; padding: 1px 6px; border-radius: 4px;
+      font-family: var(--mono); font-size: 9px; font-weight: 600; letter-spacing: 0.03em;
+      background: var(--bg-3); color: var(--text-3); margin-left: 6px; vertical-align: 1px;
+    }
+    .dob-img {
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      object-fit: cover; background: var(--bg-3);
+    }
+    .dob-note {
+      padding: 11px 15px; border-top: 1px solid var(--border-subtle);
+      font-size: 10.5px; line-height: 1.65; color: var(--text-3);
+    }
+    .dob-out { color: var(--text-3) !important; }
+    .dob-out:hover { color: var(--red, #f87171) !important; }
+
     /* ═══ TABS ═══ */
     .subnav {
       position: sticky; top: 49px; z-index: 45;
@@ -565,7 +603,7 @@
       background: radial-gradient(ellipse, rgba(167,139,250,0.10) 0%, transparent 68%);
       pointer-events: none; z-index: 0;
     }
-    .sw-col { width: 100%; max-width: 470px; position: relative; z-index: 1; }
+    .sw-col { width: 100%; max-width: 564px; position: relative; z-index: 1; }
 
     /* ═══ THE MARKET BESIDE THE TICKET ═══
        A sell form on its own asks the seller to invent a price. This column is
@@ -807,6 +845,22 @@
           <span>Stellar Testnet<em>Exit auction &middot; direct settlement</em></span></button>
         <a class="net-opt" href="app-evm.html"><span class="d" style="background:#FF007A;"></span>
           <span>Unichain Sepolia<em>Uniswap V4 hook &middot; dUSDC vault</em></span></a>
+      </div>
+    </div>
+    <!-- A DobProtocol account is the other half of "my assets": the pools the
+         person already holds on home.dobprotocol.com. Signing in happens there,
+         not here — this page never sees a password, only the shared
+         *.dobprotocol.com session cookie. -->
+    <div class="wa-wrap on" id="dobWrap">
+      <button class="dob-btn" id="dobBtn">
+        <span class="dob-mk" id="dobMk">D</span><span id="dobLabel">Sign in with DobProtocol</span>
+      </button>
+      <div class="wa-panel dob-panel" id="dobPanel">
+        <div class="wa-hd"><h4>DobProtocol</h4><span id="dobWho"></span></div>
+        <div class="wa-list" id="dobList"></div>
+        <div class="dob-note" id="dobNote"></div>
+        <button class="wa-foot" id="dobMore">Open DobProtocol &rarr;</button>
+        <button class="wa-foot dob-out" id="dobOut">Sign out</button>
       </div>
     </div>
     <div class="wa-wrap" id="waWrap">
@@ -2519,6 +2573,158 @@ async function loadWallet() {
 
 function refreshWallet() { loadWallet().catch(function () {}); }
 
+/* ═══════════ DOBPROTOCOL ACCOUNT ═══════════
+   Two different things are called "my assets" on this page. The panel above
+   reads token balances off the exit-layer testnet. This one reads the pools
+   the same person holds on DobProtocol proper — a different chain, a different
+   deployment, and in most cases real money. They are never summed.
+
+   No password crosses this origin. home.dobprotocol.com issues a
+   `dob_auth_token` cookie scoped to `.dobprotocol.com`, so signing in over
+   there is enough for this page to ask "who is this?" with credentials
+   included; the cookie itself is httpOnly and unreadable from here. */
+var DOB_API = 'https://home.dobprotocol.com/api';
+var DOB_WEB = 'https://home.dobprotocol.com';
+var dobUser = null;
+
+var DOB_NETS = {
+  1: 'Ethereum', 5: 'Goerli', 8: 'Base', 9: 'Stellar Testnet', 10: 'Stellar',
+  137: 'Polygon', 8453: 'Base', 11155111: 'Sepolia', 84532: 'Base Sepolia'
+};
+function dobNet(id) { return DOB_NETS[id] || ('Network ' + id); }
+
+async function dobGet(path) {
+  var r = await fetch(DOB_API + path, {
+    credentials: 'include',
+    headers: { 'Accept': 'application/json' }
+  });
+  if (!r.ok) { var e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
+  return r.json();
+}
+
+function dobSignedOut() {
+  dobUser = null;
+  $('dobMk').textContent = 'D';
+  $('dobLabel').textContent = 'Sign in with DobProtocol';
+  $('dobPanel').classList.remove('open');
+}
+
+/* The sign-in itself lives on home.dobprotocol.com — whatever methods it
+   offers (Google, email link, wallet) all end with the shared cookie set,
+   and `returnTo` brings the browser back to exactly this page. */
+function dobSignIn() {
+  window.location.href = DOB_WEB + '/login?returnTo=' + encodeURIComponent(window.location.href);
+}
+
+async function dobSignOut() {
+  try {
+    await fetch(DOB_API + '/auth/logout', { method: 'POST', credentials: 'include' });
+  } catch (e) { /* the cookie may already be gone; the UI still resets */ }
+  dobSignedOut();
+  $('dobList').innerHTML = '';
+  toast('Signed out of DobProtocol.', 'ok');
+}
+
+function dobShort(a) { return a.slice(0, 4) + '…' + a.slice(-4); }
+
+/* Pool names and tickers are user-supplied on the other platform, so they are
+   text here, never markup. */
+function dobEsc(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+  });
+}
+
+/* One row per position. `participation` is the percentage the platform already
+   computed for that pool — this page does not re-derive it, because the share
+   total is per-pool and only the platform knows it here. */
+function dobRow(r) {
+  var img = r.pool && (r.pool.icon_image || r.pool.banner_image);
+  var tick = (r.pool && (r.pool.ticker || (r.pool.pool_data && r.pool.pool_data.tk))) || '—';
+  var name = (r.pool && (r.pool.name || r.pool.secondary_name)) || dobShort(r.id);
+  var net = r.pool ? dobNet(r.pool.network_id) : '';
+  var pct = r.pct == null ? null : (Math.round(r.pct * 100) / 100);
+  return '<a class="wa-item" href="' + DOB_WEB + '/pool/' + r.id + '" target="_blank" rel="noopener">'
+    + (img ? '<img class="dob-img" src="' + img + '" alt="">'
+           : '<div class="wa-dot">' + String(tick).slice(0, 3) + '</div>')
+    + '<div class="wa-info"><b>' + dobEsc(name) + '</b>'
+    + '<span>' + dobEsc(String(tick)) + (net ? '<i class="dob-net">' + net + '</i>' : '') + '</span></div>'
+    + '<div class="wa-vals">'
+    + (pct == null ? '<b>—</b><span>created</span>' : '<b>' + pct + '%</b><span>of the pool</span>')
+    + '</div></a>';
+}
+
+/* Signed in or not is one question; what they hold is another, and the second
+   one can fail on its own without logging anybody out. */
+async function loadDob() {
+  var who;
+  try {
+    who = await dobGet('/user/whoami');
+  } catch (e) {
+    dobSignedOut();
+    return;
+  }
+  dobUser = who;
+
+  var label = who.name || who.email || (who.wallet ? dobShort(who.wallet) : 'My account');
+  $('dobMk').textContent = (label[0] || 'D');
+  $('dobLabel').textContent = label;
+  $('dobWho').textContent = who.email || (who.wallet ? dobShort(who.wallet) : '');
+
+  var addrs = (who.addresses || []).map(function (a) { return a.address; });
+  if (!addrs.length) {
+    $('dobList').innerHTML = '<div class="wa-empty">This account has no wallet yet.<br>'
+      + 'Create or connect one on DobProtocol.</div>';
+    $('dobNote').textContent = '';
+    return;
+  }
+
+  $('dobList').innerHTML = '<div class="wa-empty">Reading your positions…</div>';
+
+  var per = await Promise.all(addrs.map(function (a) {
+    return Promise.all([
+      dobGet('/poolusers/participant/' + a).catch(function () { return { payload: [] }; }),
+      dobGet('/pool/all/' + a).catch(function () { return { payload: [] }; })
+    ]).then(function (r) {
+      return { addr: a, part: (r[0] && r[0].payload) || [], pools: (r[1] && r[1].payload) || [] };
+    });
+  }));
+
+  // Pool metadata arrives from a different call than the participation, and a
+  // deleted pool still leaves its membership row behind — so join first, then
+  // drop anything the platform considers gone.
+  var meta = {}, rows = [], seen = {};
+  per.forEach(function (p) { p.pools.forEach(function (x) { meta[x.address] = x; }); });
+  per.forEach(function (p) {
+    p.part.forEach(function (x) {
+      if (seen[x.pool_id]) return;
+      var m = meta[x.pool_id];
+      if (m && m.deleted) return;
+      seen[x.pool_id] = 1;
+      rows.push({ id: x.pool_id, pool: m, pct: Number(x.participation) });
+    });
+  });
+  per.forEach(function (p) {
+    p.pools.forEach(function (x) {
+      if (seen[x.address] || x.deleted) return;
+      seen[x.address] = 1;
+      rows.push({ id: x.address, pool: x, pct: null });
+    });
+  });
+  rows.sort(function (a, b) { return (b.pct || 0) - (a.pct || 0); });
+
+  $('dobLabel').textContent = label;
+  $('dobList').innerHTML = rows.length
+    ? rows.map(dobRow).join('')
+    : '<div class="wa-empty">No DobProtocol positions on this account yet.</div>';
+  $('dobNote').innerHTML = 'Held on DobProtocol' + (addrs.length > 1
+      ? ' across ' + addrs.length + ' linked wallets' : '') + '. '
+    + 'Separate from the exit layer on this page &mdash; those pools cannot be sold here yet.';
+}
+
+function refreshDob() { loadDob().catch(function () { dobSignedOut(); }); }
+
+
 window.walletOpen = function (id) {
   $('waPanel').classList.remove('open');
   openAsset(id);
@@ -2577,6 +2783,20 @@ $('waMore').addEventListener('click', function () {
   go('folio');
 });
 
+/* Signed out the button is the sign-in; signed in it is the panel toggle. */
+$('dobBtn').addEventListener('click', function (e) {
+  e.stopPropagation();
+  if (!dobUser) { dobSignIn(); return; }
+  $('dobPanel').classList.toggle('open');
+});
+$('dobPanel').addEventListener('click', function (e) { e.stopPropagation(); });
+document.addEventListener('click', function () { $('dobPanel').classList.remove('open'); });
+$('dobMore').addEventListener('click', function () {
+  window.open(DOB_WEB + '/home', '_blank', 'noopener');
+});
+$('dobOut').addEventListener('click', function () { dobSignOut(); });
+
+
 $('aqSearch').addEventListener('input', function () { aSearch = this.value; renderAssets(); });
 document.querySelectorAll('#aqFilter .chip').forEach(function (c) {
   c.addEventListener('click', function () {
@@ -2613,6 +2833,10 @@ $('wCancel').addEventListener('click', function () {
 fillAssetSelects();
 sellPreview();
 refresh();
+/* Independent of the wallet above: a DobProtocol session is a cookie that
+   is either already there or not, so it is asked once at boot rather than
+   on every chain refresh. */
+refreshDob();
 setInterval(function () { loadExits().catch(function () {}); loadStats(); }, 20000);
 </script>
 </body>
