@@ -75,6 +75,27 @@
       font-family: var(--font); font-size: 14px; line-height: 1.55;
       -webkit-font-smoothing: antialiased; min-height: 100vh;
     }
+    /* ═══ AMBIENT ═══
+       The page used to end in flat black wherever the content ran out. Three
+       fixed washes and a grid that fades with them give the dark somewhere to
+       come from — the surfaces read as lit rather than as holes. */
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: -2; pointer-events: none;
+      background:
+        radial-gradient(940px 540px at 50% -10%, rgba(89,124,233,0.17), transparent 62%),
+        radial-gradient(720px 520px at 6% 26%, rgba(67,97,212,0.10), transparent 60%),
+        radial-gradient(780px 580px at 97% 86%, rgba(167,139,250,0.09), transparent 62%),
+        linear-gradient(180deg, #0b0d12 0%, var(--bg-0) 50%, #050608 100%);
+    }
+    body::after {
+      content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px);
+      background-size: 56px 56px;
+      -webkit-mask-image: radial-gradient(1400px 900px at 50% -6%, #000 0%, rgba(0,0,0,0.35) 55%, transparent 82%);
+      mask-image: radial-gradient(1400px 900px at 50% -6%, #000 0%, rgba(0,0,0,0.35) 55%, transparent 82%);
+    }
     a { color: inherit; }
     button, input, select { font-family: inherit; font-size: inherit; color: inherit; }
     .mono { font-family: var(--mono); }
@@ -146,7 +167,8 @@
       position: sticky; top: 49px; z-index: 45;
       background: var(--bg-glass); backdrop-filter: blur(14px);
       border-bottom: 1px solid var(--border-subtle);
-      padding: 0 22px; overflow-x: auto;
+      padding: 0 22px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+      box-shadow: 0 1px 0 rgba(89,124,233,0.16), 0 14px 34px -22px rgba(0,0,0,0.95);
     }
     .tabs { display: flex; gap: 2px; }
     .tab {
@@ -159,7 +181,15 @@
     .tab.on { color: var(--accent-light); border-bottom-color: var(--accent); }
 
     /* ═══ LAYOUT ═══ */
-    .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 22px 80px; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 32px 22px 96px; min-height: calc(100vh - 90px); }
+
+    /* one hairline of light along the top edge of every surface */
+    .card, .stat, .exit, .sw-card, .empty { position: relative; }
+    .card::before, .stat::before, .exit::before, .sw-card::before {
+      content: ''; position: absolute; left: 16px; right: 16px; top: -1px; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent);
+      pointer-events: none;
+    }
     .pg { display: none; }
     .pg.active { display: block; }
     .phd { margin-bottom: 22px; }
@@ -167,8 +197,10 @@
     .phd p { color: var(--text-2); font-size: 13.5px; margin-top: 5px; max-width: 62ch; }
 
     .card {
-      background: var(--bg-1); border: 1px solid var(--border);
+      background: linear-gradient(180deg, #12151b 0%, var(--bg-1) 58%);
+      border: 1px solid var(--border);
       border-radius: var(--r-xl); padding: 20px;
+      box-shadow: 0 14px 40px -18px rgba(0,0,0,0.9);
     }
     .card + .card { margin-top: 14px; }
     .card h3 { font-size: 14.5px; font-weight: 600; margin-bottom: 3px; }
@@ -176,7 +208,11 @@
 
     /* stat strip */
     .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
-    .stat { background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px 16px; }
+    .stat {
+      background: linear-gradient(180deg, #12151b 0%, var(--bg-1) 62%);
+      border: 1px solid var(--border); border-radius: var(--r-lg); padding: 14px 16px;
+      box-shadow: 0 10px 30px -16px rgba(0,0,0,0.9);
+    }
     .stat .k {
       font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.11em;
       text-transform: uppercase; color: var(--text-3);
@@ -213,9 +249,13 @@
     /* exit cards */
     .exits { display: grid; gap: 12px; }
     .exit {
-      background: var(--bg-1); border: 1px solid var(--border);
+      background: linear-gradient(180deg, #12151b 0%, var(--bg-1) 58%);
+      border: 1px solid var(--border);
       border-radius: var(--r-xl); padding: 18px 20px;
+      box-shadow: 0 14px 40px -18px rgba(0,0,0,0.9);
+      transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
     }
+    .exit:hover { border-color: var(--border-hover); box-shadow: 0 20px 54px -20px rgba(0,0,0,0.95); }
     .exit-hd { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
     .exit-id { font-family: var(--mono); font-size: 11.5px; color: var(--text-3); }
     .exit-ttl { font-size: 15px; font-weight: 600; }
@@ -243,8 +283,9 @@
     .exit-note { font-size: 12px; color: var(--text-3); flex: 1; min-width: 200px; }
 
     .empty {
-      text-align: center; padding: 46px 20px; color: var(--text-3);
+      text-align: center; padding: 52px 20px; color: var(--text-3);
       border: 1px dashed var(--border); border-radius: var(--r-xl); font-size: 13.5px;
+      background: radial-gradient(600px 200px at 50% 0%, rgba(89,124,233,0.07), transparent 70%);
     }
 
     /* notes / callouts */
@@ -301,25 +342,45 @@
        of a ticket rather than a form to fill in. */
     .sw-wrap { display: flex; flex-direction: column; align-items: center; position: relative; }
     .sw-wrap::before {
-      content: ''; position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
-      width: 640px; height: 320px; border-radius: 50%;
-      background: radial-gradient(ellipse, rgba(89,124,233,0.13) 0%, transparent 70%);
+      content: ''; position: absolute; top: -90px; left: 50%; transform: translateX(-50%);
+      width: 820px; height: 460px; border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(89,124,233,0.20) 0%, rgba(89,124,233,0.06) 42%, transparent 72%);
+      pointer-events: none; z-index: 0; filter: blur(6px);
+    }
+    .sw-wrap::after {
+      content: ''; position: absolute; bottom: -60px; left: 50%; transform: translateX(-50%);
+      width: 620px; height: 300px; border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(167,139,250,0.10) 0%, transparent 68%);
       pointer-events: none; z-index: 0;
     }
     .sw-col { width: 100%; max-width: 470px; position: relative; z-index: 1; }
 
     .hero {
-      background: linear-gradient(135deg, #4a67d8 0%, #2b3894 55%, #1d2465 100%);
+      background:
+        radial-gradient(120% 140% at 78% -20%, rgba(255,255,255,0.16), transparent 55%),
+        linear-gradient(135deg, #5470e0 0%, #2b3894 52%, #171d55 100%);
       border-radius: var(--r-xl); padding: 26px 26px 22px; margin-bottom: 16px;
       text-align: center; position: relative; overflow: hidden;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.18),
+        0 22px 60px -24px rgba(43,56,148,0.95);
+    }
+    @keyframes swim {
+      0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+      50%      { transform: translate3d(-26px, 16px, 0) scale(1.12); }
     }
     .hero::before {
       content: ''; position: absolute; top: -45%; right: -8%; width: 210px; height: 210px;
-      border-radius: 50%; background: rgba(255,255,255,0.07);
+      border-radius: 50%; background: rgba(255,255,255,0.08);
+      animation: swim 19s ease-in-out infinite;
     }
     .hero::after {
       content: ''; position: absolute; bottom: -55%; left: 4%; width: 180px; height: 180px;
-      border-radius: 50%; background: rgba(255,255,255,0.05);
+      border-radius: 50%; background: rgba(255,255,255,0.06);
+      animation: swim 25s ease-in-out infinite reverse;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .hero::before, .hero::after { animation: none; }
     }
     .hero h1 { position: relative; z-index: 1; font-size: 22px; font-weight: 600; letter-spacing: -0.5px; color: #fff; }
     .hero p {
@@ -347,8 +408,12 @@
     .seg button.on { background: var(--bg-3); color: var(--text-0); }
 
     .sw-card {
-      background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-xl);
-      padding: 16px; box-shadow: 0 10px 44px rgba(0,0,0,0.45);
+      background: linear-gradient(180deg, #13161d 0%, var(--bg-1) 55%);
+      border: 1px solid var(--border); border-radius: var(--r-xl); padding: 16px;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.045),
+        0 28px 80px -20px rgba(0,0,0,0.92),
+        0 0 120px -46px rgba(89,124,233,0.85);
     }
     .sw-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
     .sw-top h3 { font-size: 14.5px; font-weight: 600; letter-spacing: -0.2px; }
