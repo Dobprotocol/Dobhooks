@@ -486,6 +486,31 @@
     .chip:hover { color: var(--text-1); border-color: var(--border-hover); }
     .chip.on { color: var(--bg-0); background: var(--text-1); border-color: var(--text-1); }
 
+    /* layer stats — a read-only surface over the monitor snapshot, so it
+       borrows the card language and adds only a compact table. */
+    .lt { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .lt th {
+      text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em;
+      color: var(--text-3); font-weight: 500; padding: 0 12px 8px; white-space: nowrap;
+    }
+    .lt td { padding: 10px 12px; border-top: 1px solid var(--border); vertical-align: middle; }
+    .lt tbody tr:hover td { background: rgba(255,255,255,0.017); }
+    .lt .num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+    .lt .mono { font-family: var(--mono); font-size: 11.5px; color: var(--text-2); }
+    .lt .nm { font-weight: 600; color: var(--text-1); }
+    .lwrap {
+      background: var(--bg-1); border: 1px solid var(--border); border-radius: var(--r-lg);
+      padding: 14px 4px 4px; margin-bottom: 18px; overflow-x: auto;
+    }
+    .lwrap > h3 {
+      font-size: 13px; font-weight: 600; margin: 0 12px 4px; letter-spacing: -0.2px;
+    }
+    .lwrap > p.sub { font-size: 12px; color: var(--text-3); margin: 0 12px 12px; max-width: 70ch; }
+    .lfoot {
+      font-size: 11.5px; color: var(--text-3); font-family: var(--mono);
+      display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 2px;
+    }
+
     .alist { display: grid; gap: 8px; }
     .arow {
       display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
@@ -815,6 +840,15 @@
          able to sign something without seeing that this is testnet. */
       .nav-links { display: none; }
       .net { padding: 5px 9px; font-size: 11px; }
+      /* `.subnav` already scrolls — it always has — but with the scrollbar
+         hidden and seven tabs, a phone shows the bar ending mid-word at
+         "Liquidity Node" and nothing says the rest exists. The fade is the
+         affordance, not the scroll. It is mobile-only because on desktop the
+         tabs fit and a fade over the last one would just look like a bug. */
+      .subnav {
+        -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 30px), transparent 100%);
+                mask-image: linear-gradient(90deg, #000 calc(100% - 30px), transparent 100%);
+      }
       .stats { grid-template-columns: 1fr 1fr; }
       .exit-grid { grid-template-columns: 1fr 1fr; }
       .row2 { grid-template-columns: 1fr; }
@@ -893,6 +927,7 @@
     <button class="tab" data-p="folio">Portfolio</button>
     <button class="tab" data-p="node">Liquidity Node</button>
     <button class="tab" data-p="assets">Assets</button>
+    <button class="tab" data-p="stats">Layer stats</button>
     <button class="tab" data-p="faucet">Get tokens</button>
   </div>
 </div>
@@ -1137,6 +1172,24 @@
     </div>
 
     <div class="alist" id="assetList"><div class="empty"><span class="spin"></span> Loading assets…</div></div>
+  </div>
+
+  <!-- ═══════════ LAYER STATS ═══════════ -->
+  <!-- Everything here is history, and the chain does not keep history: a
+       Soroban contract stores current state, and testnet RPC drops events
+       after about a week. The only place volume, realised discounts and time
+       in the queue exist is the monitor's append-only log, which is why this
+       page reads a file instead of the contracts. It is also why every number
+       below carries the window it was computed over. -->
+  <div id="pg-stats" class="pg">
+    <div class="phd">
+      <h1>Layer stats</h1>
+      <p>What the exit layer has actually done, replayed from its own events. Public and
+      unauthenticated &mdash; the same snapshot any indexer, dashboard or Node can read at
+      <a href="/exit-layer.json" target="_blank" rel="noopener" style="color:var(--accent-light)">/exit-layer.json</a>.
+      Live prices and balances are not here; those are read from the chain on the other tabs.</p>
+    </div>
+    <div id="statsBody"><div class="empty"><span class="spin"></span> Reading the monitor&hellip;</div></div>
   </div>
 
   <!-- ═══════════ ASSET ═══════════ -->
@@ -1913,12 +1966,33 @@ var DOB = [];          // catalogue rows
 var Q = {};            // asset id -> ordered exit ids waiting on it
 
 /* There is no node registry contract, for the same reason there is no asset
-   registry: a Node becomes visible to this page by acting. Every exit carries
-   whoever is standing on it, so the bidders are the Nodes we can name. A Node
-   that posted appetite and never bid is invisible here — which is why the
-   badge below reports capital it can prove and stays quiet when it cannot. */
-var NODES = {};        // node address -> 1, harvested from exits
+   registry: a Node becomes visible by acting. Two things count as acting, and
+   only one of them is visible on-chain right now — an exit names whoever is
+   standing on it, so bidders are free to find, while a Node that posted
+   appetite and never bid leaves no trace in any live exit. That second kind
+   used to be invisible here, which understated standing capital exactly when
+   it mattered: a fresh asset nobody has bid on yet.
+
+   The monitor closes that gap. It replays every `appetite_set` the vault has
+   ever emitted, so its roster is the full set of Nodes the layer has met, not
+   just the ones currently winning something. We seed from it and keep the
+   live harvest as the fallback, because the snapshot is a file written every
+   five minutes: a Node that appeared ninety seconds ago is in the exits
+   before it is in the roster, and neither source alone is complete. */
+var MONITOR = '/exit-layer.json';
+var SNAP = null;       // last monitor snapshot, or null if it could not be read
+var NODES = {};        // node address -> 1, from the monitor roster + live exits
 var CAP = {};          // asset id -> { usdc: total quotable USDC, nodes: n, seen: bool }
+
+async function loadSnapshot() {
+  var r = await fetch(MONITOR, { credentials: 'omit', cache: 'no-store' });
+  if (!r.ok) throw new Error('monitor ' + r.status);
+  var j = await r.json();
+  if (!j || !Array.isArray(j.nodes)) throw new Error('monitor snapshot malformed');
+  SNAP = j;
+  j.nodes.forEach(function (n) { if (n && n.node) NODES[n.node] = 1; });
+  renderStats();
+}
 var aFilter = 'all', aSearch = '', curAsset = null;
 
 async function loadCatalogue() {
@@ -2911,9 +2985,172 @@ window.sellAsset = function (id) {
   go('trade');
 };
 
+/* ───────────────────────── layer stats ─────────────────────────────────
+   A pure render of the snapshot: no chain reads, no derived prices, nothing
+   this page could get wrong on its own. The one number that needs a caveat
+   printed next to it is a Node's deposited capital, so the snapshot names the
+   field `depositedAtLastReport` and this page does not show it at all — a
+   node that has filled anything reads high, and there is no honest one-line
+   version of that. Fills won and USDC paid out say the same thing without
+   inviting the reader to subtract. */
+
+function bps(v) { return (Number(v) / 100).toFixed(2) + '%'; }
+
+/* Distance between two ISO stamps, in the same vocabulary as `since`. Used
+   for time-in-the-queue, which is the number a seller actually feels and the
+   only one that cannot be read off the contracts at all. */
+function span(fromIso, toIso) {
+  var a = Date.parse(fromIso), b = toIso ? Date.parse(toIso) : Date.now();
+  if (!isFinite(a) || !isFinite(b) || b < a) return '—';
+  return since((b - a) / 1000);
+}
+
+function statePill(st) {
+  var cls = st === 'settled' ? 'settled' : st === 'open' ? 'open'
+          : st === 'queued' ? 'queued' : 'cancel';
+  return '<span class="pill ' + cls + '">' + dobEsc(st) + '</span>';
+}
+
+function renderStats() {
+  var box = $('statsBody');
+  if (!box) return;
+  if (!SNAP) {
+    box.innerHTML = '<div class="empty">The monitor snapshot could not be read, so there is no '
+      + 'history to show. Everything else on this page reads the chain directly and is '
+      + 'unaffected.</div>';
+    return;
+  }
+  var j = SNAP, pr = j.protocol || {}, cv = j.coverage || {};
+  var h = '';
+
+  h += '<div class="stats">'
+    + '<div class="stat"><div class="k">Settled volume</div><div class="v">' + usd(pr.usdcSettled || '0')
+    + ' <small>USDC</small></div></div>'
+    + '<div class="stat"><div class="k">Fees to treasury</div><div class="v">' + usd(pr.feesToTreasury || '0') + '</div></div>'
+    + '<div class="stat"><div class="k">Exits settled</div><div class="v">' + (pr.settlements || 0)
+    + ' <small>of ' + (j.exits || []).length + ' opened</small></div></div>'
+    + '<div class="stat"><div class="k">Liquidity Nodes met</div><div class="v">' + (pr.nodesSeen || 0) + '</div></div>'
+    + '</div>';
+
+  /* Coverage before the tables, not after: a partial replay makes every
+     number below a lower bound, and the reader has to know that first. */
+  var age = span(j.generatedAt, null);
+  h += '<div class="lwrap"><h3>What this covers</h3>'
+    + '<p class="sub">' + (cv.complete
+        ? 'Every event these four contracts have emitted, from the first one to the chain tip. '
+          + 'The totals below are the whole history, not a sample.'
+        : 'A partial replay — the log starts after the contracts did, because testnet RPC '
+          + 'drops events older than about a week and the monitor was started later than that. '
+          + 'Every total below is a <b>lower bound</b>.')
+    + '</p>'
+    + '<div class="lfoot" style="padding:0 12px 12px;">'
+    + '<span>ledgers ' + cv.firstLedger + '–' + cv.lastLedger + '</span>'
+    + '<span>' + (cv.events || 0) + ' events</span>'
+    + '<span>' + (cv.flagged || 0) + ' undecodable</span>'
+    + '<span>updated ' + age + ' ago</span>'
+    + '</div></div>';
+
+  /* By asset. avgDiscountBps is the mean of the discounts that actually
+     cleared — not of the bids posted, and not of the seller floors. It is the
+     closest thing this layer has to a price. */
+  var as = j.assets || [];
+  h += '<div class="lwrap"><h3>By asset</h3>'
+    + '<p class="sub">Realised discount is the average of the fills that settled, weighted by '
+    + 'nothing — it is a mean of the rounds, so a single large exit does not move it more than '
+    + 'a small one. Queue is what is waiting for capital right now.</p>'
+    + '<table class="lt"><thead><tr><th>Asset</th><th class="num">Exits</th><th class="num">Settled</th>'
+    + '<th class="num">Realised discount</th><th class="num">USDC settled</th><th class="num">Fees</th>'
+    + '<th class="num">In line</th><th class="num">Nodes</th></tr></thead><tbody>';
+  if (!as.length) h += '<tr><td colspan="8" style="color:var(--text-3)">No asset has been exited yet.</td></tr>';
+  as.forEach(function (a) {
+    h += '<tr>'
+      + '<td><span class="nm">' + dobEsc(a.name || shortId(a.asset)) + '</span>'
+      + '<div class="mono">' + shortId(a.asset) + '</div></td>'
+      + '<td class="num">' + a.exitsOpened + '</td>'
+      + '<td class="num">' + a.settled + '</td>'
+      + '<td class="num">' + (a.settled ? bps(a.avgDiscountBps) : '—') + '</td>'
+      + '<td class="num">' + usd(a.usdcSettled || '0') + '</td>'
+      + '<td class="num">' + usd(a.feesPaid || '0') + '</td>'
+      + '<td class="num">' + (a.queueDepth || 0) + '</td>'
+      + '<td class="num">' + ((a.nodesSeen || []).length) + '</td>'
+      + '</tr>';
+  });
+  h += '</tbody></table></div>';
+
+  /* By Node. "Outbid" is the honest counterweight to "fills won": a Node that
+     posts and always loses is competing, not providing. */
+  var ns = j.nodes || [];
+  h += '<div class="lwrap"><h3>Liquidity Nodes</h3>'
+    + '<p class="sub">Every address the vault has seen act — deposit, post appetite or bid. There is '
+    + 'no registry to join and no application; a Node becomes visible here by doing one of those.</p>'
+    + '<table class="lt"><thead><tr><th>Node</th><th class="num">Standing appetites</th>'
+    + '<th class="num">Bids</th><th class="num">Outbid</th><th class="num">Fills won</th>'
+    + '<th class="num">USDC paid out</th><th class="num">Last seen</th></tr></thead><tbody>';
+  if (!ns.length) h += '<tr><td colspan="7" style="color:var(--text-3)">No Node has acted yet.</td></tr>';
+  ns.forEach(function (n) {
+    var act = (n.appetites || []).filter(function (x) { return x.active; });
+    var names = act.map(function (x) { return dobEsc(x.name || shortId(x.asset)) + ' @ ' + bps(x.minDiscountBps); });
+    h += '<tr>'
+      + '<td><span class="mono">' + shortId(n.node) + '</span>'
+      + (names.length ? '<div class="mono" style="color:var(--text-3)">' + names.join(' · ') + '</div>' : '')
+      + '</td>'
+      + '<td class="num">' + act.length + '</td>'
+      + '<td class="num">' + (n.bidsPlaced || 0) + '</td>'
+      + '<td class="num">' + (n.bidsOutbid || 0) + '</td>'
+      + '<td class="num">' + (n.fillsWon || 0) + '</td>'
+      + '<td class="num">' + usd(n.usdcPaidOut || '0') + '</td>'
+      + '<td class="num">' + span(n.lastSeen, null) + ' ago</td>'
+      + '</tr>';
+  });
+  h += '</tbody></table></div>';
+
+  /* Every exit, newest first. "Took" is wall-clock from opening to the end
+     state — for something still queued it is how long it has been waiting,
+     which is the number that decides whether the layer is working. */
+  var ex = (j.exits || []).slice().sort(function (a, b) {
+    return Date.parse(b.openedAt || 0) - Date.parse(a.openedAt || 0);
+  });
+  h += '<div class="lwrap"><h3>Every exit</h3>'
+    + '<p class="sub">Reference is what the seller called the position worth; the fill is what a Node '
+    + 'actually paid. Nothing is force-filled below the floor — an exit that does not draw a good '
+    + 'enough bid takes a place in line instead, and the clock keeps running.</p>'
+    + '<table class="lt"><thead><tr><th>Exit</th><th>State</th><th class="num">Reference</th>'
+    + '<th class="num">Best bid</th><th class="num">Discount</th><th class="num">Bids</th>'
+    + '<th class="num">Took</th></tr></thead><tbody>';
+  if (!ex.length) h += '<tr><td colspan="7" style="color:var(--text-3)">No exit has been opened yet.</td></tr>';
+  ex.forEach(function (x) {
+    var open = x.state === 'open' || x.state === 'queued';
+    h += '<tr>'
+      + '<td><span class="nm">' + dobEsc(x.assetName || shortId(x.asset)) + ' #' + x.exitId + '</span>'
+      + '<div class="mono">' + dobEsc(x.amount) + ' units · ' + shortId(x.seller) + '</div></td>'
+      + '<td>' + statePill(x.state)
+      /* The snapshot's position is a zero-based index into the line, and the
+         rest of this page already says "1st" for the head. Testing it for
+         truthiness would have hidden exactly the exit at the front. */
+      + (x.queuePosition != null
+          ? ' <span class="mono">' + ordinal(x.queuePosition + 1) + '</span>' : '') + '</td>'
+      + '<td class="num">' + usd(x.referenceUsdc || '0') + '</td>'
+      + '<td class="num">' + (x.bestBid && x.bestBid !== '0' ? usd(x.bestBid) : '—') + '</td>'
+      + '<td class="num">' + (x.bidCount ? bps(x.bestDiscountBps) : '—') + '</td>'
+      + '<td class="num">' + (x.bidCount || 0) + '</td>'
+      + '<td class="num">' + span(x.openedAt, x.endedAt) + (open ? ' <small>so far</small>' : '') + '</td>'
+      + '</tr>';
+  });
+  h += '</tbody></table></div>';
+
+  box.innerHTML = h;
+}
+
 function refresh() {
   loadStats();
-  loadExits().then(function () {
+  /* The roster first, and swallowing its failure, because the capacity badge
+     reads NODES: asking the vault before we know who to ask produces the
+     "no Node met yet" state on an asset that has plenty of capital standing.
+     If the monitor is down we still proceed — the live harvest below is a
+     narrower roster, not an empty one. */
+  loadSnapshot().catch(function (e) {
+    SNAP = null; renderStats();
+  }).then(function () { return loadExits(); }).then(function () {
     refreshFolio();
     refreshWallet();
     return loadQueues();          // the queue reads Nodes that loadExits just met
@@ -3304,6 +3541,11 @@ refresh();
    on every chain refresh. */
 refreshDob();
 setInterval(function () { loadExits().catch(function () {}); loadStats(); }, 20000);
+/* The monitor rewrites its snapshot on a five-minute cron, so polling it
+   faster than that only re-reads the same bytes. Sixty seconds is the
+   compromise: at worst the page is one cron tick behind the chain, and the
+   live reads above are what the trading surfaces actually use. */
+setInterval(function () { loadSnapshot().catch(function () {}); }, 60000);
 </script>
 </body>
 </html>
