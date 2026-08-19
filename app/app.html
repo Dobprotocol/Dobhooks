@@ -108,7 +108,7 @@
       background: var(--bg-glass); backdrop-filter: blur(14px);
       border-bottom: 1px solid var(--border-subtle);
     }
-    .nav-l { display: flex; align-items: center; gap: 26px; }
+    .nav-l { display: flex; align-items: center; gap: 26px; min-width: 0; }
     .logo { display: flex; align-items: center; gap: 9px; cursor: pointer; text-decoration: none; }
     .logo svg { width: 26px; height: 26px; }
     .logo-t { font-size: 16px; font-weight: 600; letter-spacing: -0.4px; }
@@ -119,7 +119,7 @@
       color: var(--text-2); font-size: 13px; transition: 0.16s var(--ease);
     }
     .nav-links a:hover { color: var(--text-1); background: var(--bg-2); }
-    .nav-r { display: flex; align-items: center; gap: 10px; }
+    .nav-r { display: flex; align-items: center; gap: 10px; min-width: 0; flex-shrink: 0; }
     .net-wrap { position: relative; }
     .net {
       display: flex; align-items: center; gap: 7px; cursor: pointer;
@@ -178,16 +178,6 @@
     }
     .wa-hd h4 { font-size: 12.5px; font-weight: 600; color: var(--text-1); }
     .wa-hd span { font-family: var(--mono); font-size: 10px; color: var(--text-3); }
-    .wa-total { padding: 12px 15px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-2); }
-    .wa-total .k {
-      font-size: 9.5px; font-weight: 600; text-transform: uppercase;
-      letter-spacing: 0.5px; color: var(--text-3);
-    }
-    .wa-total .v {
-      font-size: 19px; font-weight: 600; letter-spacing: -0.4px;
-      color: var(--text-1); font-variant-numeric: tabular-nums; margin-top: 3px;
-    }
-    .wa-list { max-height: 316px; overflow-y: auto; }
     .wa-item {
       display: flex; align-items: center; gap: 10px; width: 100%;
       padding: 10px 15px; border: 0; border-bottom: 1px solid var(--border-subtle);
@@ -239,6 +229,9 @@
       transition: 0.16s var(--ease); white-space: nowrap;
     }
     .dob-btn:hover { border-color: var(--border-hover); color: var(--text-0); }
+    .dob-btn > span:not(.dob-mk) {
+      max-width: 15ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
     .dob-mk {
       width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
       display: grid; place-items: center;
@@ -830,8 +823,12 @@
       .hero { padding: 22px 20px 20px; }
       .hero h1 { font-size: 19px; }
       .wrap { padding: 22px 16px 70px; }
-      nav { padding: 10px 16px; }
+      nav { padding: 10px 16px; gap: 10px; }
       .subnav { padding: 0 16px; }
+      .logo-t { display: none; }
+      .dob-btn { padding: 5px; }
+      .dob-btn > span:not(.dob-mk) { display: none; }
+      .wa-btn { padding: 5px 9px; font-size: 11px; }
     }
   </style>
 </head>
@@ -877,18 +874,14 @@
         <button class="wa-foot dob-out" id="dobOut">Sign out</button>
       </div>
     </div>
+    <!-- One balance, one place to read it. This used to open a panel that
+         listed the same holdings, the same USDC and the same signer note the
+         Portfolio tab already renders in full — two surfaces called "my
+         assets", which is also what the Assets tab is called and it means the
+         market, not you. The chip keeps the number at a glance and hands the
+         detail to the one page that owns it. -->
     <div class="wa-wrap" id="waWrap">
-      <button class="wa-btn" id="waBtn"><span id="waCount">0 assets</span><span id="waVal"> &middot; <b id="waUsdc">$0.00</b></span></button>
-      <div class="wa-panel" id="waPanel">
-        <div class="wa-hd"><h4>My assets</h4><span>Stellar Testnet</span></div>
-        <div class="wa-total">
-          <div class="k">USDC balance</div>
-          <div class="v" id="waUsdcBig">$0.00</div>
-        </div>
-        <div class="wa-list" id="waList"></div>
-        <div class="dob-note" id="waSign"></div>
-        <button class="wa-foot" id="waMore">Full portfolio &rarr;</button>
-      </div>
+      <button class="wa-btn" id="waBtn" title="Open your portfolio"><span id="waCount">Wallet</span><span id="waVal"> &middot; <b id="waUsdc">$0.00</b></span></button>
     </div>
   </div>
 </nav>
@@ -1311,6 +1304,14 @@ function fmt(raw, dec, maxFrac) {
 }
 function usd(raw) { return '$' + fmt(raw, USDC.dec); }
 function shortId(id) { return id.slice(0, 4) + '…' + id.slice(-4); }
+
+/* 1st, 2nd, 3rd, 4th — 11th through 13th are the exceptions that make a
+   naive lookup on the last digit read wrong. */
+function ordinal(n) {
+  var t = n % 100;
+  if (t >= 11 && t <= 13) return n + 'th';
+  return n + ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th');
+}
 
 function since(secs) {
   if (secs <= 0) return 'now';
@@ -1761,6 +1762,12 @@ function exitCard(x) {
   var clears = best && BigInt(best) >= BigInt(x.min_accept_usdc);
   var mine = me && x.seller === me;
 
+  /* position_of() would answer this too, but `list` already came back in
+     order, so the place in line is an index into what we hold — one fewer
+     round trip per exit, and it can never disagree with the line we drew. */
+  var line = Q[x.asset] || [];
+  var qPos = st === 'queued' ? line.indexOf(Number(x.id)) : -1;
+
   var pill = st === 'open' ? 'open' : st === 'queued' ? 'queued'
            : st === 'settled' ? 'settled' : 'cancel';
   var pillTxt = st === 'open' && left <= 0 ? 'closing' : st;
@@ -1778,12 +1785,26 @@ function exitCard(x) {
   h += '<div><div class="k">Seller\'s floor</div><div class="v">' + usd(x.min_accept_usdc) + '</div></div>';
   h += '<div><div class="k">Best bid</div><div class="v" style="color:' + (best ? (clears ? 'var(--green)' : 'var(--amber)') : 'var(--text-3)') + '">'
      + (best ? usd(best) + ' <small style="font-size:11px;color:var(--text-3)">· ' + (d / 100).toFixed(2) + '%</small>' : 'none') + '</div></div>';
+  if (qPos >= 0) {
+    h += '<div><div class="k">Place in line</div><div class="v" style="color:'
+       + (qPos === 0 ? 'var(--green)' : 'var(--amber)') + '">'
+       + (qPos === 0 ? 'at the head' : ordinal(qPos + 1))
+       + ' <small style="font-size:11px;color:var(--text-3)">· of ' + line.length + '</small>'
+       + '</div></div>';
+  }
   h += '</div>';
 
   h += '<div class="exit-ft">';
   var note;
   if (st === 'settled')      note = 'Settled. Tokens went to the Node, USDC to the seller, fee to the treasury — in one transaction.';
   else if (st === 'cancelled') note = 'The seller walked away. The tokens went back to them and the bidder was paid nothing.';
+  else if (st === 'queued' && qPos === 0)
+    note = 'Closed under its floor, so it took a public place in line — and it is at the head of it. '
+         + 'It is the exit on this asset that can settle next, and it is still taking bids.';
+  else if (st === 'queued' && qPos > 0)
+    note = 'Closed under its floor, so it took a public place in line: ' + ordinal(qPos + 1)
+         + ' of ' + line.length + '. It keeps taking bids, but the '
+         + (qPos === 1 ? 'one ahead of it settles' : qPos + ' ahead of it settle') + ' first.';
   else if (st === 'queued')  note = 'Closed under its floor, so it took a public place in line. It is still taking bids.';
   else if (left > 0)         note = 'Bidding closes in ' + since(left) + '.';
   else                       note = 'The window is over. Anyone can close it — it fills if the best bid cleared the floor, and queues if it did not.';
@@ -1822,6 +1843,7 @@ async function loadExits() {
   var unseen = [];
   lastExits.forEach(function (x) {
     if (!knownAsset(x.asset) && unseen.indexOf(x.asset) < 0) unseen.push(x.asset);
+    if (x.best_node) NODES[x.best_node] = 1;
   });
   if (unseen.length) await Promise.all(unseen.map(learnAsset));
 
@@ -1889,6 +1911,14 @@ async function loadStats() {
 var CATALOGUE = 'https://home.dobprotocol.com/api/pool/public/by-category';
 var DOB = [];          // catalogue rows
 var Q = {};            // asset id -> ordered exit ids waiting on it
+
+/* There is no node registry contract, for the same reason there is no asset
+   registry: a Node becomes visible to this page by acting. Every exit carries
+   whoever is standing on it, so the bidders are the Nodes we can name. A Node
+   that posted appetite and never bid is invisible here — which is why the
+   badge below reports capital it can prove and stays quiet when it cannot. */
+var NODES = {};        // node address -> 1, harvested from exits
+var CAP = {};          // asset id -> { usdc: total quotable USDC, nodes: n, seen: bool }
 var aFilter = 'all', aSearch = '', curAsset = null;
 
 async function loadCatalogue() {
@@ -2019,11 +2049,57 @@ async function loadQueueFor(id) {
     Q[id] = (l || []).map(Number);
   } catch (e) { Q[id] = []; }
 }
+
+/* What a Node would actually field, not what it has promised. quote_capacity
+   is the vault's own answer at the node's own floor, so it already carries
+   the three limits that decide a real bid: free balance after commitments,
+   the appetite's remaining headroom, and the single-fill cap. Reading
+   max_exposure instead would show money the vault would refuse to move —
+   which is the exact gap that left ECH exit #5 standing under its floor. */
+async function loadCapacityFor(id) {
+  var addr = SDK.nativeToScVal(id, { type: 'address' });
+  var nodes = Object.keys(NODES).slice(0, 12);
+  if (!nodes.length) { CAP[id] = { usdc: 0n, nodes: 0, seen: false }; return; }
+  var each = await Promise.all(nodes.map(async function (n) {
+    try {
+      var ap = await read(C.vault, 'get_appetite',
+        [SDK.nativeToScVal(n, { type: 'address' }), addr]);
+      if (!ap || !ap.active) return 0n;
+      var c = await read(C.vault, 'quote_capacity',
+        [SDK.nativeToScVal(n, { type: 'address' }), addr,
+         SDK.nativeToScVal(Number(ap.min_discount_bps), { type: 'u32' })]);
+      return BigInt(c || 0);
+    } catch (e) { return 0n; }   // no appetite for this pair reads as none
+  }));
+  var total = 0n, live = 0;
+  each.forEach(function (c) { if (c > 0n) { total += c; live++; } });
+  CAP[id] = { usdc: total, nodes: live, seen: true };
+}
+
 async function loadQueues() {
-  for (var i = 0; i < ASSETS.length; i++) await loadQueueFor(ASSETS[i].id);
+  for (var i = 0; i < ASSETS.length; i++) {
+    await loadQueueFor(ASSETS[i].id);
+    await loadCapacityFor(ASSETS[i].id);
+  }
   renderAssets();
   renderSide();
   if (curAsset) renderAsset(curAsset.id);
+}
+
+/* Three states, because there are three things we can honestly say: money is
+   standing, nothing is standing, or we have not met a Node yet and do not
+   know. The last one says only what the layer knows — that the asset is here. */
+function capBadge(id) {
+  var c = CAP[id];
+  if (!c || !c.seen) return '<span class="pill open">tradeable</span>';
+  if (!c.nodes) return '<span class="pill queued" title="No Liquidity Node this page '
+    + 'has met is standing behind this asset right now. An exit still opens — it just '
+    + 'may not draw a bid.">tradeable · no capital standing</span>';
+  return '<span class="pill open" title="' + c.nodes + ' Liquidity Node'
+    + (c.nodes === 1 ? '' : 's') + ' could field this much USDC today, at their own floor '
+    + 'discount and after the vault\'s free-balance, exposure and single-fill limits. '
+    + 'Nodes are discovered from bidding history, so this is a floor, not a census.">'
+    + 'tradeable · ' + money0(Number(c.usdc) / 1e7) + ' ready</span>';
 }
 
 function exitsOn(id) { return lastExits.filter(function (x) { return x.asset === id; }); }
@@ -2212,7 +2288,7 @@ function renderAssets() {
          + (r.open || '—') + '</div></div>'
          + '<div class="anum"><div class="k">In line</div><div class="v' + (r.queued ? '' : ' dim') + '">'
          + (r.queued || '—') + '</div></div>'
-         + '<span class="pill open">tradeable</span>';
+         + capBadge(r.id);
     } else {
       var ask = (ASKS[r.id] || [])[0];
       h += '<div class="anum"><div class="k">APR</div><div class="v' + (r.apr ? '' : ' dim') + '">'
@@ -2234,7 +2310,8 @@ window.openAsset = function (id) {
   curAsset = r;
   go('asset');
   renderAsset(id);
-  if (r.src === 'layer') loadQueueFor(id).then(function () { renderAsset(id); });
+  if (r.src === 'layer') Promise.all([loadQueueFor(id), loadCapacityFor(id)])
+    .then(function () { renderAsset(id); });
 };
 
 function renderAsset(id) {
@@ -2256,7 +2333,7 @@ function renderAsset(id) {
   h += '<a href="' + expl + 'contract/' + r.id + '" target="_blank" rel="noopener">'
      + shortId(r.id) + ' ↗</a>';
   h += '</div></div>';
-  if (r.src === 'layer') h += '<span class="pill open">tradeable here</span>';
+  if (r.src === 'layer') h += capBadge(r.id);
   else if (r.trufa) h += '<span class="pill trufa">TRUFA ' + r.score + '</span>';
   else if (r.verified) h += '<span class="pill settled">verified</span>';
   h += '</div>';
@@ -2720,6 +2797,8 @@ async function loadFolio() {
 
   var h = '';
 
+  if (signerNote) h += '<div class="note" style="margin-bottom:18px;">' + signerNote + '</div>';
+
   /* 0. The other half of the question, and emphatically not the same half:
      these are pools on home.dobprotocol.com, not positions in this exit
      layer, and none of them can be sold here. It leads the page because a
@@ -2834,12 +2913,16 @@ window.sellAsset = function (id) {
 
 function refresh() {
   loadStats();
-  loadExits().then(function () { refreshFolio(); refreshWallet(); }).catch(function (e) {
+  loadExits().then(function () {
+    refreshFolio();
+    refreshWallet();
+    return loadQueues();          // the queue reads Nodes that loadExits just met
+  }).catch(function (e) {
     $('exitList').innerHTML = '<div class="empty">Could not read the auction. ' + explain(e) + '</div>';
     refreshFolio();
     refreshWallet();
+    loadQueues().catch(function () {});
   });
-  loadQueues().catch(function () {});
   loadCatalogue();
   loadMarket();
   loadNode().catch(function () {});
@@ -2854,7 +2937,7 @@ function refresh() {
 async function loadWallet() {
   if (!me) {
     $('waWrap').classList.remove('on');
-    $('waPanel').classList.remove('open');
+    signerNote = '';
     return;
   }
   $('waWrap').classList.add('on');
@@ -2865,7 +2948,7 @@ async function loadWallet() {
      it means is lying by omission. */
   /* Three states, and the difference matters: signing now, able to sign once
      unlocked, or genuinely read-only with nothing on the account to sign with. */
-  $('waSign').innerHTML = signer
+  signerNote = signer
     ? 'Signing with <b>' + shortId(signer) + '</b>'
       + (signerKind === 'managed' ? ' &mdash; your DobProtocol wallet.' : '.')
     : (dobWallet && dobWallet.stellarAddress)
@@ -2897,7 +2980,6 @@ async function loadWallet() {
   }).filter(function (r) { return r.held > 0n || r.esc > 0n; });
 
   $('waUsdc').textContent = usd(usdcBal);
-  $('waUsdcBig').textContent = usd(usdcBal);
 
   /* A DobProtocol address is a mainnet address; it will never hold anything on
      this testnet, so "0 assets &middot; $0.00" is not a balance — it is a zero
@@ -2910,21 +2992,13 @@ async function loadWallet() {
     $('waCount').textContent = 'Connect wallet';
     $('waVal').style.display = 'none';
   } else {
-    $('waCount').textContent = rows.length + (rows.length === 1 ? ' asset' : ' assets');
+    /* "Wallet" rather than a count of assets: the tab called Assets is the
+       market's list, and a header that counts "assets" next to it reads as
+       the same thing twice. */
+    $('waCount').textContent = 'Wallet';
     $('waVal').style.display = '';
   }
 
-  $('waList').innerHTML = rows.length ? rows.map(function (r) {
-    return '<button class="wa-item" onclick="walletOpen(\'' + r.a.id + '\')">'
-      + '<div class="wa-dot">' + r.a.sym.slice(0, 3) + '</div>'
-      + '<div class="wa-info"><b>' + r.a.name + '</b><span>' + r.a.sym + '</span></div>'
-      + '<div class="wa-vals"><b>' + fmt(String(r.held), r.a.dec, 2) + '</b>'
-      + (r.esc > 0n
-          ? '<span class="esc">' + fmt(String(r.esc), r.a.dec, 2) + ' in escrow</span>'
-          : '<span>held</span>')
-      + '</div></button>';
-  }).join('')
-    : '<div class="wa-empty">No tokenised positions yet.<br>Claim test tokens under <b>Get tokens</b>.</div>';
 }
 
 function refreshWallet() { loadWallet().catch(function () {}); }
@@ -2943,6 +3017,7 @@ var DOB_API = 'https://home.dobprotocol.com/api';
 var DOB_WEB = 'https://home.dobprotocol.com';
 var dobUser = null;
 var dobRows = [];       // the account's pool positions, shared with the portfolio
+var signerNote = '';    // who is signing, written by loadWallet, shown by the portfolio
 var dobStellar = null;  // its Stellar address — the one this page can read on-chain
 
 var DOB_NETS = {
@@ -3130,7 +3205,6 @@ function refreshDob() { loadDob().catch(function () { dobSignedOut(); }); }
 
 
 window.walletOpen = function (id) {
-  $('waPanel').classList.remove('open');
   openAsset(id);
 };
 
@@ -3174,18 +3248,7 @@ $('netBadge').addEventListener('click', function (e) {
 });
 document.addEventListener('click', function () { $('netMenu').classList.remove('open'); });
 
-$('waBtn').addEventListener('click', function (e) {
-  e.stopPropagation();
-  $('waPanel').classList.toggle('open');
-});
-/* Clicks inside the panel must not close it — only the rows and the footer
-   navigate, and both close it themselves. */
-$('waPanel').addEventListener('click', function (e) { e.stopPropagation(); });
-document.addEventListener('click', function () { $('waPanel').classList.remove('open'); });
-$('waMore').addEventListener('click', function () {
-  $('waPanel').classList.remove('open');
-  go('folio');
-});
+$('waBtn').addEventListener('click', function () { go('folio'); });
 
 /* Signed out the button is the sign-in; signed in it is the panel toggle. */
 $('dobBtn').addEventListener('click', function (e) {
