@@ -1242,7 +1242,7 @@
 
 <div id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@14.3.0/dist/stellar-sdk.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@stellar/stellar-sdk@14.3.0/dist/stellar-sdk.min.js" integrity="sha384-Z+gi8ZTUNXhzFvx/FwJYYmCYu0ho6kl6Xi/OYqNIIuTlzl4mQkQxFoHeWBJCx7rU" crossorigin="anonymous"></script>
 <!-- Freighter stopped injecting window.freighterApi into the page: since v5 the extension
      only answers the content-script bridge, and this bundle is that bridge. Vendored rather
      than pulled from a CDN so connecting never depends on a third party being up. -->
@@ -1312,6 +1312,22 @@ function knownAsset(id) {
   return false;
 }
 
+/* Everything below that comes from outside this page — token metadata read
+   from any contract (exit_auction takes any asset), pool names/tickers/icons
+   from the DobProtocol catalogue and marketplace — is user-supplied and ends
+   up in innerHTML on the page that decrypts the managed wallet. It is cleaned
+   once, where it enters, so no renderer can forget: text loses the characters
+   that could open markup, an attribute or a JS string; URLs must be https. */
+function dobSafe(s, max) {
+  if (s == null) return '';
+  return String(s).replace(/[<>"'`&\\\u0000-\u001f\u007f]/g, '').slice(0, max || 120);
+}
+function dobUrl(u) {
+  if (typeof u !== 'string') return null;
+  u = u.trim().replace(/\(/g, '%28').replace(/\)/g, '%29').replace(/ /g, '%20');
+  return /^https:\/\/[^\s"'<>`\\]+$/i.test(u) && u.length <= 2048 ? u : null;
+}
+
 /* Read a token's own metadata rather than trusting a hardcoded table — a
    wrong `dec` here would misprice every amount on screen by orders of ten. */
 async function learnAsset(id) {
@@ -1319,8 +1335,8 @@ async function learnAsset(id) {
   var dec, sym, name;
   try {
     dec = Number(await read(id, 'decimals', []));
-    sym = String(await read(id, 'symbol', []));
-    name = String(await read(id, 'name', []));
+    sym = dobSafe(await read(id, 'symbol', []), 24) || '???';
+    name = dobSafe(await read(id, 'name', []), 80);
   } catch (e) {
     return;   // not a token we can read; leave it as the truncated fallback
   }
@@ -2006,14 +2022,14 @@ async function loadCatalogue() {
         var pd = x.pool_data || {};
         var tok = x.token && (x.token.dataValues || x.token);
         out.push({
-          src: 'dob', id: x.address,
-          name: String(x.name || '').trim() || 'Untitled pool',
-          ticker: pd.ticker || pd.tk || '',
-          icon: x.icon_image || null, banner: x.banner_image || null,
-          cat: cat,
-          net: (x.network && x.network.name) || ('network ' + x.network_id),
+          src: 'dob', id: dobSafe(x.address, 100),
+          name: dobSafe(String(x.name || '').trim(), 120) || 'Untitled pool',
+          ticker: dobSafe(pd.ticker || pd.tk || '', 24),
+          icon: dobUrl(x.icon_image), banner: dobUrl(x.banner_image),
+          cat: dobSafe(cat, 60),
+          net: dobSafe((x.network && x.network.name) || ('network ' + x.network_id), 60),
           netId: Number(x.network_id),
-          explorer: (x.network && x.network.hash_scan_url) || null,
+          explorer: dobUrl(x.network && x.network.hash_scan_url),
           apr: Number(x.real_apr || x.calculated_apy || x.estimated_apr || 0),
           paid: Number(x.total_distributed_usd || 0),
           holders: Number(x.quantity_participants || x.participants || 0),
@@ -2024,9 +2040,9 @@ async function loadCatalogue() {
              DobValidator validation with a certificate behind it. Keep them
              apart — conflating the two would overstate 23 of these pools. */
           trufa: x.validation_status === 'active' && x.validator_overall_score != null,
-          cert: x.validator_certificate_hash || null,
-          pays: tok ? tok.symbol : null,
-          access: x.way_to_access || pd.wacc || null
+          cert: dobSafe(x.validator_certificate_hash, 128) || null,
+          pays: tok ? dobSafe(tok.symbol, 24) : null,
+          access: dobSafe(x.way_to_access || pd.wacc, 60) || null
         });
       });
     });
@@ -2055,17 +2071,17 @@ function marketRow(x) {
   catch (e) { pd = {}; }
   var net = Number(x.chain_id || p.network_id || 0);
   return {
-    src: 'dob', id: x.token_address,
-    name: String(pd.na || p.secondary_name || '').trim() || 'Untitled pool',
-    ticker: pd.tk || '',
-    icon: p.icon_image || null, banner: p.banner_image || null,
-    cat: pd.cat || 'Uncategorised',
+    src: 'dob', id: dobSafe(x.token_address, 100),
+    name: dobSafe(String(pd.na || p.secondary_name || '').trim(), 120) || 'Untitled pool',
+    ticker: dobSafe(pd.tk, 24),
+    icon: dobUrl(p.icon_image), banner: dobUrl(p.banner_image),
+    cat: dobSafe(pd.cat, 60) || 'Uncategorised',
     net: net === 10 ? 'Stellar Mainnet' : net === 9 ? 'Stellar Testnet' : 'network ' + net,
     netId: net, explorer: null,
     apr: Number(pd.eapr || 0), paid: 0,
     holders: 0, maxHolders: Number(pd.mp || 0),
     verified: false, score: null, trufa: false, cert: null,
-    pays: null, access: pd.wacc || null
+    pays: null, access: dobSafe(pd.wacc, 60) || null
   };
 }
 
@@ -3317,14 +3333,14 @@ function dobEsc(s) {
    computed for that pool — this page does not re-derive it, because the share
    total is per-pool and only the platform knows it here. */
 function dobRow(r) {
-  var img = r.pool && (r.pool.icon_image || r.pool.banner_image);
+  var img = r.pool && (dobUrl(r.pool.icon_image) || dobUrl(r.pool.banner_image));
   var tick = (r.pool && (r.pool.ticker || (r.pool.pool_data && r.pool.pool_data.tk))) || '—';
   var name = (r.pool && (r.pool.name || r.pool.secondary_name)) || dobShort(r.id);
-  var net = r.pool ? dobNet(r.pool.network_id) : '';
+  var net = r.pool ? dobEsc(dobNet(r.pool.network_id)) : '';
   var pct = r.pct == null ? null : (Math.round(r.pct * 100) / 100);
-  return '<a class="wa-item" href="' + DOB_WEB + '/pool/' + r.id + '" target="_blank" rel="noopener">'
-    + (img ? '<img class="dob-img" src="' + img + '" alt="">'
-           : '<div class="wa-dot">' + String(tick).slice(0, 3) + '</div>')
+  return '<a class="wa-item" href="' + DOB_WEB + '/pool/' + encodeURIComponent(dobSafe(r.id, 100)) + '" target="_blank" rel="noopener">'
+    + (img ? '<img class="dob-img" src="' + dobEsc(img) + '" alt="">'
+           : '<div class="wa-dot">' + dobEsc(String(tick).slice(0, 3)) + '</div>')
     + '<div class="wa-info"><b>' + dobEsc(name) + '</b>'
     + '<span>' + dobEsc(String(tick)) + (net ? '<i class="dob-net">' + net + '</i>' : '') + '</span></div>'
     + '<div class="wa-vals">'
@@ -3336,19 +3352,19 @@ function dobRow(r) {
    .pos-row so it sits beside the layer's own positions without pretending to
    be one — hence the network badge and no Sell button. */
 function folioDobRow(r) {
-  var img = r.pool && (r.pool.icon_image || r.pool.banner_image);
+  var img = r.pool && (dobUrl(r.pool.icon_image) || dobUrl(r.pool.banner_image));
   var tick = (r.pool && (r.pool.ticker || (r.pool.pool_data && r.pool.pool_data.tk))) || '—';
   var name = (r.pool && (r.pool.name || r.pool.secondary_name)) || dobShort(r.id);
-  var net = r.pool ? dobNet(r.pool.network_id) : '';
+  var net = r.pool ? dobEsc(dobNet(r.pool.network_id)) : '';
   var pct = r.pct == null ? null : (Math.round(r.pct * 100) / 100);
   return '<div class="pos-row">'
-    + (img ? '<img class="dob-img" src="' + img + '" alt="">'
+    + (img ? '<img class="dob-img" src="' + dobEsc(img) + '" alt="">'
            : '<div class="wa-dot">' + dobEsc(String(tick).slice(0, 3)) + '</div>')
     + '<div class="pos-id"><b>' + dobEsc(name) + '</b>'
     + '<span>' + dobEsc(String(tick)) + (net ? '<i class="dob-net">' + net + '</i>' : '') + '</span></div>'
     + '<div class="pos-n"><div class="k">Your share</div><div class="v' + (pct == null ? ' dim' : '') + '">'
     + (pct == null ? '—' : pct + '%') + '</div></div>'
-    + '<a class="btn sm ghost" href="' + DOB_WEB + '/pool/' + r.id + '" target="_blank" rel="noopener">Open</a>'
+    + '<a class="btn sm ghost" href="' + DOB_WEB + '/pool/' + encodeURIComponent(dobSafe(r.id, 100)) + '" target="_blank" rel="noopener">Open</a>'
     + '</div>';
 }
 
