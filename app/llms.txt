@@ -1,0 +1,44 @@
+# DobDex
+
+> Exit-liquidity venue for tokenized real-world assets (RWA) on Stellar (Soroban, **testnet**): a holder opens an exit, Liquidity Nodes price it, settlement lands in USDC. Part of the Dob Protocol stack (DOB Validator scores assets, Token Studio tokenizes them, DobDex lets holders sell).
+
+The app has no backend for trading: every read is a Soroban RPC call and every write is a transaction the user signs with their own wallet (Freighter). An agent can read the same contracts directly; writing requires a Stellar testnet account that signs its own transactions. There is no API key and nothing to authenticate against on this site.
+
+## Pages
+
+- [Landing](https://dex.dobprotocol.com/): what DobDex is and who it is for
+- [How the protocol works](https://dex.dobprotocol.com/protocol.html): exits, Liquidity Nodes, risk tiers, settlement
+- [App](https://dex.dobprotocol.com/app.html): open an exit, back one as a Liquidity Node, claim USDC (needs Freighter on testnet)
+
+## Network
+
+- Network: Stellar testnet, passphrase `Test SDF Network ; September 2015`
+- Soroban RPC: https://soroban-testnet.stellar.org
+- Explorer: https://stellar.expert/explorer/testnet
+
+## Contracts (Soroban, testnet, deployed 2026-08-17)
+
+- `CDLCHH257PNQ5YFW2R2T2SUZAFRI525LCD75CBBAFR2XRR272Z5QC5UA` — lp_vault (Liquidity Node USDC deposits)
+- `CABQVSEKSDWC7GG2LFGZFMPIPY674BID7BRQDOGKENUVLHKJHEDES4EG` — settlement_router
+- `CBBYPWMDIQHVGOQP6244IC2R6HWEDBNRBYGA2FNEIQL63QJUFY33QINF` — fifo_queue (open exits)
+- `CBZE6QZHCEKS23E3SIUBGILTGSPHHUCLKAPVSJT4C5Q3IHHE57QPMMZ3` — exit_auction
+- `CCPNESXPESH5F7WOOWYPLPTLK2PICRP7DXGNGJPPH3YJ3XZVEGKAJL2I` — USDC (test token, 7 decimals)
+- `CAJHMAFYVO7LDRUDQFYIJYSVXR6UJL55AR7LLU6EEWDFUVQSMWO6YV4G` — faucet for the test tokens (rate-limited drip)
+- Seed RWA tokens: `CDPHF6JRRPAG2ZHEQCR3CG4JYBYDAEMPYIDSIWGGVUEJNRWAYG2E7VTS` (SFA, Solar Farm Alpha), `CCY2BBNDFHRXM76SJT64BYJ4YSOBSK6V6SX6WG3S57RJINFZNWKOB53X` (ECH, EV Charging Hub Beta)
+
+## Read endpoints (public, JSON, no auth; rate-limited per IP, 429 + Retry-After)
+
+- [GET /exit-layer.json](https://dex.dobprotocol.com/exit-layer.json): snapshot of the Soroban exit layer (contracts, ledger coverage, exits, Liquidity Node stats), rewritten every 5 minutes
+- [GET /api/validated-pools?networks=1301](https://dex.dobprotocol.com/api/validated-pools?networks=1301): tokenized pools that passed DOB Validator, with certificate scores
+- [GET /api/activity?wallet=0x…&limit=50](https://dex.dobprotocol.com/api/activity): swaps, redeems and LP events of the legacy EVM app (Unichain Sepolia), newest first
+- [GET /api/swaps?wallet=0x…&chainId=1301&limit=50](https://dex.dobprotocol.com/api/swaps): swap history of the legacy EVM app
+- [GET /api/oracle-updates?tokenId=…&chainId=1301](https://dex.dobprotocol.com/api/oracle-updates): oracle price history
+- [GET /api/health](https://dex.dobprotocol.com/api/health): liveness
+
+Writes to `/api/swaps`, `/api/redeems` and `/api/lp-events` are only accepted for a transaction that is already on-chain, succeeded, was sent by the reported wallet and targets a DobDex contract; `/api/oracle-updates` writes are internal.
+
+## Related
+
+- [Dob Protocol](https://www.dobprotocol.com/)
+- [DOB Validator](https://validator.dobprotocol.com/llms.txt): asset certification and public certificate verification
+- [Docs](https://docs.dobprotocol.com/)
