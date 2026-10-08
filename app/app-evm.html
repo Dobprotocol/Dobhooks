@@ -1791,6 +1791,19 @@ const HOOK_ABI=["function swapFeeBps() view returns (uint16)","function protocol
 const PLN_ABI=["function totalPoolUsdc() view returns (uint256)","function totalShares() view returns (uint256)","function shares(address) view returns (uint256)","function sharePrice() view returns (uint256)","function minDeposit() view returns (uint256)","function backedAssetCount() view returns (uint256)","function paused() view returns (bool)","function deposit(uint256) returns (uint256)","function withdraw(uint256) returns (uint256)","function rwaClaimable(address,address) view returns (uint256)","function withdrawRwa(address,uint256)","function getBacking(address) view returns (uint256 minOraclePrice,uint16 minPenaltyBps,uint256 maxExposure,uint256 currentExposure,uint256 usdcAllocated,uint256 usdcUsed,uint48 backedAt,bool active)"];
 
 // ── Load validated pools from API ──
+/* Catalogue entries (name/ticker/icon/description) are user-supplied by pool
+   creators and end up in innerHTML and onclick strings below. Clean them once,
+   where they enter (same helpers as app.html): text loses the characters that
+   could open markup, an attribute or a JS string; icons must be https. */
+function dobSafe(s, max) {
+  if (s == null) return '';
+  return String(s).replace(/[<>"'`&\\\u0000-\u001f\u007f]/g, '').slice(0, max || 120);
+}
+function dobUrl(u) {
+  if (typeof u !== 'string') return null;
+  u = u.trim().replace(/\(/g, '%28').replace(/\)/g, '%29').replace(/ /g, '%20');
+  return /^https:\/\/[^\s"'<>`\\]+$/i.test(u) && u.length <= 2048 ? u : null;
+}
 async function loadValidatedPools(){
   try{
     const netIds=Object.keys(CHAINS).join(',');
@@ -1800,19 +1813,20 @@ async function loadValidatedPools(){
     if(!data.pools||!data.pools.length)return;
     for(const p of data.pools){
       if(!p.tokenAddress||!p.ticker)continue;
-      const id=p.ticker.toLowerCase();
+      const id=String(p.ticker).toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,24);
+      if(!id)continue;
       // Skip if already in hardcoded list with same ticker
       if(A.find(a=>a.id===id))continue;
       // Add to asset array
       A.push({
-        id,name:p.tokenName||p.name,ticker:p.tokenSymbol||p.ticker,
-        icon:p.tokenIcon||'https://images.unsplash.com/photo-1639762681057-408e52192e55?w=80&h=80&fit=crop',
-        desc:p.description||'Validated RWA token from Dobprotocol.',
+        id,name:dobSafe(p.tokenName||p.name,80),ticker:dobSafe(p.tokenSymbol||p.ticker,24)||id.toUpperCase(),
+        icon:dobUrl(p.tokenIcon)||'https://images.unsplash.com/photo-1639762681057-408e52192e55?w=80&h=80&fit=crop',
+        desc:dobSafe(p.description,600)||'Validated RWA token from Dobprotocol.',
         price:0,pf:'—',apy:'—',units:'—',tvl:0,
         oracle:{source:'DobValidatorRegistry',updatedAgo:'—',stale:true,confidence:'—',history:[]},
-        certificate:p.certificate||null,
-        validatedAt:p.validatedAt,
-        overallScore:p.overallScore,
+        certificate:p.certificate?{certificationLevel:dobSafe(p.certificate.certificationLevel,40),overallScore:dobSafe(p.certificate.overallScore,10)}:null,
+        validatedAt:dobSafe(p.validatedAt,40),
+        overallScore:dobSafe(p.overallScore,10),
         poolAddress:p.poolAddress,
         fromTokenize:true
       });
