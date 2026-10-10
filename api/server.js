@@ -280,6 +280,16 @@ const server = http.createServer(async (req, res) => {
       console.error('verifyTx error:', e.message);
       return send(res, 503, { error: 'chain verification unavailable' }, { 'Retry-After': '30' });
     }
+    // A tx is one event: reject a hash already recorded in any of the three tables.
+    try {
+      const dup = await dexDb.query(
+        `SELECT 1 FROM swap_history WHERE tx_hash = $1 UNION ALL SELECT 1 FROM redeem_history WHERE tx_hash = $1
+         UNION ALL SELECT 1 FROM lp_events WHERE tx_hash = $1 LIMIT 1`, [b.txHash]);
+      if (dup.rowCount) return send(res, 409, { error: 'tx already recorded' });
+    } catch (e) {
+      console.error('dup check error:', e.message);
+      return send(res, 500, { error: 'Internal error' });
+    }
     req.verifiedBody = b;
   }
   if (isWrite && url.pathname === '/api/oracle-updates') {
