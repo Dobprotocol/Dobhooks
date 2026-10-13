@@ -6,7 +6,7 @@ The app has no backend for trading: every read is a Soroban RPC call and every w
 
 ## Pages
 
-- [Landing](https://dex.dobprotocol.com/): what DobDex is and who it is for
+- [Landing](https://dex.dobprotocol.com/): what DobDex is and who it is for (also in Spanish /es/, Portuguese /pt/, Chinese /zh/, Hindi /hi/)
 - [How the protocol works](https://dex.dobprotocol.com/protocol.html): exits, Liquidity Nodes, risk tiers, settlement
 - [App](https://dex.dobprotocol.com/app.html): open an exit, back one as a Liquidity Node, claim USDC (needs Freighter on testnet)
 

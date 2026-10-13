@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DobDex — Stellar पर वास्तविक संपत्तियों के लिए एग्ज़िट लिक्विडिटी</title>
+<meta name="description" content="किसी संपत्ति को टोकनाइज़ करना आसान आधा हिस्सा है। DobDex दूसरा आधा है: एक जगह जहाँ धारक सच में अपनी पोज़ीशन बेच सकता है। TRUFA स्कोर जोखिम टियर तय करता है, Liquidity Nodes एग्ज़िट की कीमत लगाते हैं, और सेटलमेंट Stellar पर USDC में होता है।">
+<meta name="theme-color" content="#08090b">
+<!-- i18n:alternates -->
+<link rel="alternate" hreflang="en" href="https://dex.dobprotocol.com/">
+<link rel="alternate" hreflang="es" href="https://dex.dobprotocol.com/es/">
+<link rel="alternate" hreflang="pt" href="https://dex.dobprotocol.com/pt/">
+<link rel="alternate" hreflang="zh" href="https://dex.dobprotocol.com/zh/">
+<link rel="alternate" hreflang="hi" href="https://dex.dobprotocol.com/hi/">
+<link rel="alternate" hreflang="x-default" href="https://dex.dobprotocol.com/">
+<meta property="og:locale" content="hi_IN">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:locale:alternate" content="es_ES">
+<meta property="og:locale:alternate" content="pt_BR">
+<meta property="og:locale:alternate" content="zh_CN">
+<!-- /i18n:alternates -->
+<link rel="canonical" href="https://dex.dobprotocol.com/hi/">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://dex.dobprotocol.com/hi/">
+<meta property="og:title" content="DobDex — Stellar पर वास्तविक संपत्तियों के लिए एग्ज़िट लिक्विडिटी">
+<meta property="og:description" content="संपत्ति को स्कोर करें, जोखिम का टियर तय करें, Liquidity Nodes को एग्ज़िट की कीमत लगाने दें, और Stellar पर USDC में सेटल करें।">
+<meta property="og:image" content="https://dex.dobprotocol.com/media/product-dex-poster.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="DobDex — Stellar पर वास्तविक संपत्तियों के लिए एग्ज़िट लिक्विडिटी">
+<meta name="twitter:description" content="संपत्ति को स्कोर करें, जोखिम का टियर तय करें, Liquidity Nodes को एग्ज़िट की कीमत लगाने दें, और Stellar पर USDC में सेटल करें।">
+<meta name="twitter:image" content="https://dex.dobprotocol.com/media/product-dex-poster.jpg">
+
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/svg+xml" href="/dob-logo.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+
+<link rel="preload" href="/fonts/GeistVF.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="/fonts/GeistMonoVF.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" as="image" href="/media/product-dex-poster.jpg" fetchpriority="high">
+
+<!-- Google Analytics (GA4 G-1M2TNZYEZZ, same property as dobprotocol.com) with
+     Consent Mode v2: analytics is denied until the visitor accepts the DOB kit
+     cookie banner (localStorage dob_consent). -->
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {ad_storage:'denied', ad_user_data:'denied', ad_personalization:'denied', analytics_storage:'denied', wait_for_update:500});
+  try { if (localStorage.getItem('dob_consent') === 'granted') gtag('consent', 'update', {analytics_storage:'granted'}); } catch (e) {}
+  gtag('js', new Date());
+  gtag('config', 'G-1M2TNZYEZZ');
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-1M2TNZYEZZ"></script>
+
+<style>
+/* ════════════════════════════════════════════════════════════════
+   FONTS — Geist, self-hosted variable (same stack as dobprotocol.com)
+   ════════════════════════════════════════════════════════════════ */
+@font-face{font-family:'Geist';src:url('/fonts/GeistVF.woff') format('woff');font-weight:100 900;font-style:normal;font-display:swap;}
+@font-face{font-family:'Geist Mono';src:url('/fonts/GeistMonoVF.woff') format('woff');font-weight:100 900;font-style:normal;font-display:swap;}
+
+/* ════════════════════════════════════════════════════════════════
+   DESIGN TOKENS — the dobprotocol.com dark palette, verbatim
+   ════════════════════════════════════════════════════════════════ */
+:root{
+  --s0:#08090b; --s1:#0e1014; --s2:#15181d; --s3:#1c2026;
+  --b1:#16191e; --b2:#23272e; --b3:#333942;
+  --t1:#f5f6f8; --t2:#99a1b0; --t3:#6a7382;
+  --br300:#9db0f5; --br400:#7b94f0; --br500:#597ce9; --br600:#4361d4; --br900:#1b2a63;
+  --pos:#4ade80; --warn:#fbbf24; --neg:#f87171;
+  --cyan:#22d3ee; --violet:#a78bfa;
+  --sans:'Geist',-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;
+  --mono:'Geist Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  --max:1200px;
+  --ease:cubic-bezier(0.16,1,0.3,1);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;scroll-padding-top:80px;-webkit-text-size-adjust:100%;}
+body{
+  font-family:var(--sans);background:var(--s0);color:var(--t1);line-height:1.6;
+  overflow-x:hidden;-webkit-font-smoothing:antialiased;
+  font-feature-settings:'ss01' 1,'cv01' 1;
+}
+::selection{background:rgba(89,124,233,0.3);color:#fff;}
+a{color:inherit;}
+img,svg,video{display:block;max-width:100%;}
+
+/* ── Type scale (dobprotocol.com) ───────────────────────────────── */
+.d-xl{font-size:clamp(2.75rem,1.6rem + 5.2vw,5rem);line-height:1.02;letter-spacing:-0.038em;font-weight:600;}
+.d-lg{font-size:clamp(2.25rem,1.5rem + 3.4vw,3.75rem);line-height:1.05;letter-spacing:-0.034em;font-weight:600;}
+.d-md{font-size:clamp(1.875rem,1.35rem + 2.4vw,3rem);line-height:1.1;letter-spacing:-0.03em;font-weight:600;}
+.h3{font-size:1.25rem;line-height:1.3;letter-spacing:-0.017em;font-weight:600;}
+.lead{font-size:clamp(1.0625rem,1rem + 0.35vw,1.25rem);line-height:1.55;letter-spacing:-0.012em;color:var(--t2);}
+.eyebrow{font-family:var(--mono);font-size:0.6875rem;line-height:1;letter-spacing:0.1em;
+  text-transform:uppercase;font-weight:500;color:var(--br400);}
+.tnum{font-variant-numeric:tabular-nums;}
+
+/* ── Layout ─────────────────────────────────────────────────────── */
+.wrap{width:100%;max-width:calc(var(--max) + 80px);margin:0 auto;padding:0 24px;}
+@media(min-width:768px){.wrap{padding:0 40px;}}
+.sec{padding:clamp(4rem,2rem + 7vw,7.5rem) 0;position:relative;}
+.rule{height:1px;background:linear-gradient(90deg,transparent,var(--b2) 18%,var(--b2) 82%,transparent);}
+
+/* ── Buttons ────────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:0.5rem;height:52px;
+  padding-inline:1.75rem;border-radius:8px;font-size:1rem;font-weight:500;letter-spacing:-0.01em;
+  white-space:nowrap;cursor:pointer;text-decoration:none;
+  transition:background 0.2s var(--ease),border-color 0.2s var(--ease),transform 0.2s var(--ease),box-shadow 0.25s var(--ease);}
+.btn-p{background:var(--br600);color:#fff;}
+.btn-p:hover{background:var(--br500);transform:translateY(-1px);box-shadow:0 0 32px rgba(89,124,233,0.4);}
+.btn-media{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.22);
+  backdrop-filter:blur(12px) saturate(1.4);-webkit-backdrop-filter:blur(12px) saturate(1.4);}
+.btn-media:hover{background:rgba(255,255,255,0.18);border-color:rgba(255,255,255,0.35);}
+.btn-s{background:var(--s2);color:var(--t1);border:1px solid var(--b2);}
+.btn-s:hover{background:var(--s3);border-color:var(--b3);}
+.btn-sm{height:40px;padding-inline:1rem;font-size:0.875rem;}
+
+/* ── Reveal ─────────────────────────────────────────────────────── */
+.rv{opacity:0;transform:translateY(22px);transition:opacity 0.85s var(--ease),transform 0.85s var(--ease);}
+.rv.in{opacity:1;transform:none;}
+
+/* ════════════════════════════════════════════════════════════════
+   NAVBAR — transparent over the hero, solid once you leave it
+   ════════════════════════════════════════════════════════════════ */
+#progress{position:fixed;top:0;left:0;height:2px;width:0;z-index:200;
+  background:linear-gradient(90deg,var(--br600),var(--br400),var(--cyan));
+  box-shadow:0 0 12px rgba(89,124,233,0.6);transition:width 0.1s linear;}
+.nav{position:fixed;top:0;left:0;right:0;z-index:150;height:72px;display:flex;align-items:center;
+  background:transparent;border-bottom:1px solid transparent;
+  transition:background 0.4s var(--ease),border-color 0.4s var(--ease),height 0.4s var(--ease);}
+.nav.stuck{height:64px;background:rgba(8,9,11,0.88);backdrop-filter:blur(18px) saturate(160%);
+  -webkit-backdrop-filter:blur(18px) saturate(160%);border-bottom-color:var(--b1);}
+.nav-in{width:100%;max-width:calc(var(--max) + 80px);margin:0 auto;padding:0 24px;
+  display:flex;align-items:center;justify-content:space-between;gap:24px;}
+@media(min-width:768px){.nav-in{padding:0 40px;}}
+.brand{display:flex;align-items:center;gap:9px;text-decoration:none;flex-shrink:0;}
+.brand svg{width:28px;height:28px;}
+.brand b{font-size:16.5px;font-weight:700;letter-spacing:-0.02em;color:var(--t1);}
+.brand em{font-style:normal;font-family:var(--mono);font-size:9.5px;font-weight:500;
+  letter-spacing:0.14em;text-transform:uppercase;color:var(--br400);
+  border:1px solid rgba(89,124,233,0.28);border-radius:5px;padding:2px 6px;margin-left:2px;}
+.nav-links{display:flex;align-items:center;gap:2px;}
+.nav-links a{font-size:13.5px;font-weight:450;color:rgba(245,246,248,0.72);text-decoration:none;
+  padding:7px 12px;border-radius:8px;transition:color 0.2s,background 0.2s;white-space:nowrap;}
+.nav-links a:hover{color:#fff;background:rgba(255,255,255,0.06);}
+.nav-cta{margin-left:10px;font-size:13.5px;font-weight:600;text-decoration:none;color:#fff;
+  background:var(--br600);padding:9px 18px;border-radius:999px;white-space:nowrap;
+  transition:transform 0.25s var(--ease),box-shadow 0.25s var(--ease),background 0.2s;}
+.nav-cta:hover{background:var(--br500);transform:translateY(-1px);box-shadow:0 0 24px rgba(89,124,233,0.45);}
+.burger{display:none;width:38px;height:38px;border:1px solid rgba(255,255,255,0.18);border-radius:10px;
+  background:rgba(255,255,255,0.06);cursor:pointer;flex-direction:column;align-items:center;justify-content:center;gap:4px;}
+.burger span{display:block;width:15px;height:1.5px;background:var(--t1);border-radius:2px;
+  transition:transform 0.3s var(--ease),opacity 0.2s;}
+.burger.open span:nth-child(1){transform:translateY(5.5px) rotate(45deg);}
+.burger.open span:nth-child(2){opacity:0;}
+.burger.open span:nth-child(3){transform:translateY(-5.5px) rotate(-45deg);}
+.mobile{position:fixed;top:64px;left:0;right:0;z-index:149;background:rgba(8,9,11,0.97);
+  backdrop-filter:blur(18px);border-bottom:1px solid var(--b1);padding:10px 24px 22px;
+  display:none;flex-direction:column;gap:2px;}
+.mobile.open{display:flex;animation:mDrop 0.3s var(--ease);}
+@keyframes mDrop{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:none;}}
+.mobile a{font-size:15px;color:var(--t2);text-decoration:none;padding:11px 2px;border-bottom:1px solid var(--b1);}
+.mobile a:last-child{border-bottom:none;color:var(--br400);font-weight:600;}
+
+/* ════════════════════════════════════════════════════════════════
+   HERO — product-forward split. The footage is masked to the right
+   half so the copy sits on flat black (crisp type) and the exit-quote
+   card floats over the graded plate. Deliberately NOT the centred
+   full-bleed + divided metric band of dobprotocol.com.
+   ════════════════════════════════════════════════════════════════ */
+.hero{position:relative;min-height:100svh;display:flex;flex-direction:column;
+  justify-content:center;overflow:hidden;background:var(--s0);padding:124px 0 0;}
+.hero-media{position:absolute;inset:0;overflow:hidden;isolation:isolate;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0%,transparent 22%,#000 58%,#000 100%);
+  mask-image:linear-gradient(90deg,transparent 0%,transparent 22%,#000 58%,#000 100%);}
+.hero-media img,.hero-media video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  filter:grayscale(1) contrast(1.1) brightness(0.78);
+  transform:scale(1.08);animation:kb 34s ease-in-out infinite alternate;}
+@keyframes kb{from{transform:scale(1.08) translate3d(0,0,0);}to{transform:scale(1.16) translate3d(-1.4%,-1%,0);}}
+.hero-media video{opacity:0;transition:opacity 1.1s var(--ease);}
+.hero-media video.on{opacity:1;}
+/* Duotone: brand blue lifts the shadows, highlights stay neutral. */
+.hero-media::after{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(160deg,rgba(67,97,212,0.26) 0%,rgba(27,42,99,0.34) 100%);
+  mix-blend-mode:color;}
+.hero-scrim{position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:
+    radial-gradient(ellipse 70% 60% at 8% 30%, rgba(67,97,212,0.16) 0%, transparent 70%),
+    linear-gradient(180deg,rgba(8,9,11,0.55) 0%,rgba(8,9,11,0.10) 40%,rgba(8,9,11,0.86) 100%);}
+.hero-lines{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0.4;
+  background-image:linear-gradient(rgba(89,124,233,0.06) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(89,124,233,0.06) 1px,transparent 1px);
+  background-size:64px 64px;
+  -webkit-mask-image:radial-gradient(ellipse 60% 70% at 20% 40%,#000,transparent 75%);
+  mask-image:radial-gradient(ellipse 60% 70% at 20% 40%,#000,transparent 75%);}
+
+.hero-in{position:relative;z-index:10;width:100%;}
+.hero-cols{display:grid;grid-template-columns:1.04fr 0.96fr;gap:64px;align-items:center;
+  padding-bottom:clamp(2rem,3vw,3.5rem);}
+.hero h1{color:#fff;text-wrap:balance;}
+.hero h1 .ac{color:var(--br300);}
+.hero-sub{margin-top:1.5rem;max-width:34rem;color:rgba(255,255,255,0.72) !important;text-wrap:pretty;}
+.hero-cta{margin-top:2.25rem;display:flex;flex-direction:column;gap:0.75rem;}
+@media(min-width:640px){.hero-cta{flex-direction:row;}}
+
+/* ── The exit-quote card: the product, front and centre ──────────── */
+.quote{position:relative;background:linear-gradient(160deg,rgba(28,32,38,0.92),rgba(14,16,20,0.96));
+  backdrop-filter:blur(20px) saturate(1.3);-webkit-backdrop-filter:blur(20px) saturate(1.3);
+  border:1px solid var(--b2);border-radius:20px;padding:22px 22px 20px;
+  box-shadow:0 32px 90px rgba(0,0,0,0.7);}
+.quote::before{content:'';position:absolute;inset:-1px;border-radius:20px;padding:1px;
+  background:linear-gradient(150deg,rgba(89,124,233,0.45),transparent 45%,rgba(34,211,238,0.24));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;}
+.q-head{display:flex;align-items:center;gap:12px;
+  padding-bottom:14px;border-bottom:1px solid var(--b1);margin-bottom:6px;}
+.q-head .t{font-family:var(--mono);font-size:10.5px;letter-spacing:0.16em;
+  text-transform:uppercase;color:var(--t3);}
+.q-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 0;font-size:13px;}
+.q-row .k{color:var(--t3);}
+.q-row .v{font-family:var(--mono);font-weight:500;color:var(--t1);font-variant-numeric:tabular-nums;}
+
+/* the auction: bids arrive, tighten, one clears */
+.q-auction{margin:12px 0 6px;border:1px solid var(--b1);border-radius:12px;background:rgba(8,9,11,0.5);
+  padding:12px 14px;}
+.q-auction .lbl{display:flex;align-items:center;justify-content:space-between;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--t3);margin-bottom:10px;}
+.q-auction .lbl .clock{color:var(--cyan);}
+.q-bids{display:flex;flex-direction:column;gap:6px;min-height:78px;}
+.q-bid{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  font-family:var(--mono);font-size:11.5px;color:var(--t2);
+  border:1px solid var(--b1);border-radius:8px;padding:6px 10px;background:var(--s1);
+  opacity:0;transform:translateY(6px);
+  transition:opacity 0.45s var(--ease),transform 0.45s var(--ease),
+             border-color 0.45s var(--ease),background 0.45s var(--ease),color 0.45s var(--ease);}
+.q-bid.show{opacity:1;transform:none;}
+.q-bid.win{border-color:rgba(74,222,128,0.4);background:rgba(74,222,128,0.07);color:var(--t1);}
+.q-bid .who{color:var(--t3);}
+.q-bid.win .who{color:var(--pos);}
+.q-bid .tick{opacity:0;transition:opacity 0.3s var(--ease);color:var(--pos);}
+.q-bid.win .tick{opacity:1;}
+.q-total{display:flex;align-items:center;justify-content:space-between;gap:14px;
+  border-top:1px solid var(--b1);margin-top:8px;padding-top:14px;}
+.q-total .k{font-size:13px;color:var(--t2);font-weight:500;}
+.q-total .v{font-family:var(--mono);font-size:17px;font-weight:600;color:var(--pos);
+  font-variant-numeric:tabular-nums;}
+.q-foot{margin-top:14px;padding-top:12px;border-top:1px solid var(--b1);
+  font-size:11.5px;color:var(--t3);line-height:1.55;}
+.q-foot em{font-style:normal;color:var(--t2);}
+
+/* ── Metrics ticker: one mono line, not a divided band ───────────── */
+.ticker{position:relative;z-index:10;border-top:1px solid rgba(255,255,255,0.08);
+  background:rgba(0,0,0,0.35);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);}
+.ticker-in{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:15px 0;}
+.ticker .l{font-family:var(--mono);font-size:9.5px;letter-spacing:0.1em;text-transform:uppercase;
+  color:rgba(255,255,255,0.38);flex-shrink:0;}
+.ticker ul{list-style:none;display:flex;align-items:center;gap:22px;flex-wrap:wrap;}
+.ticker li{font-size:12.5px;color:rgba(255,255,255,0.6);display:flex;align-items:baseline;gap:7px;}
+.ticker li b{font-family:var(--mono);font-size:14px;font-weight:600;color:#fff;
+  font-variant-numeric:tabular-nums;}
+
+@media(max-width:1040px){
+  .hero{min-height:0;padding:112px 0 0;}
+  .hero-cols{grid-template-columns:1fr;gap:44px;}
+  .hero-media{-webkit-mask-image:linear-gradient(180deg,transparent 0%,#000 55%,#000 100%);
+    mask-image:linear-gradient(180deg,transparent 0%,#000 55%,#000 100%);}
+  .hero-sub{max-width:38rem;}
+}
+@media(max-width:560px){
+  .quote{padding:18px 16px 16px;border-radius:16px;}
+  .ticker ul{gap:14px;}
+}
+
+/* ════════════════════════════════════════════════════════════════
+   THESIS
+   ════════════════════════════════════════════════════════════════ */
+.thesis-q{max-width:56rem;font-size:clamp(1.5rem,1rem + 2.2vw,2.4rem);line-height:1.28;
+  letter-spacing:-0.028em;font-weight:500;color:var(--t1);text-wrap:balance;}
+.thesis-q em{font-style:normal;color:var(--br300);}
+.tri{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--b1);
+  border:1px solid var(--b1);border-radius:14px;overflow:hidden;margin-top:56px;}
+.tri > div{background:var(--s1);padding:28px 26px;}
+.tri h4{font-size:14px;font-weight:600;letter-spacing:-0.01em;margin-bottom:8px;color:var(--t1);}
+.tri p{font-size:13.5px;line-height:1.65;color:var(--t2);}
+.tri .k{font-family:var(--mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--t3);margin-bottom:14px;}
+@media(max-width:840px){.tri{grid-template-columns:1fr;}}
+
+/* ════════════════════════════════════════════════════════════════
+   MECHANISM — four moves
+   ════════════════════════════════════════════════════════════════ */
+.moves{margin-top:56px;position:relative;}
+.moves-line{position:absolute;top:26px;left:0;right:0;height:1px;background:var(--b2);}
+.moves-line i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--br600),var(--cyan));
+  box-shadow:0 0 12px rgba(89,124,233,0.5);transition:width 1.6s var(--ease);}
+.moves.in .moves-line i{width:100%;}
+.moves-grid{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:28px;}
+.move .num{width:52px;height:52px;border-radius:14px;background:var(--s1);border:1px solid var(--b2);
+  display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px;
+  font-weight:600;color:var(--br400);margin-bottom:20px;
+  transition:border-color 0.5s var(--ease),box-shadow 0.5s var(--ease);}
+.moves.in .move .num{border-color:rgba(89,124,233,0.4);box-shadow:0 0 24px rgba(89,124,233,0.14);}
+.move h4{font-size:16px;font-weight:600;letter-spacing:-0.015em;margin-bottom:8px;}
+.move p{font-size:13.5px;line-height:1.65;color:var(--t2);}
+.move code{font-family:var(--mono);font-size:11.5px;color:var(--br300);background:var(--s2);
+  border:1px solid var(--b1);border-radius:6px;padding:2px 7px;display:inline-block;margin-top:12px;}
+@media(max-width:960px){
+  .moves-grid{grid-template-columns:repeat(2,1fr);gap:36px 28px;}
+  .moves-line{display:none;}
+}
+@media(max-width:560px){.moves-grid{grid-template-columns:1fr;}}
+
+/* ════════════════════════════════════════════════════════════════
+   TWO SIDES
+   ════════════════════════════════════════════════════════════════ */
+.sides{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:56px;}
+@media(max-width:900px){.sides{grid-template-columns:1fr;}}
+.side{border:1px solid var(--b1);border-radius:18px;overflow:hidden;background:var(--s1);
+  display:flex;flex-direction:column;transition:border-color 0.4s var(--ease),transform 0.4s var(--ease);}
+.side:hover{border-color:var(--b3);transform:translateY(-3px);}
+.side-media{position:relative;height:200px;overflow:hidden;isolation:isolate;background:var(--s3);}
+.side-media img{width:100%;height:100%;object-fit:cover;
+  filter:grayscale(1) contrast(1.06) brightness(0.82);
+  transition:transform 0.9s var(--ease),filter 0.9s var(--ease);}
+.side:hover .side-media img{transform:scale(1.05);filter:grayscale(1) contrast(1.1) brightness(0.95);}
+.side-media::after{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(180deg,rgba(67,97,212,0.18) 0%,rgba(27,42,99,0.30) 100%);mix-blend-mode:color;}
+.side-media::before{content:'';position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:linear-gradient(180deg,rgba(14,16,20,0.1) 0%,rgba(14,16,20,0.92) 100%);}
+.side-tag{position:absolute;left:22px;bottom:18px;z-index:3;font-family:var(--mono);font-size:10px;
+  letter-spacing:0.1em;text-transform:uppercase;color:var(--br300);}
+.side-body{padding:26px 26px 28px;flex:1;display:flex;flex-direction:column;}
+.side-body h3{font-size:1.3rem;font-weight:600;letter-spacing:-0.02em;margin-bottom:10px;}
+.side-body p{font-size:14px;line-height:1.7;color:var(--t2);}
+.side-list{list-style:none;margin:18px 0 22px;display:flex;flex-direction:column;gap:9px;}
+.side-list li{font-size:13px;color:var(--t2);padding-left:18px;position:relative;line-height:1.55;}
+.side-list li::before{content:'';position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;
+  background:var(--br500);}
+.side-body .btn{margin-top:auto;align-self:flex-start;}
+
+/* ════════════════════════════════════════════════════════════════
+   CTA BAND
+   ════════════════════════════════════════════════════════════════ */
+.cta{position:relative;overflow:hidden;isolation:isolate;border-top:1px solid var(--b1);}
+.cta-media{position:absolute;inset:0;z-index:-2;}
+.cta-media img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.05) brightness(0.55);}
+.cta-media::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(8,9,11,0.86) 0%,rgba(8,9,11,0.94) 100%);}
+.cta-in{padding:clamp(4rem,2rem + 6vw,6.5rem) 0;text-align:center;}
+.cta-in h2{max-width:34rem;margin:0 auto;text-wrap:balance;}
+.cta-in p{max-width:34rem;margin:18px auto 0;}
+.cta-btns{margin-top:34px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+
+/* ════════════════════════════════════════════════════════════════
+   FOOTER
+   ════════════════════════════════════════════════════════════════ */
+footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
+.f-top{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:40px;}
+.f-col button{display:block;background:none;border:0;font:inherit;font-size:13.5px;color:var(--t2);padding:5px 0;cursor:pointer;text-align:left;}
+.f-col button:hover{color:var(--t1);}
+.f-built{display:flex;flex-wrap:wrap;gap:14px;margin-top:16px;font-size:12px;color:var(--t3);align-items:center;}
+.f-built span{display:inline-flex;align-items:center;gap:6px;}
+.f-built img{width:16px;height:16px;}
+.hero-chips{display:flex;gap:16px;flex-wrap:wrap;margin-top:18px;font-size:12.5px;color:var(--t2);}
+.hero-chips span{display:inline-flex;align-items:center;gap:7px;}
+.hero-chips img{width:18px;height:18px;}
+.nav-lang{margin-left:6px;background:transparent;color:var(--t2);border:1px solid var(--b2);border-radius:8px;font:inherit;font-size:12.5px;padding:5px 6px;cursor:pointer;}
+.nav-lang option{background:var(--s1);color:var(--t1);}
+.mob-langs{display:flex;flex-wrap:wrap;gap:4px 14px;}
+.mob-langs a{font-size:15px !important;}
+@media(max-width:800px){.f-top{grid-template-columns:1fr;gap:28px;}}
+.f-brand{display:flex;align-items:center;gap:9px;margin-bottom:12px;}
+.f-brand svg{width:26px;height:26px;}
+.f-brand b{font-size:15px;font-weight:700;letter-spacing:-0.02em;}
+.f-desc{font-size:13px;line-height:1.7;color:var(--t3);max-width:22rem;}
+.f-col h5{font-family:var(--mono);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--t3);margin-bottom:14px;font-weight:500;}
+.f-col a{display:block;font-size:13.5px;color:var(--t2);text-decoration:none;padding:5px 0;
+  transition:color 0.2s;}
+.f-col a:hover{color:var(--t1);}
+.f-bot{margin-top:44px;padding-top:22px;border-top:1px solid var(--b1);display:flex;
+  align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.f-bot p{font-size:12px;color:var(--t3);}
+.f-tags{display:flex;gap:8px;flex-wrap:wrap;}
+.f-tags span{font-family:var(--mono);font-size:10px;color:var(--t3);border:1px solid var(--b1);
+  border-radius:999px;padding:4px 10px;}
+
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto;}
+  .rv{opacity:1;transform:none;transition:none;}
+  .hero-media img,.hero-media video{animation:none;transform:none;}
+  .moves-line i{transition:none;width:100%;}
+}
+
+/* ════════════════════════════════════════════════════════════════
+   DIAGRAMS — hand-built inline SVG. Wide, so each one scrolls
+   inside its own container on narrow screens rather than shrinking
+   its labels into illegibility.
+   ════════════════════════════════════════════════════════════════ */
+.dg-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;padding-bottom:4px;}
+.dg-scroll svg{display:block;width:100%;height:auto;}
+.dg-scroll::-webkit-scrollbar{height:6px;}
+.dg-scroll::-webkit-scrollbar-thumb{background:var(--b3);border-radius:3px;}
+
+/* ── Timeline: fifteen years of yield, one holder who needs out ── */
+.tl svg{min-width:820px;}
+.tl-axis{stroke:var(--b3);stroke-width:1.5;}
+.tl-bar{fill:var(--br600);opacity:0.42;}
+.tl-bar.paid{fill:var(--br400);opacity:0.95;}
+.tl-mark{stroke:var(--warn);stroke-width:1.5;stroke-dasharray:5 6;}
+.tl-chip{fill:rgba(251,191,36,0.10);stroke:rgba(251,191,36,0.38);}
+.tl-chip-t{fill:var(--warn);font:500 14px var(--sans);}
+.tl-lock-t{fill:var(--t3);font:500 12px var(--mono);letter-spacing:0.18em;text-transform:uppercase;}
+.tl-yr{fill:var(--t3);font:400 12px var(--mono);}
+.tl-cap{margin-top:18px;font-size:14px;color:var(--t3);}
+
+/* ── The three facts, as chips instead of paragraphs ─────────────── */
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:34px;}
+.fact{display:flex;align-items:center;gap:14px;border:1px solid var(--b1);border-radius:14px;
+  background:var(--s1);padding:18px 20px;}
+.fact .ico{flex-shrink:0;width:38px;height:38px;border-radius:10px;display:grid;place-items:center;
+  background:rgba(248,113,113,0.09);color:var(--neg);}
+.fact b{display:block;font-size:15px;font-weight:600;color:var(--t1);letter-spacing:-0.01em;}
+.fact span{display:block;margin-top:3px;font-size:12.5px;color:var(--t3);}
+@media(max-width:820px){.facts{grid-template-columns:1fr;}}
+
+/* ── Mechanism flow ─────────────────────────────────────────────── */
+.dg-flow svg{min-width:1000px;}
+.dg-card{fill:var(--s1);stroke:var(--b2);transition:fill 0.3s var(--ease),stroke 0.3s var(--ease);}
+.st{cursor:pointer;}
+.st:focus{outline:none;}
+.st:focus-visible .dg-card{stroke:var(--br400);}
+.st .accent{fill:var(--br500);opacity:0;transition:opacity 0.3s var(--ease);}
+.st.on .dg-card{fill:var(--s2);stroke:var(--br600);}
+.st.on .accent{opacity:1;}
+.st:hover .dg-card{stroke:var(--b3);}
+.dg-n{fill:var(--t3);font:500 11px var(--mono);letter-spacing:0.14em;}
+.st.on .dg-n{fill:var(--br400);}
+.dg-t{fill:var(--t1);font:600 18px var(--sans);letter-spacing:-0.01em;}
+.dg-c{fill:var(--br300);font:500 12px var(--mono);}
+.dg-chip{fill:var(--s1);stroke:var(--b1);}
+.dg-chip.win{fill:rgba(74,222,128,0.07);stroke:rgba(74,222,128,0.35);}
+.dg-chip.out{fill:rgba(89,124,233,0.07);stroke:rgba(89,124,233,0.3);}
+.dg-chip-t{fill:var(--t2);font:400 13px var(--sans);}
+.dg-chip-t.mono{font:500 12px var(--mono);fill:var(--t3);}
+.dg-cap{fill:var(--t3);font:500 10.5px var(--mono);letter-spacing:0.16em;text-transform:uppercase;}
+.dg-link{stroke:var(--b3);stroke-width:1.5;fill:none;}
+.dg-link.dash{stroke-dasharray:5 6;stroke:var(--b3);}
+.dg-pulse{stroke:var(--br500);stroke-width:2;fill:none;stroke-dasharray:7 9;
+  animation:dgdash 1.1s linear infinite;}
+@keyframes dgdash{to{stroke-dashoffset:-32;}}
+.dg-detail{display:grid;grid-template-columns:auto 1fr;gap:18px;margin-top:26px;
+  border:1px solid var(--b1);border-radius:16px;background:var(--s1);padding:20px 22px;}
+.dgd-n{font-family:var(--mono);font-size:12px;color:var(--br400);padding-top:3px;}
+.dgd-h{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:7px;}
+.dgd-t{font-size:16px;font-weight:600;color:var(--t1);letter-spacing:-0.01em;}
+.dgd-c{font-family:var(--mono);font-size:11.5px;color:var(--br300);border:1px solid var(--b2);
+  border-radius:6px;padding:3px 9px;}
+.dgd-p{font-size:14.5px;color:var(--t2);line-height:1.65;max-width:56rem;}
+.dg-hint{margin-top:12px;font-family:var(--mono);font-size:10.5px;letter-spacing:0.14em;
+  text-transform:uppercase;color:var(--t3);}
+@media(prefers-reduced-motion:reduce){.dg-pulse{animation:none;}}
+@media(max-width:620px){.dg-detail{grid-template-columns:1fr;gap:10px;}}
+
+/* ════════ NAV PRODUCTS MENU ════════ */
+.nav-prod{position:relative;}
+.nav-prod > button{display:flex;align-items:center;gap:6px;background:none;border:0;cursor:pointer;
+  font:inherit;font-size:13.5px;color:var(--t2);padding:8px 12px;border-radius:8px;
+  transition:color 0.2s,background 0.2s;}
+.nav-prod > button:hover,.nav-prod.open > button{color:var(--t1);background:rgba(255,255,255,0.05);}
+.nav-prod > button svg{width:10px;height:10px;transition:transform 0.22s var(--ease);}
+.nav-prod.open > button svg{transform:rotate(180deg);}
+.nav-menu{position:absolute;top:calc(100% + 10px);left:50%;transform:translateX(-50%) translateY(-6px);
+  min-width:236px;background:var(--s1);border:1px solid var(--b2);border-radius:14px;padding:7px;
+  box-shadow:0 18px 44px rgba(0,0,0,0.45);opacity:0;visibility:hidden;
+  transition:opacity 0.2s var(--ease),transform 0.2s var(--ease),visibility 0.2s;z-index:60;}
+.nav-prod.open .nav-menu{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0);}
+.nav-menu a{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:9px 12px;border-radius:9px;font-size:13.5px;color:var(--t2);text-decoration:none;
+  transition:color 0.18s,background 0.18s;}
+.nav-menu a:hover{color:var(--t1);background:rgba(255,255,255,0.05);}
+.nav-menu a[aria-current]{color:var(--br300);background:rgba(89,124,233,0.09);}
+.nav-menu .bdg{font-family:var(--mono);font-size:9px;letter-spacing:0.09em;text-transform:uppercase;
+  color:var(--t3);border:1px solid var(--b2);border-radius:5px;padding:2px 6px;}
+.nav-menu .bdg.live{color:var(--pos);border-color:rgba(74,222,128,0.3);}
+.nav-menu .bdg.test{color:var(--warn);border-color:rgba(251,191,36,0.3);}
+.mobile .mob-lbl{font-family:var(--mono);font-size:10px;letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--t3);padding:14px 0 4px;}
+@media(max-width:860px){.nav-prod{display:none;}}
+
+/* ════════ EXIT QUOTE ════════ */
+.ex{margin-top:44px;border:1px solid var(--b2);border-radius:22px;background:var(--s1);overflow:hidden;}
+
+/* the score is the instrument: a five-segment tier ladder the handle rides */
+.ex-head{padding:30px clamp(20px,3vw,34px);border-bottom:1px solid var(--b1);}
+.ex-idm{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:26px;}
+.ex-grade{display:flex;align-items:center;gap:16px;}
+.ex-grade .g{font-size:clamp(42px,3vw + 26px,58px);font-weight:700;line-height:0.86;letter-spacing:-0.045em;
+  color:var(--tc,var(--br500));transition:color 0.4s var(--ease);}
+.ex-grade .m b{display:block;font-size:15px;font-weight:600;color:var(--t1);letter-spacing:-0.012em;}
+.ex-grade .m span{display:block;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.15em;
+  text-transform:uppercase;color:var(--t3);margin-top:6px;}
+.ex-sc{text-align:right;line-height:1;}
+.ex-sc .v{font-family:var(--mono);font-size:28px;font-weight:600;color:var(--t1);font-variant-numeric:tabular-nums;}
+.ex-sc .v i{font-style:normal;font-size:15px;color:var(--t3);}
+.ex-sc .l{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;
+  color:var(--t3);margin-top:9px;}
+.lad{position:relative;}
+.lad-t{display:flex;gap:2px;height:9px;}
+.lad-t i{flex:var(--w) 1 0;border-radius:2px;background:var(--c);opacity:0.16;transition:opacity 0.4s var(--ease);}
+.lad-t i.on{opacity:1;}
+.lad-l{display:flex;gap:2px;margin-top:11px;}
+.lad-l i{flex:var(--w) 1 0;font-family:var(--mono);font-size:10px;font-weight:600;font-style:normal;
+  letter-spacing:0.09em;color:var(--t3);transition:color 0.4s var(--ease);white-space:nowrap;overflow:hidden;}
+.lad-l i.on{color:var(--c);}
+.lad input{-webkit-appearance:none;appearance:none;position:absolute;left:0;top:-8px;width:100%;height:25px;
+  margin:0;background:transparent;cursor:ew-resize;}
+.lad input::-webkit-slider-runnable-track{height:25px;background:transparent;}
+.lad input::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:3px;height:25px;border-radius:2px;
+  background:var(--t1);box-shadow:0 0 0 3px var(--s1),0 3px 12px rgba(0,0,0,0.65);}
+.lad input::-moz-range-track{height:25px;background:transparent;border:0;}
+.lad input::-moz-range-thumb{width:3px;height:25px;border:0;border-radius:2px;background:var(--t1);
+  box-shadow:0 0 0 3px var(--s1),0 3px 12px rgba(0,0,0,0.65);}
+
+.ex-body{display:grid;grid-template-columns:minmax(0,0.86fr) minmax(0,1.14fr);}
+.ex-in{padding:30px clamp(20px,3vw,34px);border-right:1px solid var(--b1);
+  display:flex;flex-direction:column;}
+.ex-in .ex-sep.push{margin-top:auto;}
+.ex-out{padding:30px clamp(20px,3vw,34px);background:var(--s0);display:flex;flex-direction:column;}
+.ex-lab{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-family:var(--mono);
+  font-size:10px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:var(--t3);}
+.ex-lab .cur{font-family:var(--sans);font-size:19px;font-weight:600;letter-spacing:-0.02em;text-transform:none;
+  color:var(--t1);font-variant-numeric:tabular-nums;}
+.ex-amt{margin-top:16px;}
+.ex-amt input{-webkit-appearance:none;appearance:none;width:100%;height:2px;border-radius:2px;
+  background:var(--b3);outline:none;cursor:ew-resize;}
+.ex-amt input::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;
+  border-radius:50%;background:var(--t1);box-shadow:0 0 0 4px var(--s1);transition:box-shadow 0.2s;}
+.ex-amt input::-webkit-slider-thumb:hover{box-shadow:0 0 0 4px var(--s1),0 0 0 9px rgba(245,246,248,0.09);}
+.ex-amt input::-moz-range-thumb{width:14px;height:14px;border:0;border-radius:50%;background:var(--t1);
+  box-shadow:0 0 0 4px var(--s1);}
+.ex-scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--t3);
+  margin-top:10px;}
+.ex-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:16px;}
+.ex-chip{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--t3);background:transparent;
+  border:1px solid var(--b2);border-radius:7px;padding:6px 11px;cursor:pointer;
+  transition:color 0.18s,border-color 0.18s,background 0.18s;}
+.ex-chip:hover{color:var(--t1);border-color:var(--b3);}
+.ex-chip.on{color:var(--s0);background:var(--t1);border-color:var(--t1);}
+.ex-sep{height:1px;background:var(--b1);margin:28px 0;}
+
+.ex-net .k{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.16em;text-transform:uppercase;
+  color:var(--t3);}
+.ex-net .v{display:flex;align-items:baseline;gap:10px;margin-top:14px;font-size:clamp(38px,3.4vw + 22px,56px);
+  font-weight:700;letter-spacing:-0.042em;line-height:0.92;color:var(--t1);font-variant-numeric:tabular-nums;}
+.ex-net .u{font-family:var(--mono);font-size:14px;font-weight:500;letter-spacing:0;color:var(--t3);}
+.ex-net .s{margin-top:13px;font-size:13px;color:var(--t2);}
+.ex-net .s b{font-family:var(--mono);font-weight:600;color:var(--warn);}
+
+/* two scales: the deal at true proportion, then the discount magnified to fill the bar */
+.wf{margin-top:28px;}
+.wf-bar{display:flex;gap:2px;height:32px;}
+.wf-bar i{flex:0 1 0;min-width:2px;border-radius:3px;transition:flex-grow 0.45s var(--ease),background 0.4s var(--ease);}
+.wf-bar .keep{background:linear-gradient(180deg,var(--br500),var(--br600));}
+.wf-bar .cut{background:var(--s3);}
+.wf-bar.mag{height:8px;}
+.wf-bar.mag .a{background:var(--tc,var(--br500));}
+.wf-bar.mag .b{background:var(--cyan);}
+.wf-bar.mag .c{background:var(--violet);}
+.wf-leg{display:flex;justify-content:space-between;gap:12px;margin-top:10px;font-family:var(--mono);
+  font-size:10.5px;color:var(--t3);}
+.wf-leg b{color:var(--t2);font-weight:500;}
+.wf-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:26px 0 11px;
+  font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--t3);}
+.wf-h em{font-style:normal;font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:-0.01em;
+  text-transform:none;color:var(--t1);font-variant-numeric:tabular-nums;}
+.wf-key{display:flex;flex-direction:column;margin-top:13px;}
+.wf-key div{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:12.5px;}
+.wf-key i{width:7px;height:7px;border-radius:2px;flex:none;}
+.wf-key .k{color:var(--t2);}
+.wf-key .n{margin-left:auto;padding-right:14px;font-size:11.5px;color:var(--t3);}
+.wf-key .v{font-family:var(--mono);font-weight:600;color:var(--t1);font-variant-numeric:tabular-nums;}
+
+.ex-route{margin-top:auto;padding-top:28px;}
+.ex-steps{display:flex;gap:5px;}
+.ex-step{flex:1;padding:11px 12px;border:1px solid var(--b2);border-radius:10px;
+  transition:border-color 0.3s,background 0.3s;}
+.ex-step .t{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:0.11em;text-transform:uppercase;
+  color:var(--t3);transition:color 0.3s;}
+.ex-step .d{font-size:11.5px;color:var(--t3);margin-top:5px;transition:color 0.3s;}
+.ex-step.on{border-color:rgba(89,124,233,0.45);background:rgba(89,124,233,0.08);}
+.ex-step.on .t{color:var(--br300);}
+.ex-step.on .d{color:var(--t2);}
+.ex-exp{margin-top:16px;font-size:12.5px;line-height:1.68;color:var(--t2);}
+.ex-exp b{color:var(--t1);font-weight:600;}
+
+.ex-notes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px 30px;margin-top:34px;}
+.ex-note{padding-top:14px;border-top:1px solid var(--b2);font-size:12px;line-height:1.62;color:var(--t3);}
+.ex-note b{display:block;font-size:12px;font-weight:600;color:var(--t1);margin-bottom:5px;letter-spacing:-0.005em;}
+.ex-fine{margin-top:26px;font-size:11px;line-height:1.6;color:var(--t3);max-width:44rem;}
+
+@media(max-width:1040px){.ex-notes{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:900px){
+  .ex-notes{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .ex-body{grid-template-columns:1fr;}
+  .ex-in{border-right:0;border-bottom:1px solid var(--b1);}
+}
+@media(max-width:520px){
+  .ex-idm{flex-direction:column;align-items:flex-start;gap:18px;}
+  .ex-sc{text-align:left;}
+  .ex-steps{flex-direction:column;}
+  .lad-l i{font-size:9px;letter-spacing:0;}
+  .wf-key .n{display:none;}
+  .ex-notes{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<!-- ═══════════════ NAV ═══════════════ -->
+<nav class="nav" id="nav">
+  <div class="nav-in">
+    <a class="brand" href="/">
+      <svg viewBox="0 0 89 89" fill="none" aria-hidden="true"><circle cx="44.9" cy="44" r="44" fill="#597CE9"/><path d="M35.5 54.1C33.1 51.5 31.9 48.2 31.9 44C31.9 39.8 33.1 36.5 35.5 33.9C36.9 32.4 38.6 31.3 40.6 30.7V22C38 22.4 35.6 23.2 33.4 24.5C30.1 26.4 27.5 29 25.7 32.3C23.9 35.7 23 39.6 23 44.1C23 48.6 23.9 52.5 25.7 55.8C27.5 59.2 30.1 61.7 33.4 63.6C35.6 64.8 38 65.6 40.6 66V57.3C38.6 56.7 36.9 55.6 35.5 54.1Z" fill="#F9FAFE"/><path d="M64.1 32.3C62.2 29 59.7 26.4 56.4 24.5C54.2 23.2 51.8 22.4 49.2 22V30.7C51.2 31.4 52.9 32.4 54.3 34C56.7 36.6 57.9 39.9 57.9 44.1C57.9 48.3 56.7 51.5 54.3 54.1C52.9 55.6 51.2 56.7 49.2 57.3V66C51.8 65.6 54.2 64.8 56.4 63.6C59.7 61.7 62.2 59.1 64.1 55.8C65.9 52.5 66.9 48.6 66.9 44.1C66.9 39.6 65.9 35.7 64.1 32.3Z" fill="#F9FAFE"/><circle cx="44.9" cy="44" r="5.5" fill="#F9FAFE"/></svg>
+      <b>DobDex</b><!-- <em>Stellar</em> -->
+    </a>
+    <div class="nav-links">
+      <div class="nav-prod" id="navProd">
+        <button type="button" id="navProdBtn" aria-expanded="false" aria-haspopup="true">
+          उत्पाद
+          <svg viewBox="0 0 10 6" fill="none" aria-hidden="true"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="nav-menu" role="menu" aria-labelledby="navProdBtn">
+          <a role="menuitem" href="https://dob.capital" target="_blank" rel="noopener">Capital <span class="bdg live">लाइव</span></a>
+          <a role="menuitem" href="https://home.dobprotocol.com" target="_blank" rel="noopener">Token Studio <span class="bdg live">लाइव</span></a>
+          <a role="menuitem" href="https://validator.dobprotocol.com" target="_blank" rel="noopener">Validator <span class="bdg live">लाइव</span></a>
+          <a role="menuitem" href="/" aria-current="page">Dex <span class="bdg test">Testnet</span></a>
+          <a role="menuitem" href="https://link.dobprotocol.com" target="_blank" rel="noopener">Link</a>
+        </div>
+      </div>
+      <a href="/protocol.html">यह कैसे काम करता है</a>
+      <a href="https://docs.dobprotocol.com/dex/overview" target="_blank" rel="noopener">डॉक्स</a>
+      <select class="nav-lang" id="langSel" aria-label="भाषा">
+        <option value="en">EN</option><option value="es">ES</option><option value="pt">PT</option><option value="zh">中文</option><option value="hi">हिन्दी</option>
+      </select>
+      <a class="nav-cta" href="/app.html">ऐप खोलें</a>
+    </div>
+    <button class="burger" id="burger" aria-label="मेन्यू" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+<div class="mobile" id="mobile">
+  <a href="/protocol.html">यह कैसे काम करता है</a>
+  <a href="/protocol.html#roadmap">रोडमैप</a>
+  <a href="https://docs.dobprotocol.com/dex/overview" target="_blank" rel="noopener">दस्तावेज़</a>
+  <a href="/app.html">ऐप खोलें</a>
+  <div class="mob-lbl">भाषा</div>
+  <div class="mob-langs"><a href="/" data-lang="en">English</a><a href="/es/" data-lang="es">Español</a><a href="/pt/" data-lang="pt">Português</a><a href="/zh/" data-lang="zh">中文</a><a href="/hi/" data-lang="hi">हिन्दी</a></div>
+  <div class="mob-lbl">Dobprotocol</div>
+  <a href="https://dob.capital" target="_blank" rel="noopener">Capital</a>
+  <a href="https://home.dobprotocol.com" target="_blank" rel="noopener">Token Studio</a>
+  <a href="https://validator.dobprotocol.com" target="_blank" rel="noopener">Validator</a>
+  <a href="https://link.dobprotocol.com" target="_blank" rel="noopener">Link</a>
+</div>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<header class="hero">
+  <div class="hero-media">
+    <img src="/media/product-dex-poster.jpg" alt="" aria-hidden="true" fetchpriority="high" decoding="async">
+    <video id="heroVid" muted loop playsinline preload="none" poster="/media/product-dex-poster.jpg" aria-hidden="true"></video>
+  </div>
+  <div class="hero-scrim"></div>
+  <div class="hero-lines"></div>
+
+  <div class="hero-in">
+    <div class="wrap">
+      <div class="hero-cols">
+        <div class="hero-copy">
+          <h1 class="d-xl rv">
+            किसी संपत्ति को टोकनाइज़ करना आसान है।<br><span class="ac">बाहर निकलना नहीं।</span>
+          </h1>
+          <p class="lead hero-sub rv" style="transition-delay:0.12s">
+            DobDex टोकनाइज़्ड वास्तविक संपत्तियों की एग्ज़िट लेयर है &mdash; एक जगह जहाँ धारक सच में अपनी पोज़ीशन बेच सकता है, उस कीमत पर जो प्रतिस्पर्धी पूंजी तय करती है, और Stellar पर USDC में भुगतान पा सकता है।
+          </p>
+          <div class="hero-cta rv" style="transition-delay:0.18s">
+            <a class="btn btn-p" href="/app.html">ऐप खोलें<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+            <a class="btn btn-media" href="/protocol.html">यह कैसे काम करता है</a>
+          </div>
+          <div class="hero-chips rv" style="transition-delay:0.22s">
+            <span><img src="/media/logos/stellar.svg" alt="Stellar" width="18" height="18">Stellar</span>
+            <span><img src="/media/logos/usdc.svg" alt="USDC" width="18" height="18">USDC</span>
+            <span><img src="/dob-logo.svg" alt="DobValidator" width="18" height="18">DobValidator</span>
+          </div>
+        </div>
+
+        <div class="quote rv" style="transition-delay:0.22s" id="quoteCard">
+          <div class="q-head">
+            <span class="t">एग्ज़िट कोट</span>
+          </div>
+          <div class="q-row"><span class="k">पोज़ीशन</span><span class="v">$25,000</span></div>
+          <div class="q-row"><span class="k">TRUFA स्कोर</span><span class="v">82 &middot; <span style="color:var(--br400);">Tier B</span></span></div>
+          <div class="q-row"><span class="k">टियर का सामान्य स्प्रेड</span><span class="v">120 &ndash; 300 bps</span></div>
+
+          <div class="q-auction">
+            <div class="lbl"><span>Liquidity Nodes बोली लगा रहे हैं</span><span class="clock" id="qClock">05:00</span></div>
+            <div class="q-bids" id="qBids">
+              <div class="q-bid"><span class="who">Node 7a41&hellip;</span><span>241 bps<span class="tick"> &#10003;</span></span></div>
+              <div class="q-bid"><span class="who">Node 3f9c&hellip;</span><span>198 bps<span class="tick"> &#10003;</span></span></div>
+              <div class="q-bid"><span class="who">Node c2e8&hellip;</span><span>178 bps<span class="tick"> &#10003;</span></span></div>
+            </div>
+          </div>
+
+          <div class="q-row"><span class="k">क्लियरिंग बोली</span><span class="v" id="qClear">&mdash;</span></div>
+          <div class="q-row"><span class="k">रूट</span><span class="v" style="color:var(--cyan);">बोली स्वीकार</span></div>
+          <div class="q-total"><span class="k">आपको मिलेगा</span><span class="v" id="qOut">&mdash;</span></div>
+          <div class="q-foot">
+            ओरेकल कीमत तय करता है <em>संपत्ति</em>की। Liquidity Nodes कीमत तय करते हैं <em>एग्ज़िट</em>की। यहाँ हर संख्या एक उदाहरण है, कोटेशन नहीं।
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ticker">
+    <div class="wrap">
+      <div class="ticker-in">
+        <span class="l">Stellar मेननेट पर Dobprotocol</span>
+        <ul>
+          <li><b data-count="125">0</b> लाइव पूल</li>
+          <li><b data-count="878">0</b> पंजीकृत उपयोगकर्ता</li>
+          <li><b data-count="147">0</b> मार्केटप्लेस लिस्टिंग</li>
+          <li><b data-count="412">0</b> इंडेक्स किए गए कॉन्ट्रैक्ट इवेंट</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════ THESIS ═══════════════ -->
+<section class="sec" id="thesis">
+  <div class="wrap">
+    <p class="eyebrow rv">समस्या</p>
+    <h2 class="d-md rv" style="transition-delay:0.06s;margin-top:14px;">
+      पंद्रह साल का यील्ड।<br><span style="color:var(--t3);">मार्च में कोई रास्ता नहीं।</span>
+    </h2>
+
+    <div class="dg-scroll tl rv" style="transition-delay:0.12s;margin-top:40px;" role="img"
+         aria-label="पंद्रह साल की भुगतान धारा। धारक को दूसरे साल में नकद चाहिए, और उसके बाद सब कुछ मैच्योरिटी तक लॉक है: न काउंटरपार्टी, न ऑर्डर बुक, न कीमत।">
+      <svg viewBox="0 0 1200 220" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <pattern id="hatch" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="0" x2="0" y2="8" stroke="#6a7382" stroke-width="1" stroke-opacity="0.16"/>
+          </pattern>
+        </defs>
+
+        <!-- everything past the moment the holder needs out -->
+        <rect x="190" y="18" width="970" height="142" fill="url(#hatch)"/>
+        <text class="tl-lock-t" x="675" y="196" text-anchor="middle">मैच्योरिटी तक लॉक</text>
+
+        <rect class="tl-bar paid" x="76" y="120" width="11" height="40" rx="3"/>
+          <rect class="tl-bar paid" x="148" y="115" width="11" height="45" rx="3"/>
+          <rect class="tl-bar" x="220" y="117" width="11" height="43" rx="3"/>
+          <rect class="tl-bar" x="292" y="113" width="11" height="47" rx="3"/>
+          <rect class="tl-bar" x="364" y="116" width="11" height="44" rx="3"/>
+          <rect class="tl-bar" x="436" y="114" width="11" height="46" rx="3"/>
+          <rect class="tl-bar" x="508" y="118" width="11" height="42" rx="3"/>
+          <rect class="tl-bar" x="580" y="113" width="11" height="47" rx="3"/>
+          <rect class="tl-bar" x="652" y="115" width="11" height="45" rx="3"/>
+          <rect class="tl-bar" x="724" y="117" width="11" height="43" rx="3"/>
+          <rect class="tl-bar" x="796" y="114" width="11" height="46" rx="3"/>
+          <rect class="tl-bar" x="868" y="116" width="11" height="44" rx="3"/>
+          <rect class="tl-bar" x="940" y="113" width="11" height="47" rx="3"/>
+          <rect class="tl-bar" x="1012" y="117" width="11" height="43" rx="3"/>
+          <rect class="tl-bar" x="1084" y="115" width="11" height="45" rx="3"/>
+
+        <line class="tl-axis" x1="40" y1="160" x2="1160" y2="160"/>
+        <text class="tl-yr" x="40" y="186">वर्ष 1</text>
+        <text class="tl-yr" x="1160" y="186" text-anchor="end">वर्ष 15</text>
+
+        <line class="tl-mark" x1="190" y1="14" x2="190" y2="172"/>
+        <circle cx="190" cy="160" r="5" fill="#fbbf24"/>
+        <rect class="tl-chip" x="206" y="20" width="232" height="34" rx="10"/>
+        <text class="tl-chip-t" x="222" y="42">धारक को यहाँ नकद चाहिए</text>
+      </svg>
+    </div>
+    <p class="tl-cap rv" style="transition-delay:0.16s;">संपत्ति प्रदर्शन करती रहती है। यह कभी धारक की समस्या नहीं थी।</p>
+
+    <div class="facts">
+      <div class="fact rv">
+        <span class="ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M17 8l4 4m0-4l-4 4"/></svg></span>
+        <span><b>कोई काउंटरपार्टी नहीं</b><span>दूसरी तरफ कोई नहीं।</span></span>
+      </div>
+      <div class="fact rv" style="transition-delay:0.08s">
+        <span class="ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15V9m5 6v-3m5 3v-6"/><path d="M4 4l16 16"/></svg></span>
+        <span><b>कोई ऑर्डर बुक नहीं</b><span>न जगह, न बोलियाँ, न गहराई।</span></span>
+      </div>
+      <div class="fact rv" style="transition-delay:0.16s">
+        <span class="ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20"/><path d="M17 6.5A4 4 0 0 0 13.5 5h-3a3.5 3.5 0 0 0 0 7h3a3.5 3.5 0 0 1 0 7h-3.5A4 4 0 0 1 7 17.5"/></svg></span>
+        <span><b>कोई कीमत नहीं</b><span>सिर्फ़ जारीकर्ता का अपना मूल्यांकन।</span></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap"><div class="rule"></div></div>
+
+<!-- ═══════════════ MECHANISM ═══════════════ -->
+<section class="sec" id="mechanism">
+  <div class="wrap">
+    <p class="eyebrow rv">तंत्र</p>
+    <h2 class="d-md rv" style="transition-delay:0.06s;margin-top:14px;">चार कदम, पोज़ीशन से नकद तक</h2>
+    <p class="lead rv" style="transition-delay:0.1s;margin-top:16px;max-width:38rem;">
+      ओरेकल कीमत तय करता है <b style="color:var(--t1);font-weight:500;">संपत्ति</b>की। Liquidity Nodes कीमत तय करते हैं <b style="color:var(--t1);font-weight:500;">एग्ज़िट</b>की। इन दोनों संख्याओं को अलग रखना ही पूरा डिज़ाइन है।
+    </p>
+
+    <div class="dg-scroll dg-flow rv" style="transition-delay:0.12s;margin-top:44px;" role="img"
+         aria-label="फ़्लो डायग्राम: संपत्ति का ऑपरेटिंग रिकॉर्ड, वैलिडेटर अटेस्टेशन और भुगतान इतिहास स्कोर में जाते हैं; स्कोर एक जोखिम टियर तय करता है; Liquidity Nodes नीलामी में बोली लगाते हैं, या कोई बोली न लगे तो एग्ज़िट FIFO कतार में जाता है; settlement router टोकन जीतने वाले Node को, USDC विक्रेता को और शुल्क ट्रेज़री को देता है।">
+      <svg viewBox="0 0 1200 460" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0 0l10 5-10 5z" fill="#333942"/>
+          </marker>
+        </defs>
+
+        <text class="dg-cap" x="16" y="16">इनपुट</text>
+        <text class="dg-cap" x="640" y="16">प्रतिस्पर्धी बोलियाँ</text>
+        <text class="dg-cap" x="640" y="326">अगर कोई बोली न लगाए</text>
+        <text class="dg-cap" x="952" y="326">सेटलमेंट</text>
+
+        <rect class="dg-chip " x="16" y="28" width="236" height="30" rx="9"/><text class="dg-chip-t" x="30" y="48">ऑपरेटिंग रिकॉर्ड</text>
+        <rect class="dg-chip " x="16" y="66" width="236" height="30" rx="9"/><text class="dg-chip-t" x="30" y="86">वैलिडेटर अटेस्टेशन</text>
+        <rect class="dg-chip " x="16" y="104" width="236" height="30" rx="9"/><text class="dg-chip-t" x="30" y="124">भुगतान इतिहास</text>
+        <rect class="dg-chip " x="640" y="28" width="236" height="30" rx="9"/><text class="dg-chip-t mono" x="654" y="48">Node 7a41&#8230; &#183; 241 bps</text>
+        <rect class="dg-chip " x="640" y="66" width="236" height="30" rx="9"/><text class="dg-chip-t mono" x="654" y="86">Node 3f9c&#8230; &#183; 198 bps</text>
+        <rect class="dg-chip win" x="640" y="104" width="236" height="30" rx="9"/><text class="dg-chip-t mono" x="654" y="124">Node c2e8&#8230; &#183; 178 bps</text>
+
+        <line class="dg-link" x1="134" y1="134" x2="134" y2="161" marker-end="url(#arw)"/>
+        <line class="dg-link" x1="758" y1="134" x2="758" y2="161" marker-end="url(#arw)"/>
+
+        <line class="dg-link" x1="252" y1="230" x2="319" y2="230" marker-end="url(#arw)"/><line class="dg-pulse" x1="252" y1="230" x2="316" y2="230"/>
+        <line class="dg-link" x1="564" y1="230" x2="631" y2="230" marker-end="url(#arw)"/><line class="dg-pulse" x1="564" y1="230" x2="628" y2="230"/>
+        <line class="dg-link" x1="876" y1="230" x2="943" y2="230" marker-end="url(#arw)"/><line class="dg-pulse" x1="876" y1="230" x2="940" y2="230"/>
+        <g class="st" data-i="0" tabindex="0" role="button" aria-label="चरण 01, स्कोर"><rect class="dg-card" x="16" y="170" width="236" height="120" rx="14"/><rect class="accent" x="16" y="170" width="3" height="120" rx="1.5"/><text class="dg-n" x="36" y="202">01</text><text class="dg-t" x="36" y="236">स्कोर</text><text class="dg-c" x="36" y="268">DobValidator</text></g>
+        <g class="st" data-i="1" tabindex="0" role="button" aria-label="चरण 02, कीमत"><rect class="dg-card" x="328" y="170" width="236" height="120" rx="14"/><rect class="accent" x="328" y="170" width="3" height="120" rx="1.5"/><text class="dg-n" x="348" y="202">02</text><text class="dg-t" x="348" y="236">कीमत</text><text class="dg-c" x="348" y="268">off-chain</text></g>
+        <g class="st" data-i="2" tabindex="0" role="button" aria-label="चरण 03, नीलामी"><rect class="dg-card" x="640" y="170" width="236" height="120" rx="14"/><rect class="accent" x="640" y="170" width="3" height="120" rx="1.5"/><text class="dg-n" x="660" y="202">03</text><text class="dg-t" x="660" y="236">नीलामी</text><text class="dg-c" x="660" y="268">exit_auction</text></g>
+        <g class="st" data-i="3" tabindex="0" role="button" aria-label="चरण 04, सेटलमेंट"><rect class="dg-card" x="952" y="170" width="236" height="120" rx="14"/><rect class="accent" x="952" y="170" width="3" height="120" rx="1.5"/><text class="dg-n" x="972" y="202">04</text><text class="dg-t" x="972" y="236">सेटल</text><text class="dg-c" x="972" y="268">settlement_router</text></g>
+
+        <line class="dg-link dash" x1="758" y1="290" x2="758" y2="329" marker-end="url(#arw)"/>
+        <line class="dg-link" x1="1070" y1="290" x2="1070" y2="329" marker-end="url(#arw)"/>
+        <rect class="dg-chip " x="640" y="338" width="236" height="30" rx="9"/><text class="dg-chip-t mono" x="654" y="358">बोली नहीं &rarr; fifo_queue</text>
+        <rect class="dg-chip out" x="952" y="338" width="236" height="30" rx="9"/><text class="dg-chip-t" x="966" y="358">टोकन &rarr; Liquidity Node</text>
+        <rect class="dg-chip out" x="952" y="376" width="236" height="30" rx="9"/><text class="dg-chip-t" x="966" y="396">USDC &rarr; विक्रेता</text>
+        <rect class="dg-chip out" x="952" y="414" width="236" height="30" rx="9"/><text class="dg-chip-t" x="966" y="434">शुल्क &rarr; ट्रेज़री</text>
+      </svg>
+    </div>
+
+    <div class="dg-detail rv" style="transition-delay:0.16s">
+      <div class="dgd-n" id="dgdN">01</div>
+      <div>
+        <div class="dgd-h"><span class="dgd-t" id="dgdT">स्कोर</span><code class="dgd-c" id="dgdC">DobValidator</code></div>
+        <p class="dgd-p" id="dgdP">TRUFA स्कोर संपत्ति का ऑपरेटिंग रिकॉर्ड, वैलिडेटर अटेस्टेशन और भुगतान इतिहास पढ़ता है। यह जोखिम का आकलन है, कीमत नहीं।</p>
+      </div>
+    </div>
+    <p class="dg-hint">कोई चरण चुनें &middot; या चलने दें</p>
+
+    <div class="rv" style="transition-delay:0.3s;margin-top:44px;">
+      <a class="btn btn-s btn-sm" href="/protocol.html">पूरा विवरण पढ़ें
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ TWO SIDES ═══════════════ -->
+<section class="sec" id="sides" style="padding-top:0;">
+  <div class="wrap">
+    <p class="eyebrow rv">बुक के दो पक्ष</p>
+    <h2 class="d-md rv" style="transition-delay:0.06s;margin-top:14px;">किसी को बाहर निकलना है। कोई सस्ते में आना चाहता है।</h2>
+
+    <div class="sides">
+      <div class="side rv">
+        <div class="side-media">
+          <img src="/media/product-capital-card.webp" alt="" aria-hidden="true" loading="lazy" decoding="async">
+          <span class="side-tag">धारक</span>
+        </div>
+        <div class="side-body">
+          <h3>एग्ज़िट बेचें</h3>
+          <p>अपनी पोज़ीशन पर एग्ज़िट खोलें। किसी Node की बोली से पहले आप न्यूनतम कीमत तय करते हैं, और पीछे हटने का अधिकार रखते हैं &mdash; बोली एक ऑफ़र है, उसे स्वीकार करना अलग हस्ताक्षर है।</p>
+          <ul class="side-list">
+            <li>टियर बताता है कि Nodes आम तौर पर कितना स्प्रेड देते हैं</li>
+            <li><code style="font-family:var(--mono);font-size:12px;color:var(--br300);">min_accept_usdc</code> &mdash; आपकी अपनी रिज़र्व कीमत, USDC में</li>
+            <li>USDC में सेटलमेंट, फिर anchor ऑफ़-रैंप से फ़िएट</li>
+            <li>विंडो में बोली नहीं? एग्ज़िट कतार में जाता है, गायब नहीं होता</li>
+          </ul>
+          <a class="btn btn-s btn-sm" href="/protocol.html#ch-exit">एक एग्ज़िट की संरचना</a>
+        </div>
+      </div>
+
+      <div class="side rv" style="transition-delay:0.1s">
+        <div class="side-media">
+          <img src="/media/product-validator-card.webp" alt="" aria-hidden="true" loading="lazy" decoding="async">
+          <span class="side-tag">Liquidity Node</span>
+        </div>
+        <div class="side-body">
+          <h3>एग्ज़िट पूंजी दें</h3>
+          <p>USDC जमा करें, बताएँ कि आप किन टियर को सर्व करते हैं और न्यूनतम छूट कितनी चाहिए। आपकी तय सीमा के बाहर कभी मैच नहीं होगा, और खाली पूंजी कमाती रहती है।</p>
+          <ul class="side-list">
+            <li>प्रति-टियर सीमा: <code style="font-family:var(--mono);font-size:12px;color:var(--br300);">tiers · min_bps · max_exposure</code></li>
+            <li>फ़िल जीतें और आपके पास स्कोर मूल्य से कम में खरीदी गई यील्ड वाली पोज़ीशन होगी</li>
+            <li>खाली बैलेंस बेकार पड़े रहने के बजाय DeFindex में जाता है</li>
+            <li>बाद में अपनी पोज़ीशन से निकलें &mdash; Nodes लॉक नहीं होते</li>
+          </ul>
+          <a class="btn btn-s btn-sm" href="/protocol.html#ch-nodes">Nodes कैसे काम करते हैं</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ QUOTE SIMULATOR ═══════════════ -->
+<section class="sec" id="quote" style="padding-top:0;">
+  <div class="wrap">
+    <div class="rule" style="margin-bottom:clamp(3rem,2rem + 4vw,5rem);"></div>
+    <h2 class="d-md rv" style="transition-delay:0.06s;">अपने एग्ज़िट की कीमत देखें</h2>
+    <p class="lead rv" style="transition-delay:0.1s;margin-top:16px;max-width:42rem;">
+      स्कोर और राशि बदलकर देखें कि आज कोई Liquidity Node इस पोज़ीशन के लिए लगभग कितना देगा। उदाहरण मात्र &mdash; असली संख्या वही है जो Node वास्तव में बोली लगाए।
+    </p>
+
+    <div class="ex rv" id="exq" style="transition-delay:0.15s">
+
+      <div class="ex-head">
+        <div class="ex-idm">
+          <div class="ex-grade">
+            <div class="g" id="exGrade">B</div>
+            <div class="m"><b id="exTierName">स्टैंडर्ड</b><span id="exTierBand">120 – 300 bps बैंड</span></div>
+          </div>
+          <div class="ex-sc">
+            <div class="v"><span id="exScoreVal">82</span><i>/100</i></div>
+            <div class="l">TRUFA स्कोर</div>
+          </div>
+        </div>
+        <div class="lad">
+          <div class="lad-t">
+            <i data-t="E" style="--w:35;--c:#f87171"></i>
+            <i data-t="D" style="--w:15;--c:#f5824f"></i>
+            <i data-t="C" style="--w:15;--c:#fbbf24"></i>
+            <i data-t="B" style="--w:15;--c:#597ce9"></i>
+            <i data-t="A" style="--w:10;--c:#4ade80"></i>
+          </div>
+          <div class="lad-l">
+            <i data-t="E" style="--w:35;--c:#f87171">E &middot; संकटग्रस्त</i>
+            <i data-t="D" style="--w:15;--c:#f5824f">D &middot; 45</i>
+            <i data-t="C" style="--w:15;--c:#fbbf24">C &middot; 60</i>
+            <i data-t="B" style="--w:15;--c:#597ce9">B &middot; 75</i>
+            <i data-t="A" style="--w:10;--c:#4ade80">A &middot; 90</i>
+          </div>
+          <input type="range" id="simScore" min="10" max="100" value="82" step="1"
+                 aria-label="TRUFA स्कोर" aria-describedby="exScoreVal">
+        </div>
+      </div>
+
+      <div class="ex-body">
+        <div class="ex-in">
+          <div class="ex-lab"><span>एग्ज़िट राशि</span><span class="cur" id="simAmountVal">$25,000</span></div>
+          <div class="ex-amt">
+            <input type="range" id="simAmount" min="500" max="500000" value="25000" step="500"
+                   aria-label="एग्ज़िट राशि" aria-describedby="simAmountVal">
+            <div class="ex-scale"><span>$500</span><span>$500K</span></div>
+            <div class="ex-chips" id="simPresets">
+              <button class="ex-chip" data-amt="1000">$1K</button>
+              <button class="ex-chip on" data-amt="25000">$25K</button>
+              <button class="ex-chip" data-amt="100000">$100K</button>
+              <button class="ex-chip" data-amt="400000">$400K</button>
+            </div>
+          </div>
+
+          <div class="ex-sep"></div>
+
+          <div class="ex-lab"><span>प्रतिस्पर्धी पूंजी</span><span class="cur" id="simDepthVal">सामान्य</span></div>
+          <div class="ex-chips" id="simDepth" style="margin-top:14px;">
+            <button class="ex-chip" data-depth="0.8">गहरा</button>
+            <button class="ex-chip on" data-depth="1">सामान्य</button>
+            <button class="ex-chip" data-depth="1.35">पतला</button>
+          </div>
+
+          <div class="ex-sep push"></div>
+
+          <div class="ex-lab"><span>सेटलमेंट</span></div>
+          <div class="ex-exp" style="margin-top:12px;">
+            <b>Stellar पर USDC</b>, एक Soroban ट्रांज़ैक्शन, विक्रेता की न्यूनतम कीमत Settlement Router लागू करता है। Anchor Platform ऑफ़-रैंप से नकद निकालें।
+          </div>
+        </div>
+
+        <div class="ex-out">
+          <div class="ex-net">
+            <div class="k">अनुमानित शुद्ध प्राप्ति</div>
+            <div class="v"><span id="simNet">24,813</span><span class="u">USDC</span></div>
+            <div class="s">पर <span id="exPos">$25,000</span> की पोज़ीशन &mdash; आपके पास रहता है <b id="exKeep">97.42%</b></div>
+          </div>
+
+          <div class="wf">
+            <div class="wf-bar">
+              <i class="keep" id="wfKeep"></i>
+              <i class="cut" id="wfCut"></i>
+            </div>
+            <div class="wf-leg"><span><b>प्राप्ति</b></span><span>छूट &middot; <b id="wfCutPct">2.58%</b></span></div>
+
+            <div class="wf-h"><span>छूट में क्या है</span><em id="wfTotal">$645</em></div>
+            <div class="wf-bar mag">
+              <i class="a" id="wfA"></i><i class="b" id="wfB"></i><i class="c" id="wfC"></i>
+            </div>
+            <div class="wf-key">
+              <div><i id="wfDotA"></i><span class="k">टियर स्प्रेड</span>
+                <span class="n" id="wfNoteA">इस जोखिम की कीमत</span><span class="v" id="simSpread">2.00%</span></div>
+              <div><i style="background:var(--cyan)"></i><span class="k">राशि का प्रभाव</span>
+                <span class="n" id="wfNoteB">राशि बनाम उपलब्ध सीमा</span><span class="v" id="simSize">0.33%</span></div>
+              <div><i style="background:var(--violet)"></i><span class="k">प्रोटोकॉल शुल्क</span>
+                <span class="n">ऑन-चेन अधिकतम 500 bps</span><span class="v" id="simFee">0.25%</span></div>
+            </div>
+          </div>
+
+          <div class="ex-route">
+            <div class="ex-steps" id="exSteps">
+              <div class="ex-step" data-r="accept"><div class="t">बोली स्वीकार</div><div class="d">मिनट</div></div>
+              <div class="ex-step" data-r="window"><div class="t">विंडो बंद</div><div class="d">~5 min</div></div>
+              <div class="ex-step" data-r="queue"><div class="t">कतार में</div><div class="d">घंटे – दिन</div></div>
+            </div>
+            <div class="ex-exp" id="simExplain"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ex-notes rv" style="transition-delay:0.2s">
+      <div class="ex-note"><b>स्कोर संपत्ति के साथ चलता है</b>
+        DobValidator इसे जारी करता है; Nodes इसे पढ़कर ऑफ़-चेन कीमत तय करते हैं। कोई कॉन्ट्रैक्ट इसे दोबारा नहीं निकालता।</div>
+      <div class="ex-note"><b>टियर शब्दावली हैं, नियम नहीं</b>
+        Nodes USDC में बोली लगाते हैं। चेन सिर्फ़ यह जाँचती है कि पैसा सच में है।</div>
+      <div class="ex-note"><b>सबसे अच्छी बोली विंडो जीतती है</b>
+        विक्रेता की न्यूनतम कीमत से नीचे कुछ भी ज़बरदस्ती नहीं भरा जाता &mdash; एग्ज़िट सार्वजनिक कतार में जाता है।</div>
+      <div class="ex-note"><b>राशि की कीमत लगती है, कर्व नहीं</b>
+        ऊपर का प्रभाव उस संपत्ति के लिए उपलब्ध सीमा दिखाता है, AMM डेप्थ फ़ंक्शन नहीं।</div>
+    </div>
+
+    <p class="ex-fine rv" style="transition-delay:0.24s">उदाहरण मॉडल, कोटेशन नहीं। असली कीमतें Liquidity Nodes देते हैं और किसी भी दिशा में अलग हो सकती हैं; DobDex कीमत या फ़िल की गारंटी नहीं देता और खुद कभी पोज़ीशन नहीं खरीदता।</p>
+  </div>
+</section>
+
+<!-- ═══════════════ CTA ═══════════════ -->
+<section class="cta">
+  <div class="cta-media"><img src="/media/plate-cta.webp" alt="" aria-hidden="true" loading="lazy" decoding="async"></div>
+  <div class="wrap">
+    <div class="cta-in">
+      <h2 class="d-lg rv">तंत्र को चलते देखें</h2>
+      <p class="lead rv" style="transition-delay:0.06s">
+        रेफ़रेंस ऐप टेस्टनेट पर पूरा चक्र चलाता है &mdash; एग्ज़िट खोलें, Nodes की बोली देखें, सेटल करें। पहले प्रोटोकॉल पढ़ने के लिए वॉलेट ज़रूरी नहीं।
+      </p>
+      <div class="cta-btns rv" style="transition-delay:0.12s">
+        <a class="btn btn-p" href="/app.html">ऐप खोलें</a>
+        <a class="btn btn-s" href="/protocol.html">पढ़ें यह कैसे काम करता है</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ FOOTER ═══════════════ -->
+<footer>
+  <div class="wrap">
+    <div class="f-top">
+      <div>
+        <div class="f-brand">
+          <svg viewBox="0 0 89 89" fill="none" aria-hidden="true"><circle cx="44.9" cy="44" r="44" fill="#597CE9"/><path d="M35.5 54.1C33.1 51.5 31.9 48.2 31.9 44C31.9 39.8 33.1 36.5 35.5 33.9C36.9 32.4 38.6 31.3 40.6 30.7V22C38 22.4 35.6 23.2 33.4 24.5C30.1 26.4 27.5 29 25.7 32.3C23.9 35.7 23 39.6 23 44.1C23 48.6 23.9 52.5 25.7 55.8C27.5 59.2 30.1 61.7 33.4 63.6C35.6 64.8 38 65.6 40.6 66V57.3C38.6 56.7 36.9 55.6 35.5 54.1Z" fill="#F9FAFE"/><path d="M64.1 32.3C62.2 29 59.7 26.4 56.4 24.5C54.2 23.2 51.8 22.4 49.2 22V30.7C51.2 31.4 52.9 32.4 54.3 34C56.7 36.6 57.9 39.9 57.9 44.1C57.9 48.3 56.7 51.5 54.3 54.1C52.9 55.6 51.2 56.7 49.2 57.3V66C51.8 65.6 54.2 64.8 56.4 63.6C59.7 61.7 62.2 59.1 64.1 55.8C65.9 52.5 66.9 48.6 66.9 44.1C66.9 39.6 65.9 35.7 64.1 32.3Z" fill="#F9FAFE"/><circle cx="44.9" cy="44" r="5.5" fill="#F9FAFE"/></svg>
+          <b>DobDex</b>
+        </div>
+        <p class="f-desc">टोकनाइज़्ड वास्तविक संपत्तियों की एग्ज़िट लेयर। स्कोर, टियर, LP द्वारा कीमत, Stellar पर USDC में सेटल। Dobprotocol इकोसिस्टम का हिस्सा।</p>
+        <div class="f-built"><span><img src="/media/logos/stellar.svg" alt="" width="16" height="16">Stellar पर निर्मित</span><span><img src="/media/logos/usdc.svg" alt="" width="16" height="16">USDC में सेटल</span></div>
+      </div>
+      <div class="f-col">
+        <h5>प्रोटोकॉल</h5>
+        <a href="/protocol.html">यह कैसे काम करता है</a>
+        <a href="/protocol.html#quote">एग्ज़िट कोट</a>
+        <a href="/app.html">ऐप</a>
+        <a href="https://docs.dobprotocol.com/dex/overview" target="_blank" rel="noopener">दस्तावेज़</a>
+        <a href="https://github.com/Dobprotocol/stellar-exit-contracts" target="_blank" rel="noopener">GitHub</a>
+      </div>
+      <div class="f-col">
+        <h5>इकोसिस्टम</h5>
+        <a href="https://dobprotocol.com" target="_blank" rel="noopener">Dobprotocol</a>
+        <a href="https://tokenize.dobprotocol.com" target="_blank" rel="noopener">Token Studio</a>
+        <a href="https://validator.dobprotocol.com" target="_blank" rel="noopener">DobValidator</a>
+        <a href="https://home.dobprotocol.com" target="_blank" rel="noopener">पूल</a>
+        <a href="https://link.dobprotocol.com" target="_blank" rel="noopener">DobLink</a>
+        <a href="https://dob.capital" target="_blank" rel="noopener">DOB Capital</a>
+        <a href="https://dobi.guru" target="_blank" rel="noopener">Dobi</a>
+        <a href="https://docs.dobprotocol.com" target="_blank" rel="noopener">डॉक्स</a>
+      </div>
+      <div class="f-col">
+        <h5>सहायता</h5>
+        <a href="https://home.dobprotocol.com/contact?site=dob-dex" data-dob-contact>संपर्क</a>
+        <button type="button" data-dob-feedback>फ़ीडबैक भेजें</button>
+        <button type="button" data-dob-cookies>कुकी सेटिंग्स</button>
+        <a href="https://www.dobprotocol.com/privacy/">गोपनीयता नीति</a>
+        <a href="https://www.dobprotocol.com/terms/">सेवा की शर्तें</a>
+      </div>
+    </div>
+    <div class="f-bot">
+      <p>&copy; 2026 Dobprotocol &middot; Soroban पर एग्ज़िट कॉन्ट्रैक्ट विकास में &middot; USDC में सेटल</p>
+      <div class="f-tags"><span>lp_vault</span><span>settlement_router</span><span>fifo_queue</span><span>exit_auction</span></div>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ── Nav ─────────────────────────────────────────────────────── */
+  var nav = document.getElementById('nav');
+  var burger = document.getElementById('burger');
+  var mobile = document.getElementById('mobile');
+  burger.addEventListener('click', function () {
+    var open = mobile.classList.toggle('open');
+    burger.classList.toggle('open', open);
+    burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  mobile.querySelectorAll('a').forEach(function (a) {
+    a.addEventListener('click', function () {
+      mobile.classList.remove('open');
+      burger.classList.remove('open');
+      burger.setAttribute('aria-expanded', 'false');
+    });
+  });
+
+  /* Products menu — click to toggle, hover to preview, Esc / outside to close. */
+  var prod = document.getElementById('navProd');
+  var prodBtn = document.getElementById('navProdBtn');
+  if (prod && prodBtn) {
+    var setProd = function (open) {
+      prod.classList.toggle('open', open);
+      prodBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+    prodBtn.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      setProd(!prod.classList.contains('open'));
+    });
+    prod.addEventListener('mouseenter', function () { setProd(true); });
+    prod.addEventListener('mouseleave', function () { setProd(false); });
+    document.addEventListener('click', function (ev) {
+      if (!prod.contains(ev.target)) setProd(false);
+    });
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape') setProd(false);
+    });
+  }
+
+  /* ── Reveal on scroll ────────────────────────────────────────── */
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+  document.querySelectorAll('.rv, #moves').forEach(function (el) { io.observe(el); });
+
+  /* ── Counters ────────────────────────────────────────────────── */
+  var counted = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      counted.unobserve(e.target);
+      var el = e.target, target = parseInt(el.getAttribute('data-count'), 10);
+      if (reduce) { el.textContent = target.toLocaleString('hi-IN'); return; }
+      var start = null, dur = 1250;
+      requestAnimationFrame(function step(ts) {
+        if (!start) start = ts;
+        var p = Math.min(1, (ts - start) / dur);
+        var eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(target * eased).toLocaleString('hi-IN');
+        if (p < 1) requestAnimationFrame(step);
+      });
+    });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('[data-count]').forEach(function (el) { counted.observe(el); });
+
+  /* ── Scroll: progress bar + nav state ────────────────────────── */
+  var progress = document.getElementById('progress');
+  var ticking = false;
+  function onScroll() {
+    var y = window.scrollY || document.documentElement.scrollTop;
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    progress.style.width = (max > 0 ? (y / max) * 100 : 0) + '%';
+    nav.classList.toggle('stuck', y > 90);
+    ticking = false;
+  }
+  window.addEventListener('scroll', function () {
+    if (!ticking) { ticking = true; requestAnimationFrame(onScroll); }
+  }, { passive: true });
+  onScroll();
+
+  /* ── The exit auction, running ───────────────────────────────────
+     A five-minute window compressed into a loop: three Liquidity Nodes
+     bid, each tighter than the last, the best one clears, and the
+     seller's proceeds land. The numbers are a worked example; the
+     card's footnote says so. */
+  (function () {
+    var bids = document.querySelectorAll('#qBids .q-bid');
+    var clock = document.getElementById('qClock');
+    var clear = document.getElementById('qClear');
+    var out = document.getElementById('qOut');
+    if (!bids.length || !clock || !clear || !out) return;
+
+    var POSITION = 25000, WIN_BPS = 178;
+    var settled = (POSITION * (1 - WIN_BPS / 10000)).toLocaleString('hi-IN',
+      { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+    function finalState() {
+      bids.forEach(function (b) { b.classList.add('show'); });
+      bids[bids.length - 1].classList.add('win');
+      clock.textContent = 'बंद';
+      clear.textContent = WIN_BPS + ' bps';
+      out.textContent = settled + ' USDC';
+    }
+    if (reduce) { finalState(); return; }
+
+    var timers = [];
+    function reset() {
+      timers.forEach(clearTimeout); timers = [];
+      bids.forEach(function (b) { b.classList.remove('show', 'win'); });
+      clock.textContent = '05:00';
+      clear.textContent = '\u2014';
+      out.textContent = '\u2014';
+    }
+    function run() {
+      reset();
+      [900, 1900, 2900].forEach(function (t, i) {
+        timers.push(setTimeout(function () { bids[i].classList.add('show'); }, t));
+      });
+      // countdown ticks down while the book fills
+      ['03:42', '01:56', '00:21'].forEach(function (v, i) {
+        timers.push(setTimeout(function () { clock.textContent = v; }, 900 + i * 1000));
+      });
+      timers.push(setTimeout(function () {
+        bids[2].classList.add('win');
+        clock.textContent = 'बंद';
+        clear.textContent = WIN_BPS + ' bps';
+      }, 3900));
+      timers.push(setTimeout(function () { out.textContent = settled + ' USDC'; }, 4400));
+      timers.push(setTimeout(run, 9500));
+    }
+
+    // Only animate while the card is actually on screen.
+    var vis = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) run();
+        else { timers.forEach(clearTimeout); timers = []; }
+      });
+    }, { threshold: 0.35 });
+    vis.observe(document.getElementById('quoteCard'));
+  })();
+
+  /* ── Mechanism diagram: pick a step, or let it walk itself ─────── */
+  (function () {
+    var stages = document.querySelectorAll('.dg-flow .st');
+    var n = document.getElementById('dgdN'), t = document.getElementById('dgdT'),
+        c = document.getElementById('dgdC'), p = document.getElementById('dgdP');
+    if (!stages.length || !n) return;
+
+    var COPY = [
+      ['01','स्कोर','DobValidator',"TRUFA स्कोर संपत्ति का ऑपरेटिंग रिकॉर्ड, वैलिडेटर अटेस्टेशन और भुगतान इतिहास पढ़ता है। यह संपत्ति के साथ चलता है। यह जोखिम का आकलन है, कीमत नहीं।"],
+      ['02','कीमत','off-chain',"हर Liquidity Node अपने मॉडल से उस स्कोर को अपनी संख्या में बदलता है। टियर A से E वह शब्दावली हैं जिसमें Nodes कीमत लगाते हैं, चेन का थोपा नियम नहीं।"],
+      ['03','नीलामी','exit_auction',"एग्ज़िट विक्रेता द्वारा तय विंडो के लिए खुलता है — डिफ़ॉल्ट पाँच मिनट। Nodes USDC में बोली लगाते हैं; सबसे ऊँची बोली जीतती है। अगर कोई बोली न्यूनतम कीमत तक न पहुँचे, तो पोज़ीशन सार्वजनिक कतार में जाती है।"],
+      ['04','सेटल','settlement_router',"टोकन Node को, USDC विक्रेता को, शुल्क ट्रेज़री को — एक एटॉमिक Soroban ट्रांज़ैक्शन, फिर विक्रेता चाहे तो anchor ऑफ़-रैंप।"]
+    ];
+    var i = 0, timer = null, held = false;
+
+    function show(k) {
+      i = k;
+      stages.forEach(function (s, j) { s.classList.toggle('on', j === k); });
+      n.textContent = COPY[k][0]; t.textContent = COPY[k][1];
+      c.textContent = COPY[k][2]; p.textContent = COPY[k][3];
+    }
+    function stop() { if (timer) { clearInterval(timer); timer = null; } }
+    function start() { if (!timer && !held && !reduce) timer = setInterval(function () { show((i + 1) % 4); }, 4200); }
+
+    stages.forEach(function (s, j) {
+      function pick() { held = true; stop(); show(j); }
+      s.addEventListener('click', pick);
+      s.addEventListener('mouseenter', pick);
+      s.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); }
+      });
+    });
+
+    show(0);
+    new IntersectionObserver(function (es) {
+      es.forEach(function (e) { e.isIntersecting ? start() : stop(); });
+    }, { threshold: 0.25 }).observe(document.querySelector('.dg-flow'));
+  })();
+
+  /* ── Hero footage ────────────────────────────────────────────────
+     The poster paints immediately and carries the page on its own; the
+     loop is only fetched when motion is welcome and the connection is
+     not metered, then cross-fades in over the still. */
+  (function () {
+    if (reduce) return;
+    var c = navigator.connection;
+    if (c && (c.saveData || /2g/.test(c.effectiveType || ''))) return;
+
+    var v = document.getElementById('heroVid');
+    if (!v) return;
+    [['/media/product-dex.webm', 'video/webm'], ['/media/product-dex.mp4', 'video/mp4']]
+      .forEach(function (s) {
+        var el = document.createElement('source');
+        el.src = s[0]; el.type = s[1];
+        v.appendChild(el);
+      });
+    v.preload = 'auto';
+    v.addEventListener('canplay', function () {
+      v.play().then(function () { v.classList.add('on'); }).catch(function () {});
+    });
+    v.load();
+  })();
+})();
+
+/* ─────────────── Exit quote simulator ─────────────── */
+(function () {
+  var TIERS = [
+    { id:'A', name:'संस्थागत', color:'#4ade80', min:90, max:100, bandBps:[30,120] },
+    { id:'B', name:'स्टैंडर्ड',      color:'#597ce9', min:75, max:89,  bandBps:[120,300] },
+    { id:'C', name:'निगरानी',         color:'#fbbf24', min:60, max:74,  bandBps:[300,650] },
+    { id:'D', name:'ऊँचा',      color:'#f5824f', min:45, max:59,  bandBps:[650,1300] },
+    { id:'E', name:'संकटग्रस्त',    color:'#f87171', min:0,  max:44,  bandBps:[1300,2500] }
+  ];
+
+  var elScore = document.getElementById('simScore');
+  var elAmount = document.getElementById('simAmount');
+  if (!elScore || !elAmount) return;
+  var root = document.getElementById('exq');
+  var elAmountVal = document.getElementById('simAmountVal');
+  var elDepthVal = document.getElementById('simDepthVal');
+  var ladder = document.querySelectorAll('.lad-t i, .lad-l i');
+  var steps = document.querySelectorAll('#exSteps .ex-step');
+  var depthFactor = 1;
+
+  function $(id) { return document.getElementById(id); }
+  function tierForScore(s) {
+    for (var i = 0; i < TIERS.length; i++) { if (s >= TIERS[i].min) return TIERS[i]; }
+    return TIERS[TIERS.length - 1];
+  }
+  function money(n) { return n.toLocaleString('hi-IN', { maximumFractionDigits: 0 }); }
+
+  function quote() {
+    var score = parseInt(elScore.value, 10);
+    var amount = parseInt(elAmount.value, 10);
+    var t = tierForScore(score);
+
+    // A score at the top of its band tends to draw the tight end of the spread, the bottom the wide end.
+    var span = Math.max(1, t.max - t.min);
+    var pos = Math.min(1, Math.max(0, (score - t.min) / span));
+    var tierBps = t.bandBps[1] - (t.bandBps[1] - t.bandBps[0]) * pos;
+
+    // A bigger ticket asks more of whatever capital is standing behind that asset.
+    var sizeBps = Math.min(650, Math.pow(amount / 1000, 0.72) * 3.2) * depthFactor;
+
+    var feeBps = 25;                          // illustrative protocol fee, capped at 500 on-chain
+    var cutBps = tierBps + sizeBps + feeBps;
+    var net = amount * (1 - cutBps / 10000);
+
+    var route, explain;
+    var quick = (t.id === 'A' || t.id === 'B') && amount <= 50000 && depthFactor <= 1;
+    if (quick) {
+      route = 'accept';
+      explain = 'इस स्कोर और राशि पर कोई Node जल्दी बोली लगा सकता है। विक्रेता विंडो बंद होने का इंतज़ार किए बिना <b>मौजूदा बोली स्वीकार</b> कर सकता है &mdash; Settlement Router उसी Soroban ट्रांज़ैक्शन में टोकन और USDC भेजता है।';
+    } else if (t.id === 'D' || t.id === 'E') {
+      route = 'queue';
+      explain = 'इस जोखिम के लिए कम Nodes तैयार हैं, इसलिए बोलियाँ न्यूनतम कीमत तक न पहुँचें। तब एग्ज़िट उस संपत्ति की <b>सार्वजनिक कतार</b> में जाता है और बोलियाँ लेता रहता है &mdash; कोई पैसे देकर आगे नहीं जा सकता, और विक्रेता कभी भी हट सकता है।';
+    } else {
+      route = 'window';
+      explain = 'यह एग्ज़िट अपनी <b>बोली विंडो</b> चलाता है &mdash; डिफ़ॉल्ट पाँच मिनट, विक्रेता द्वारा तय। इस संपत्ति का समर्थन करने वाले Nodes USDC में एक-दूसरे से बोली लगाते हैं और सबसे अच्छी कीमत जीतती है। स्प्रेड प्रतिस्पर्धा तय करती है, कोई कर्व नहीं।';
+    }
+
+    // header: grade, tier, ladder
+    root.style.setProperty('--tc', t.color);
+    $('exGrade').textContent = t.id;
+    $('exTierName').textContent = t.name;
+    $('exTierBand').textContent = t.bandBps[0] + ' – ' + t.bandBps[1] + ' bps बैंड';
+    $('exScoreVal').textContent = score;
+    ladder.forEach(function (seg) { seg.classList.toggle('on', seg.dataset.t === t.id); });
+
+    // headline
+    elAmountVal.textContent = '$' + money(amount);
+    $('simNet').textContent = money(Math.round(net));
+    $('exPos').textContent = '$' + money(amount);
+    $('exKeep').textContent = (100 - cutBps / 100).toFixed(2) + '%';
+
+    // bar one — the deal at true proportion
+    $('wfKeep').style.flexGrow = (10000 - cutBps);
+    $('wfCut').style.flexGrow = cutBps;
+    $('wfCutPct').textContent = (cutBps / 100).toFixed(2) + '%';
+
+    // bar two — the same discount magnified to fill the width
+    $('wfTotal').textContent = '$' + money(Math.round(amount * cutBps / 10000));
+    $('wfA').style.flexGrow = tierBps;
+    $('wfB').style.flexGrow = sizeBps;
+    $('wfC').style.flexGrow = feeBps;
+    $('wfDotA').style.background = t.color;
+    $('wfNoteA').textContent = 'score ' + score + ' · tier ' + t.id;
+    $('wfNoteB').textContent = depthFactor === 1 ? 'राशि बनाम उपलब्ध सीमा'
+      : (depthFactor < 1 ? 'गहरी बुक, कम प्रभाव' : 'पतली बुक, ज़्यादा प्रभाव');
+    $('simSpread').textContent = (tierBps / 100).toFixed(2) + '%';
+    $('simSize').textContent = (sizeBps / 100).toFixed(2) + '%';
+    $('simFee').textContent = (feeBps / 100).toFixed(2) + '%';
+
+    // route
+    steps.forEach(function (s) { s.classList.toggle('on', s.dataset.r === route); });
+    $('simExplain').innerHTML = explain;
+  }
+
+  elScore.addEventListener('input', quote);
+  elAmount.addEventListener('input', function () {
+    document.querySelectorAll('#simPresets .ex-chip').forEach(function (c) {
+      c.classList.toggle('on', parseInt(c.dataset.amt, 10) === parseInt(elAmount.value, 10));
+    });
+    quote();
+  });
+  document.querySelectorAll('#simPresets .ex-chip').forEach(function (c) {
+    c.addEventListener('click', function () {
+      elAmount.value = c.dataset.amt;
+      document.querySelectorAll('#simPresets .ex-chip').forEach(function (x) { x.classList.remove('on'); });
+      c.classList.add('on');
+      quote();
+    });
+  });
+  document.querySelectorAll('#simDepth .ex-chip').forEach(function (c) {
+    c.addEventListener('click', function () {
+      depthFactor = parseFloat(c.dataset.depth);
+      document.querySelectorAll('#simDepth .ex-chip').forEach(function (x) { x.classList.remove('on'); });
+      c.classList.add('on');
+      elDepthVal.textContent = c.textContent;
+      quote();
+    });
+  });
+  quote();
+})();
+</script>
+<script>
+(function () {
+  var cur = document.documentElement.lang || 'en';
+  function go(l) {
+    try { document.cookie = 'dob_lang=' + l + '; path=/; max-age=31536000; SameSite=Lax; Secure'; } catch (e) {}
+    location.href = l === 'en' ? '/' : '/' + l + '/';
+  }
+  var sel = document.getElementById('langSel');
+  if (sel) { sel.value = cur; sel.addEventListener('change', function () { go(sel.value); }); }
+  document.querySelectorAll('[data-lang]').forEach(function (a) {
+    a.addEventListener('click', function (e) { e.preventDefault(); go(a.getAttribute('data-lang')); });
+  });
+})();
+</script>
+<!-- DOB contact/feedback kit + cookie banner (shared by every DOB site) -->
+<script src="https://home.dobprotocol.com/contact-kit.js" defer data-site="dob-dex" data-consent="ga" data-privacy-url="https://www.dobprotocol.com/privacy/"></script>
+</body>
+</html>
