@@ -6,6 +6,19 @@
 <title>DobDex — Exit Liquidity for Real-World Assets on Stellar</title>
 <meta name="description" content="Tokenizing an asset is the easy half. DobDex is the other half: a venue where a holder can actually sell the position. A TRUFA score sets the risk tier, Liquidity Nodes price the exit, settlement lands in USDC on Stellar.">
 <meta name="theme-color" content="#08090b">
+<!-- i18n:alternates -->
+<link rel="alternate" hreflang="en" href="https://dex.dobprotocol.com/">
+<link rel="alternate" hreflang="es" href="https://dex.dobprotocol.com/es/">
+<link rel="alternate" hreflang="pt" href="https://dex.dobprotocol.com/pt/">
+<link rel="alternate" hreflang="zh" href="https://dex.dobprotocol.com/zh/">
+<link rel="alternate" hreflang="hi" href="https://dex.dobprotocol.com/hi/">
+<link rel="alternate" hreflang="x-default" href="https://dex.dobprotocol.com/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="es_ES">
+<meta property="og:locale:alternate" content="pt_BR">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="hi_IN">
+<!-- /i18n:alternates -->
 <link rel="canonical" href="https://dex.dobprotocol.com/">
 
 <meta property="og:type" content="website">
@@ -29,14 +42,18 @@
 <link rel="preload" href="/fonts/GeistMonoVF.woff" as="font" type="font/woff" crossorigin>
 <link rel="preload" as="image" href="/media/product-dex-poster.jpg" fetchpriority="high">
 
-<!-- Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-1M2TNZYEZZ"></script>
+<!-- Google Analytics (GA4 G-1M2TNZYEZZ, same property as dobprotocol.com) with
+     Consent Mode v2: analytics is denied until the visitor accepts the DOB kit
+     cookie banner (localStorage dob_consent). -->
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {ad_storage:'denied', ad_user_data:'denied', ad_personalization:'denied', analytics_storage:'denied', wait_for_update:500});
+  try { if (localStorage.getItem('dob_consent') === 'granted') gtag('consent', 'update', {analytics_storage:'granted'}); } catch (e) {}
   gtag('js', new Date());
   gtag('config', 'G-1M2TNZYEZZ');
 </script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-1M2TNZYEZZ"></script>
 
 <style>
 /* ════════════════════════════════════════════════════════════════
@@ -343,7 +360,19 @@ img,svg,video{display:block;max-width:100%;}
    FOOTER
    ════════════════════════════════════════════════════════════════ */
 footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
-.f-top{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:40px;}
+.f-top{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:40px;}
+.f-col button{display:block;background:none;border:0;font:inherit;font-size:13.5px;color:var(--t2);padding:5px 0;cursor:pointer;text-align:left;}
+.f-col button:hover{color:var(--t1);}
+.f-built{display:flex;flex-wrap:wrap;gap:14px;margin-top:16px;font-size:12px;color:var(--t3);align-items:center;}
+.f-built span{display:inline-flex;align-items:center;gap:6px;}
+.f-built img{width:16px;height:16px;}
+.hero-chips{display:flex;gap:16px;flex-wrap:wrap;margin-top:18px;font-size:12.5px;color:var(--t2);}
+.hero-chips span{display:inline-flex;align-items:center;gap:7px;}
+.hero-chips img{width:18px;height:18px;}
+.nav-lang{margin-left:6px;background:transparent;color:var(--t2);border:1px solid var(--b2);border-radius:8px;font:inherit;font-size:12.5px;padding:5px 6px;cursor:pointer;}
+.nav-lang option{background:var(--s1);color:var(--t1);}
+.mob-langs{display:flex;flex-wrap:wrap;gap:4px 14px;}
+.mob-langs a{font-size:15px !important;}
 @media(max-width:800px){.f-top{grid-template-columns:1fr;gap:28px;}}
 .f-brand{display:flex;align-items:center;gap:9px;margin-bottom:12px;}
 .f-brand svg{width:26px;height:26px;}
@@ -617,9 +646,12 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
           <a role="menuitem" href="https://link.dobprotocol.com" target="_blank" rel="noopener">Link</a>
         </div>
       </div>
-      <a href="protocol.html">How it works</a>
+      <a href="/protocol.html">How it works</a>
       <a href="https://docs.dobprotocol.com/dex/overview" target="_blank" rel="noopener">Docs</a>
-      <a class="nav-cta" href="app.html">Open the app</a>
+      <select class="nav-lang" id="langSel" aria-label="Language">
+        <option value="en">EN</option><option value="es">ES</option><option value="pt">PT</option><option value="zh">中文</option><option value="hi">हिन्दी</option>
+      </select>
+      <a class="nav-cta" href="/app.html">Open the app</a>
     </div>
     <button class="burger" id="burger" aria-label="Menu" aria-expanded="false">
       <span></span><span></span><span></span>
@@ -627,10 +659,12 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
   </div>
 </nav>
 <div class="mobile" id="mobile">
-  <a href="protocol.html">How it works</a>
-  <a href="protocol.html#roadmap">Roadmap</a>
+  <a href="/protocol.html">How it works</a>
+  <a href="/protocol.html#roadmap">Roadmap</a>
   <a href="https://docs.dobprotocol.com/dex/overview" target="_blank" rel="noopener">Documentation</a>
-  <a href="app.html">Open the app</a>
+  <a href="/app.html">Open the app</a>
+  <div class="mob-lbl">Language</div>
+  <div class="mob-langs"><a href="/" data-lang="en">English</a><a href="/es/" data-lang="es">Español</a><a href="/pt/" data-lang="pt">Português</a><a href="/zh/" data-lang="zh">中文</a><a href="/hi/" data-lang="hi">हिन्दी</a></div>
   <div class="mob-lbl">Dobprotocol</div>
   <a href="https://dob.capital" target="_blank" rel="noopener">Capital</a>
   <a href="https://home.dobprotocol.com" target="_blank" rel="noopener">Token Studio</a>
@@ -660,8 +694,13 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
             for it, and be paid in USDC on Stellar.
           </p>
           <div class="hero-cta rv" style="transition-delay:0.18s">
-            <a class="btn btn-p" href="app.html">Open the app<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
-            <a class="btn btn-media" href="protocol.html">How it works</a>
+            <a class="btn btn-p" href="/app.html">Open the app<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+            <a class="btn btn-media" href="/protocol.html">How it works</a>
+          </div>
+          <div class="hero-chips rv" style="transition-delay:0.22s">
+            <span><img src="/media/logos/stellar.svg" alt="Stellar" width="18" height="18">Stellar</span>
+            <span><img src="/media/logos/usdc.svg" alt="USDC" width="18" height="18">USDC</span>
+            <span><img src="/dob-logo.svg" alt="DobValidator" width="18" height="18">DobValidator</span>
           </div>
         </div>
 
@@ -839,7 +878,7 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
     <p class="dg-hint">Pick a step &middot; or let it run</p>
 
     <div class="rv" style="transition-delay:0.3s;margin-top:44px;">
-      <a class="btn btn-s btn-sm" href="protocol.html">Read the full walkthrough
+      <a class="btn btn-s btn-sm" href="/protocol.html">Read the full walkthrough
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-7l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </a>
     </div>
@@ -868,7 +907,7 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
             <li>Settlement in USDC, then an anchor off-ramp to fiat</li>
             <li>No bid inside the window? The exit queues, it does not vanish</li>
           </ul>
-          <a class="btn btn-s btn-sm" href="protocol.html#ch-exit">Anatomy of an exit</a>
+          <a class="btn btn-s btn-sm" href="/protocol.html#ch-exit">Anatomy of an exit</a>
         </div>
       </div>
 
@@ -887,7 +926,7 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
             <li>Idle balance routed to DeFindex rather than sitting flat</li>
             <li>Exit your own position later &mdash; Nodes are not locked in</li>
           </ul>
-          <a class="btn btn-s btn-sm" href="protocol.html#ch-nodes">How Nodes work</a>
+          <a class="btn btn-s btn-sm" href="/protocol.html#ch-nodes">How Nodes work</a>
         </div>
       </div>
     </div>
@@ -1039,8 +1078,8 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
         settle it. No wallet required to read the protocol first.
       </p>
       <div class="cta-btns rv" style="transition-delay:0.12s">
-        <a class="btn btn-p" href="app.html">Open the app</a>
-        <a class="btn btn-s" href="protocol.html">Read how it works</a>
+        <a class="btn btn-p" href="/app.html">Open the app</a>
+        <a class="btn btn-s" href="/protocol.html">Read how it works</a>
       </div>
     </div>
   </div>
@@ -1057,12 +1096,13 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
         </div>
         <p class="f-desc">The exit layer for tokenized real-world assets. Scored, tiered,
         LP-priced, settled in USDC on Stellar. Part of the Dobprotocol ecosystem.</p>
+        <div class="f-built"><span><img src="/media/logos/stellar.svg" alt="" width="16" height="16">Built on Stellar</span><span><img src="/media/logos/usdc.svg" alt="" width="16" height="16">Settled in USDC</span></div>
       </div>
       <div class="f-col">
         <h5>Protocol</h5>
-        <a href="protocol.html">How it works</a>
-        <a href="protocol.html#quote">Exit quote</a>
-        <a href="app.html">App</a>
+        <a href="/protocol.html">How it works</a>
+        <a href="/protocol.html#quote">Exit quote</a>
+        <a href="/app.html">App</a>
         <a href="https://docs.dobprotocol.com/dex/overview" target="_blank" rel="noopener">Documentation</a>
         <a href="https://github.com/Dobprotocol/stellar-exit-contracts" target="_blank" rel="noopener">GitHub</a>
       </div>
@@ -1072,6 +1112,18 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
         <a href="https://tokenize.dobprotocol.com" target="_blank" rel="noopener">Token Studio</a>
         <a href="https://validator.dobprotocol.com" target="_blank" rel="noopener">DobValidator</a>
         <a href="https://home.dobprotocol.com" target="_blank" rel="noopener">Pools</a>
+        <a href="https://link.dobprotocol.com" target="_blank" rel="noopener">DobLink</a>
+        <a href="https://dob.capital" target="_blank" rel="noopener">DOB Capital</a>
+        <a href="https://dobi.guru" target="_blank" rel="noopener">Dobi</a>
+        <a href="https://docs.dobprotocol.com" target="_blank" rel="noopener">Docs</a>
+      </div>
+      <div class="f-col">
+        <h5>Support</h5>
+        <a href="https://home.dobprotocol.com/contact?site=dob-dex" data-dob-contact>Contact</a>
+        <button type="button" data-dob-feedback>Send feedback</button>
+        <button type="button" data-dob-cookies>Cookie settings</button>
+        <a href="https://www.dobprotocol.com/privacy/">Privacy policy</a>
+        <a href="https://www.dobprotocol.com/terms/">Terms of service</a>
       </div>
     </div>
     <div class="f-bot">
@@ -1413,5 +1465,21 @@ footer{border-top:1px solid var(--b1);background:var(--s0);padding:56px 0 40px;}
   quote();
 })();
 </script>
+<script>
+(function () {
+  var cur = document.documentElement.lang || 'en';
+  function go(l) {
+    try { document.cookie = 'dob_lang=' + l + '; path=/; max-age=31536000; SameSite=Lax; Secure'; } catch (e) {}
+    location.href = l === 'en' ? '/' : '/' + l + '/';
+  }
+  var sel = document.getElementById('langSel');
+  if (sel) { sel.value = cur; sel.addEventListener('change', function () { go(sel.value); }); }
+  document.querySelectorAll('[data-lang]').forEach(function (a) {
+    a.addEventListener('click', function (e) { e.preventDefault(); go(a.getAttribute('data-lang')); });
+  });
+})();
+</script>
+<!-- DOB contact/feedback kit + cookie banner (shared by every DOB site) -->
+<script src="https://home.dobprotocol.com/contact-kit.js" defer data-site="dob-dex" data-consent="ga" data-privacy-url="https://www.dobprotocol.com/privacy/"></script>
 </body>
 </html>

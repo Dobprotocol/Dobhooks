@@ -8,16 +8,18 @@
   <meta name="theme-color" content="#08090b" />
   <link rel="canonical" href="https://dex.dobprotocol.com/app.html" />
   <meta name="robots" content="noindex,follow" />
-  <!-- GA4 de dobprotocol.com. Mismo measurement ID que el apex a proposito:
-       GA4 trackea subdominios bajo una sola property; una property nueva
-       partiria el historico. dex. no reportaba NADA hasta ahora. -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-1M2TNZYEZZ"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-1M2TNZYEZZ');
-  </script>
+  <!-- Google Analytics (GA4 G-1M2TNZYEZZ, same property as dobprotocol.com) with
+     Consent Mode v2: analytics is denied until the visitor accepts the DOB kit
+     cookie banner (localStorage dob_consent). -->
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {ad_storage:'denied', ad_user_data:'denied', ad_personalization:'denied', analytics_storage:'denied', wait_for_update:500});
+  try { if (localStorage.getItem('dob_consent') === 'granted') gtag('consent', 'update', {analytics_storage:'granted'}); } catch (e) {}
+  gtag('js', new Date());
+  gtag('config', 'G-1M2TNZYEZZ');
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-1M2TNZYEZZ"></script>
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
@@ -882,7 +884,7 @@
   </div>
   <div class="nav-r">
     <div class="net-wrap">
-      <button class="net" id="netBadge"><i></i> Stellar Testnet <span class="net-arrow">&#9662;</span></button>
+      <button class="net" id="netBadge"><img src="/media/logos/stellar.svg" alt="Stellar" width="13" height="13" style="vertical-align:-2px;margin-right:2px"> Stellar Testnet <span class="net-arrow">&#9662;</span></button>
       <!-- Two clients, not two chains of one client. Each has its own wallet,
            its own contracts and its own settlement, so this navigates. -->
       <div class="net-menu" id="netMenu">
@@ -1010,6 +1012,7 @@
           </div>
 
           <button class="sw-btn" id="sBtn">Connect a wallet to open an exit</button>
+          <div class="sw-wallets" style="display:flex;gap:12px;justify-content:center;margin-top:8px;font-size:11px;color:var(--text-3,#6a7382)"><span style="display:inline-flex;align-items:center;gap:5px"><img src="/media/logos/freighter.png" alt="" width="14" height="14">Freighter</span><span style="display:inline-flex;align-items:center;gap:5px"><img src="/dob-logo.svg" alt="" width="14" height="14">DobProtocol wallet</span><span style="display:inline-flex;align-items:center;gap:5px"><img src="/media/logos/usdc.svg" alt="" width="14" height="14">Paid in USDC</span></div>
         </div>
 
         <p class="sw-foot">The reference is what you say the lot is worth — nothing is paid from it, it
@@ -3563,5 +3566,19 @@ setInterval(function () { loadExits().catch(function () {}); loadStats(); }, 200
    live reads above are what the trading surfaces actually use. */
 setInterval(function () { loadSnapshot().catch(function () {}); }, 60000);
 </script>
+<footer class="app-foot" style="max-width:1100px;margin:32px auto 24px;padding:16px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12px;opacity:.75">
+  <a href="/" style="color:inherit">DobDex</a>
+  <a href="/protocol.html" style="color:inherit">How it works</a>
+  <a href="https://home.dobprotocol.com/contact?site=dob-dex" data-dob-contact style="color:inherit">Contact</a>
+  <button type="button" data-dob-feedback style="background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer;text-decoration:underline">Send feedback</button>
+  <button type="button" data-dob-cookies style="background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer;text-decoration:underline">Cookie settings</button>
+  <a href="https://www.dobprotocol.com/privacy/" style="color:inherit">Privacy policy</a>
+  <a href="https://www.dobprotocol.com/terms/" style="color:inherit">Terms of service</a>
+  <a href="https://dob.capital" style="color:inherit">DOB Capital</a>
+  <a href="https://dobi.guru" style="color:inherit">Dobi</a>
+  <span>Stellar testnet &middot; no real funds</span>
+</footer>
+<!-- DOB contact/feedback kit + cookie banner (shared by every DOB site) -->
+<script src="https://home.dobprotocol.com/contact-kit.js" defer data-site="dob-dex" data-consent="ga" data-privacy-url="https://www.dobprotocol.com/privacy/"></script>
 </body>
 </html>

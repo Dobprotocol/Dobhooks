@@ -8,16 +8,18 @@
   <meta name="theme-color" content="#08090b" />
   <link rel="canonical" href="https://dex.dobprotocol.com/app-evm.html" />
   <meta name="robots" content="noindex,follow" />
-  <!-- GA4 de dobprotocol.com. Mismo measurement ID que el apex a proposito:
-       GA4 trackea subdominios bajo una sola property; una property nueva
-       partiria el historico. dex. no reportaba NADA hasta ahora. -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-1M2TNZYEZZ"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-1M2TNZYEZZ');
-  </script>
+  <!-- Google Analytics (GA4 G-1M2TNZYEZZ, same property as dobprotocol.com) with
+     Consent Mode v2: analytics is denied until the visitor accepts the DOB kit
+     cookie banner (localStorage dob_consent). -->
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('consent', 'default', {ad_storage:'denied', ad_user_data:'denied', ad_personalization:'denied', analytics_storage:'denied', wait_for_update:500});
+  try { if (localStorage.getItem('dob_consent') === 'granted') gtag('consent', 'update', {analytics_storage:'granted'}); } catch (e) {}
+  gtag('js', new Date());
+  gtag('config', 'G-1M2TNZYEZZ');
+</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-1M2TNZYEZZ"></script>
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
@@ -1655,6 +1657,9 @@
           <a href="https://tokenize.dobprotocol.com" target="_blank">Token Studio</a>
           <a href="https://validator.dobprotocol.com" target="_blank">Validator</a>
           <a href="https://dobprotocol.com" target="_blank">Main Site</a>
+          <a href="https://home.dobprotocol.com/contact?site=dob-dex" data-dob-contact>Contact</a>
+          <a href="https://www.dobprotocol.com/privacy/">Privacy</a>
+          <a href="https://www.dobprotocol.com/terms/">Terms</a>
         </div>
       </div>
     </div>
@@ -3283,5 +3288,7 @@ renderAll();
   }catch(e){}
 })();
 </script>
+<!-- DOB contact/feedback kit + cookie banner (shared by every DOB site) -->
+<script src="https://home.dobprotocol.com/contact-kit.js" defer data-site="dob-dex" data-consent="ga" data-privacy-url="https://www.dobprotocol.com/privacy/"></script>
 </body>
 </html>
