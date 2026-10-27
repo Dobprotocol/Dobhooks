@@ -18,9 +18,9 @@
   "author": "OpenZeppelin",
   "license": "MIT",
   "devDependencies": {
-    "@nomicfoundation/hardhat-foundry": "^1.1.2",
+    "@nomicfoundation/hardhat-foundry": "^3.0.5",
     "@openzeppelin/docs-utils": "^0.1.6",
-    "hardhat": "^2.22.15",
+    "hardhat": "^3.21.1",
     "solidity-docgen": "^0.6.0-beta.36"
   }
 }
