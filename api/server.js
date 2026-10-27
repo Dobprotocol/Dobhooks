@@ -3,9 +3,11 @@ const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
 
-// Load .env manually to handle special characters properly
-const envPath = path.join(__dirname, '.env');
-if (fs.existsSync(envPath)) {
+// Load .env manually to handle special characters properly.
+// Prod: api/.env (solo en el server, fuera de git).
+// Dev (S22): sin api/.env, el .env.local de la raíz que escribe `devenv env dobhooks` (devbox, N3).
+const envPath = [path.join(__dirname, '.env'), path.join(__dirname, '..', '.env.local')].find(f => fs.existsSync(f));
+if (envPath) {
   for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
     const m = line.match(/^([A-Z_]+)=(.*)$/);
     if (m) process.env[m[1]] = m[2];

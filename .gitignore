@@ -13,3 +13,6 @@ app/videos/
 CLAUDE.md
 DOBVALIDATOR_ORACLE_PROMPT.md
 REVISION
+
+# devenv env dobhooks (S22): valores N3 de la devbox; nunca se versiona
+.env.local
