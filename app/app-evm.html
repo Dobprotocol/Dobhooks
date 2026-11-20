@@ -1832,7 +1832,7 @@ async function loadValidatedPools(){
         certificate:p.certificate?{certificationLevel:dobSafe(p.certificate.certificationLevel,40),overallScore:dobSafe(p.certificate.overallScore,10)}:null,
         validatedAt:dobSafe(p.validatedAt,40),
         overallScore:dobSafe(p.overallScore,10),
-        poolAddress:p.poolAddress,
+        poolAddress:dobSafe(p.poolAddress,100),
         fromTokenize:true
       });
       // Register token address for the correct network

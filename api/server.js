@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { Pool } = require('pg');
 
 // Load .env manually to handle special characters properly.
@@ -68,6 +69,29 @@ const OUR_CONTRACTS = {
   ].map(a => a.toLowerCase())),
 };
 const INGEST_TOKEN = process.env.DEX_INGEST_TOKEN || '';
+function ingestAuthorized(auth) {
+  if (!INGEST_TOKEN || typeof auth !== 'string') return false;
+  const a = crypto.createHash('sha256').update(auth).digest();
+  const b = crypto.createHash('sha256').update('Bearer ' + INGEST_TOKEN).digest();
+  return crypto.timingSafeEqual(a, b);
+}
+
+// ?limit= → integer in [1, max]; junk (NaN, negative, 0) falls back to the default instead of
+// reaching Postgres as `LIMIT NaN` and coming back as a 500.
+function parseLimit(v, def, max) {
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) && n > 0 ? Math.min(n, max) : def;
+}
+
+// Amounts come from the browser, not from the receipt: bound them so a verified-but-unrelated
+// tx cannot plant 1e300 or negative volume in the public history.
+const MAX_AMOUNT = 1e15;
+const okAmount = v => v !== '' && v !== null && typeof v !== 'boolean' && Number.isFinite(Number(v)) && Number(v) >= 0 && Number(v) <= MAX_AMOUNT;
+
+// /api/validated-pools runs two queries on the shared Dober-MVP / validator databases; cache the
+// answer per network set so public traffic cannot spend their connection budget.
+const VP_TTL_MS = 60e3;
+const vpCache = new Map();
 
 function clientIp(req) {
   const r = req.headers['x-real-ip'];   // set by nginx to $remote_addr
@@ -267,10 +291,23 @@ const server = http.createServer(async (req, res) => {
   if (isWrite && ['/api/swaps', '/api/redeems', '/api/lp-events'].includes(url.pathname)) {
     let b;
     try { b = await readBody(req); } catch (e) { return send(res, 400, { error: e.message }); }
-    const num = v => v !== '' && v !== null && Number.isFinite(Number(v));
+    const num = okAmount;
     const need = { '/api/swaps': ['amountIn', 'amountOut'], '/api/redeems': ['dusdcAmount', 'usdcAmount'], '/api/lp-events': ['amount'] }[url.pathname];
     if (!b || typeof b !== 'object' || need.some(k => !num(b[k]))) return send(res, 400, { error: 'missing or non-numeric ' + need.join('/') });
     if (url.pathname === '/api/swaps' && !['buy', 'sell'].includes(b.direction)) return send(res, 400, { error: 'direction must be buy|sell' });
+    if (b.oraclePrice != null && !okAmount(b.oraclePrice)) return send(res, 400, { error: 'non-numeric oraclePrice' });
+    if (typeof b.txHash !== 'string' || !/^0x[0-9a-fA-F]{64}$/.test(b.txHash)) return send(res, 400, { error: 'invalid txHash' });
+    b.txHash = b.txHash.toLowerCase();
+    // Replays are rejected before spending RPC calls on them.
+    try {
+      const dup = await dexDb.query(
+        `SELECT 1 FROM swap_history WHERE LOWER(tx_hash) = $1 UNION ALL SELECT 1 FROM redeem_history WHERE LOWER(tx_hash) = $1
+         UNION ALL SELECT 1 FROM lp_events WHERE LOWER(tx_hash) = $1 LIMIT 1`, [b.txHash]);
+      if (dup.rowCount) return send(res, 409, { error: 'tx already recorded' });
+    } catch (e) {
+      console.error('dup check error:', e.message);
+      return send(res, 500, { error: 'Internal error' });
+    }
     for (const k of ['tokenId', 'eventType']) if (b[k] != null) b[k] = String(b[k]).slice(0, 32);
     try {
       const v = await verifyTx(b);
@@ -282,29 +319,27 @@ const server = http.createServer(async (req, res) => {
       console.error('verifyTx error:', e.message);
       return send(res, 503, { error: 'chain verification unavailable' }, { 'Retry-After': '30' });
     }
-    // A tx is one event: reject a hash already recorded in any of the three tables.
-    try {
-      const dup = await dexDb.query(
-        `SELECT 1 FROM swap_history WHERE tx_hash = $1 UNION ALL SELECT 1 FROM redeem_history WHERE tx_hash = $1
-         UNION ALL SELECT 1 FROM lp_events WHERE tx_hash = $1 LIMIT 1`, [b.txHash]);
-      if (dup.rowCount) return send(res, 409, { error: 'tx already recorded' });
-    } catch (e) {
-      console.error('dup check error:', e.message);
-      return send(res, 500, { error: 'Internal error' });
-    }
     req.verifiedBody = b;
   }
   if (isWrite && url.pathname === '/api/oracle-updates') {
     const auth = req.headers.authorization || '';
-    if (!INGEST_TOKEN || auth !== 'Bearer ' + INGEST_TOKEN) return send(res, 401, { error: 'unauthorized' });
+    if (!ingestAuthorized(auth)) return send(res, 401, { error: 'unauthorized' });
   }
 
   // ── Validated pools (from MVP + Validator DBs) ──
   if (req.method === 'GET' && url.pathname === '/api/validated-pools') {
     try {
-      const networks = (url.searchParams.get('networks') || '1301')
-        .split(',').map(Number).filter(Boolean);
-      const pools = await getValidatedPools(networks);
+      const networks = [...new Set((url.searchParams.get('networks') || '1301')
+        .split(',').slice(0, 20).map(n => parseInt(n, 10)).filter(n => Number.isInteger(n) && n > 0 && n < 2 ** 31))]
+        .sort((a, b) => a - b);
+      const key = networks.join(',');
+      let hitc = vpCache.get(key);
+      if (!hitc || Date.now() - hitc.at > VP_TTL_MS) {
+        hitc = { at: Date.now(), pools: await getValidatedPools(networks) };
+        if (vpCache.size > 200) vpCache.clear();
+        vpCache.set(key, hitc);
+      }
+      const pools = hitc.pools;
       res.writeHead(200, headers);
       res.end(JSON.stringify({ pools }));
     } catch (e) {
@@ -339,12 +374,12 @@ const server = http.createServer(async (req, res) => {
     try {
       const wallet = url.searchParams.get('wallet');
       const chainId = url.searchParams.get('chainId');
-      const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 200);
+      const limit = parseLimit(url.searchParams.get('limit'), 50, 200);
       let q = 'SELECT * FROM swap_history';
       const params = [];
       const where = [];
       if (wallet) { params.push(wallet.toLowerCase()); where.push(`LOWER(wallet) = $${params.length}`); }
-      if (chainId) { params.push(parseInt(chainId)); where.push(`chain_id = $${params.length}`); }
+      if (chainId && Number.isInteger(parseInt(chainId, 10))) { params.push(parseInt(chainId, 10)); where.push(`chain_id = $${params.length}`); }
       if (where.length) q += ' WHERE ' + where.join(' AND ');
       q += ' ORDER BY created_at DESC LIMIT $' + (params.length + 1);
       params.push(limit);
@@ -403,9 +438,9 @@ const server = http.createServer(async (req, res) => {
       const wallet = url.searchParams.get('wallet');
       const networksParam = url.searchParams.get('networks');
       const networks = networksParam
-        ? networksParam.split(',').map(n => parseInt(n, 10)).filter(n => Number.isFinite(n))
+        ? networksParam.split(',').slice(0, 20).map(n => parseInt(n, 10)).filter(n => Number.isInteger(n) && n > 0 && n < 2 ** 31)
         : null;
-      const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 200);
+      const limit = parseLimit(url.searchParams.get('limit'), 50, 200);
       const conditions = [];
       const params = [];
       if (wallet) {
@@ -464,11 +499,11 @@ const server = http.createServer(async (req, res) => {
     try {
       const tokenId = url.searchParams.get('tokenId');
       const chainId = url.searchParams.get('chainId');
-      const limit = Math.min(parseInt(url.searchParams.get('limit') || '30'), 200);
+      const limit = parseLimit(url.searchParams.get('limit'), 30, 200);
       const params = [];
       const where = [];
-      if (tokenId) { params.push(tokenId); where.push(`token_id = $${params.length}`); }
-      if (chainId) { params.push(parseInt(chainId)); where.push(`chain_id = $${params.length}`); }
+      if (tokenId) { params.push(String(tokenId).slice(0, 32)); where.push(`token_id = $${params.length}`); }
+      if (chainId && Number.isInteger(parseInt(chainId, 10))) { params.push(parseInt(chainId, 10)); where.push(`chain_id = $${params.length}`); }
       let q = 'SELECT * FROM oracle_updates';
       if (where.length) q += ' WHERE ' + where.join(' AND ');
       q += ' ORDER BY updated_at DESC LIMIT $' + (params.length + 1);
