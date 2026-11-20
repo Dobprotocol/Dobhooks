@@ -2103,10 +2103,10 @@ async function loadMarket() {
     var dec = Number(x.payment_token_decimals || 0);
     (asks[x.token_address] = asks[x.token_address] || []).push({
       price: Number(x.price || 0) / Math.pow(10, dec),
-      sym: x.payment_token_symbol || 'token',
+      sym: dobSafe(x.payment_token_symbol, 24) || 'token',
       left: Number(x.current_allowance || 0),
       sold: Number(x.total_sold_units || 0),
-      seller: x.owner_address,
+      seller: dobSafe(x.owner_address, 100),
       netId: Number(x.chain_id || (x.pool && x.pool.network_id) || 0)
     });
     /* Built for every listed pool, not only the unmatched ones: the
