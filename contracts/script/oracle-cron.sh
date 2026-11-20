@@ -13,7 +13,8 @@ flock -n 9 || { echo "[$(date '+%F %T')] previous run still going, skipping"; ex
 source "$DIR/.env"
 
 export PATH="$HOME/.foundry/bin:$PATH"
-export PRIVATE_KEY
+export ETH_KEYSTORE="${ETH_KEYSTORE:-$HOME/.foundry/keystores/dobdex-oracle-testnet}"
+export ETH_PASSWORD="${ETH_PASSWORD:-$HOME/.foundry/keystores/.dobdex-oracle-testnet.pw}"
 
 # ── Unichain Sepolia (override .env Arbitrum addresses) ──
 export RPC_URL="https://sepolia.unichain.org"

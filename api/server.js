@@ -15,11 +15,20 @@ if (envPath) {
   }
 }
 
-// DB credentials from environment variables ONLY — never hardcode
+// DB connection from environment variables ONLY — no defaults: a missing var used to fall back to
+// the prod tunnel (localhost:5435 / dob-prod), so a half-configured PC would hit prod. Now it fails.
+// Dev: `devenv env dobhooks` (devbox). Prod: api/.env on the server sets all of them.
+const missing = ['HOST', 'PORT', 'NAME', 'USER', 'PASS'].flatMap(k => ['MVP_DB_', 'VAL_DB_'].map(p => p + k))
+  .filter(k => !process.env[k]);
+if (missing.length) {
+  console.error(`[env] missing ${missing.join(', ')} (dev: devenv env dobhooks)`);
+  process.exit(1);
+}
+
 const mvpDb = new Pool({
-  host: process.env.MVP_DB_HOST || 'localhost',
-  port: parseInt(process.env.MVP_DB_PORT || '5435'),
-  database: process.env.MVP_DB_NAME || 'dob-prod',
+  host: process.env.MVP_DB_HOST,
+  port: parseInt(process.env.MVP_DB_PORT),
+  database: process.env.MVP_DB_NAME,
   user: process.env.MVP_DB_USER,
   password: process.env.MVP_DB_PASS,
   max: 5,
@@ -27,9 +36,9 @@ const mvpDb = new Pool({
 });
 
 const valDb = new Pool({
-  host: process.env.VAL_DB_HOST || 'localhost',
-  port: parseInt(process.env.VAL_DB_PORT || '5435'),
-  database: process.env.VAL_DB_NAME || 'dob-validator',
+  host: process.env.VAL_DB_HOST,
+  port: parseInt(process.env.VAL_DB_PORT),
+  database: process.env.VAL_DB_NAME,
   user: process.env.VAL_DB_USER,
   password: process.env.VAL_DB_PASS,
   max: 5,
@@ -37,8 +46,8 @@ const valDb = new Pool({
 });
 
 const dexDb = new Pool({
-  host: process.env.DEX_DB_HOST || process.env.MVP_DB_HOST || '127.0.0.1',
-  port: parseInt(process.env.DEX_DB_PORT || process.env.MVP_DB_PORT || '5435'),
+  host: process.env.DEX_DB_HOST || process.env.MVP_DB_HOST,
+  port: parseInt(process.env.DEX_DB_PORT || process.env.MVP_DB_PORT),
   database: process.env.DEX_DB_NAME || 'dob-dex',
   user: process.env.DEX_DB_USER || process.env.MVP_DB_USER,
   password: process.env.DEX_DB_PASS || process.env.MVP_DB_PASS,

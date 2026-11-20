@@ -27,7 +27,14 @@ set -euo pipefail
 
 # ── Configuration ──
 RPC_URL="${RPC_URL:?Set RPC_URL}"
-PRIVATE_KEY="${PRIVATE_KEY:?Set PRIVATE_KEY}"
+# Signer: an encrypted foundry keystore, never a raw key. `--private-key` puts
+# the key in argv, readable by any local user via `ps` (S18). cast reads both
+# of these from the environment, so no key or password ever reaches argv.
+#   ETH_KEYSTORE  path to the JSON keystore (600)
+#   ETH_PASSWORD  path to the file holding its password (600)
+: "${ETH_KEYSTORE:?Set ETH_KEYSTORE (foundry keystore path)}"
+: "${ETH_PASSWORD:?Set ETH_PASSWORD (keystore password file path)}"
+export ETH_KEYSTORE ETH_PASSWORD
 REGISTRY="${REGISTRY:?Set REGISTRY address}"
 DCT="${DCT:?Set DCT address}"
 SFT="${SFT:?Set SFT address}"
@@ -41,7 +48,7 @@ FLT="${FLT:-}"
 SCT="${SCT:-}"
 
 # Derived, never printed as a key: we need the address to ask for its nonce.
-SENDER=$(cast wallet address --private-key "$PRIVATE_KEY")
+SENDER=$(cast wallet address)
 
 # Base prices (USD per token)
 DCT_BASE=100    # $100
@@ -110,7 +117,6 @@ update_price() {
           "setPrice(address,uint256)" \
           "$token" "$price_wei" \
           --rpc-url "$RPC_URL" \
-          --private-key "$PRIVATE_KEY" \
           --nonce "$NONCE" \
           --silent 2>&1); then
       NONCE=$((NONCE + 1))
